@@ -1,0 +1,3090 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<title>Pedal Rush — Roguelite</title>
+<style>
+  html, body {
+    margin: 0; padding: 0; min-height: 100%;
+    background: #0f1216; color: #eee;
+    font-family: system-ui, -apple-system, Segoe UI, Arial, sans-serif;
+    display: flex; align-items: center; justify-content: center;
+    overflow: hidden;
+    touch-action: none;
+    -webkit-user-select: none; user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .wrap { text-align: center; }
+  canvas {
+    display: block; margin: 0 auto;
+    background: #2a3a22;
+    border-radius: 10px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.5);
+    max-width: 98vw; max-height: 92vh; height: auto;
+    touch-action: none;
+  }
+  .hint { margin-top: 8px; font-size: 13px; opacity: .75; }
+  kbd { background:#333; padding:2px 6px; border-radius:4px; font-size:12px; border:1px solid #555; }
+  /* Hide keyboard hint on touch devices */
+  @media (hover: none) and (pointer: coarse) {
+    .hint { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <canvas id="game" width="540" height="720" tabindex="0"></canvas>
+  <div class="hint">
+    <kbd>←</kbd>/<kbd>A</kbd> left &nbsp; <kbd>→</kbd>/<kbd>D</kbd> right &nbsp;
+    <kbd>↑</kbd>/<kbd>W</kbd> fireworks &nbsp; <kbd>1</kbd>/<kbd>2</kbd>/<kbd>3</kbd> pick upgrade &nbsp;
+    <kbd>R</kbd> restart
+  </div>
+</div>
+<script>
+(() => {
+'use strict';
+const cv = document.getElementById('game');
+const ctx = cv.getContext('2d');
+const W = cv.width, H = cv.height;
+
+// Road layout
+const ROAD_X = 90, ROAD_W = 360;
+const LANE_W = ROAD_W / 3;
+const LANE_X = [ROAD_X + LANE_W*0.5, ROAD_X + LANE_W*1.5, ROAD_X + LANE_W*2.5];
+const CYCLIST_Y = H - 110;
+
+// --- input ---
+const keys = {};
+const pressed = {}; // edge-triggered
+let isTouchDevice = false;
+let touchHintShown = 0; // frames to show touch hint overlay
+cv.focus();
+window.addEventListener('keydown', e => {
+  if (!keys[e.code]) pressed[e.code] = true;
+  keys[e.code] = true;
+  if (['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Space'].includes(e.code)) e.preventDefault();
+  // --- Pause / resume (P or Escape during play; click to resume from paused) ---
+  if (typeof game !== 'undefined' && game) {
+    if (e.code === 'KeyP' || e.code === 'Escape') {
+      if (game.state === 'playing') { game.state = 'paused'; }
+      else if (game.state === 'paused') { game.state = 'playing'; }
+    }
+  }
+  // --- Test cheats: while playing, grant a legendary charge ---
+  // Z = Circle of Immortality, X = Bomb, C = 5s Immunity, V = Second Wind
+  if (typeof game !== 'undefined' && game && game.state === 'playing') {
+    if (e.code === 'KeyZ') { game.legCircleCharges++; }
+    if (e.code === 'KeyX') { game.legBombCharges++;   }
+    if (e.code === 'KeyC') { game.legImmCharges++;    }
+    if (e.code === 'KeyV') { game.legReviveCharges++; }
+  }
+});
+
+// Auto-pause when the tab loses focus / goes hidden
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && typeof game !== 'undefined' && game && game.state === 'playing') {
+    game.state = 'paused';
+  }
+});
+window.addEventListener('blur', () => {
+  if (typeof game !== 'undefined' && game && game.state === 'playing') {
+    game.state = 'paused';
+  }
+});
+window.addEventListener('keyup', e => { keys[e.code] = false; });
+cv.addEventListener('click', (e) => {
+  cv.focus();
+  if (!game) return;
+  // Menus / game-over / paused → forward to touch handler
+  if (game.state === 'menu' || game.state === 'develop' || game.state === 'shop' ||
+      game.state === 'gameover' || game.state === 'paused') {
+    handleTouch(e.clientX, e.clientY);
+    return;
+  }
+  // Playing: only handle clicks on the pause button (desktop)
+  if (game.state === 'playing') {
+    const { x, y } = canvasCoords(e.clientX, e.clientY);
+    if (pointInRect(x, y, pauseButtonRect())) { game.state = 'paused'; }
+  }
+});
+
+// --- touch ---
+// Map canvas coordinates from a client-space touch
+function canvasCoords(clientX, clientY) {
+  const rect = cv.getBoundingClientRect();
+  const x = (clientX - rect.left) * (W / rect.width);
+  const y = (clientY - rect.top) * (H / rect.height);
+  return { x, y };
+}
+
+function handleTouch(clientX, clientY) {
+  isTouchDevice = true;
+  const { x, y } = canvasCoords(clientX, clientY);
+
+  // Menu / Develop / Shop: just forward the tap for menu handler to consume
+  if (game.state === 'menu' || game.state === 'develop' || game.state === 'shop') {
+    menuTap(clientX, clientY);
+    return;
+  }
+
+  // Game over: tap anywhere restarts, unless user tapped the "Menu" pill
+  if (game.state === 'gameover') {
+    // Game-over "Menu" button (bottom center-ish). Check first.
+    const mb = gameOverMenuRect();
+    if (pointInRect(x, y, mb)) { pressed['KeyM'] = true; return; }
+    pressed['KeyR'] = true;
+    return;
+  }
+  // Paused: tap anywhere resumes
+  if (game.state === 'paused') {
+    game.state = 'playing';
+    return;
+  }
+  // Playing: pause button takes priority
+  if (game.state === 'playing') {
+    const pb = pauseButtonRect();
+    if (pointInRect(x, y, pb)) { game.state = 'paused'; return; }
+  }
+
+  // Upgrade screen: tap a card
+  if (game.state === 'upgrade') {
+    const cardW = 150, cardH = 300, gap = 20;
+    const totalW = cardW * 3 + gap * 2;
+    const startX = (W - totalW) / 2;
+    const cardY = 180;
+    for (let i = 0; i < 3; i++) {
+      const cx = startX + i * (cardW + gap);
+      if (x >= cx && x <= cx + cardW && y >= cardY && y <= cardY + cardH) {
+        pressed['Digit' + (i+1)] = true;
+        return;
+      }
+    }
+    return;
+  }
+
+  // Playing: check the slow-time corner button first (bottom-right)
+  if (game.slowUnlocked) {
+    const btn = slowButtonRect();
+    if (x >= btn.x && x <= btn.x + btn.w && y >= btn.y && y <= btn.y + btn.h) {
+      pressed['SlowBtn'] = true;
+      return;
+    }
+  }
+  // Upper ~38% is firework zone, lower half is left/right lanes
+  if (y < H * 0.38) {
+    pressed['ArrowUp'] = true;
+    return;
+  }
+  if (x < W / 2) pressed['ArrowLeft'] = true;
+  else           pressed['ArrowRight'] = true;
+}
+
+// Rect of the on-canvas slow-time button
+function slowButtonRect() {
+  const size = 62;
+  return { x: W - size - 12, y: H - size - 40, w: size, h: size };
+}
+// Rect of the in-game pause button — placed under the shield indicator (top-left)
+function pauseButtonRect() {
+  return { x: 14, y: 70, w: 30, h: 30 };
+}
+
+cv.addEventListener('touchstart', e => {
+  e.preventDefault();
+  for (const t of e.changedTouches) handleTouch(t.clientX, t.clientY);
+  touchHintShown = Math.max(0, touchHintShown - 30); // fade faster after use
+}, { passive: false });
+
+// Prevent scrolling / pinch while playing on mobile
+cv.addEventListener('touchmove', e => { e.preventDefault(); }, { passive: false });
+cv.addEventListener('touchend', e => { e.preventDefault(); }, { passive: false });
+
+// Detect likely touch device (show on-screen hint for ~6 seconds at start)
+if ('ontouchstart' in window || (navigator.maxTouchPoints || 0) > 0) {
+  isTouchDevice = true;
+  touchHintShown = 360; // ~6s
+}
+
+// --- helpers ---
+const rand = (a,b) => a + Math.random()*(b-a);
+const choice = arr => arr[Math.floor(Math.random()*arr.length)];
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const SLOW_MULT = 0.35; // scroll speed multiplier during slow-time
+function slowMult(g) { return g.slowTimer > 0 ? SLOW_MULT : 1; }
+
+// ============================================================
+// Audio (synthesized with Web Audio API — no music, just SFX)
+// ============================================================
+let audioCtx = null;
+let audioOn = true;
+function ensureAudio() {
+  if (audioCtx) { if (audioCtx.state === 'suspended') audioCtx.resume(); return; }
+  try {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  } catch (e) { audioOn = false; }
+}
+// Unlock audio on first keypress or touch (browsers require user gesture)
+const unlockAudio = () => ensureAudio();
+window.addEventListener('keydown', unlockAudio, { once: false });
+window.addEventListener('touchstart', unlockAudio, { once: false });
+window.addEventListener('mousedown', unlockAudio, { once: false });
+
+function tone({ freq, freqEnd, dur, type='sine', vol=0.18, attack=0.005, release=0.05, delay=0 }) {
+  if (!audioOn || !audioCtx) return;
+  const now = audioCtx.currentTime + delay;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, now);
+  if (freqEnd != null) osc.frequency.exponentialRampToValueAtTime(Math.max(1, freqEnd), now + dur);
+  gain.gain.setValueAtTime(0, now);
+  gain.gain.linearRampToValueAtTime(vol, now + attack);
+  gain.gain.setValueAtTime(vol, now + Math.max(attack, dur - release));
+  gain.gain.linearRampToValueAtTime(0.0001, now + dur);
+  osc.connect(gain).connect(audioCtx.destination);
+  osc.start(now);
+  osc.stop(now + dur + 0.02);
+}
+function noise({ dur, vol=0.18, filterFreq=1200, filterQ=1, delay=0 }) {
+  if (!audioOn || !audioCtx) return;
+  const now = audioCtx.currentTime + delay;
+  const bufSize = Math.floor(audioCtx.sampleRate * dur);
+  const buf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < bufSize; i++) data[i] = (Math.random() * 2 - 1) * (1 - i/bufSize);
+  const src = audioCtx.createBufferSource();
+  src.buffer = buf;
+  const bp = audioCtx.createBiquadFilter();
+  bp.type = 'bandpass'; bp.frequency.value = filterFreq; bp.Q.value = filterQ;
+  const gain = audioCtx.createGain();
+  gain.gain.setValueAtTime(vol, now);
+  gain.gain.linearRampToValueAtTime(0.0001, now + dur);
+  src.connect(bp).connect(gain).connect(audioCtx.destination);
+  src.start(now);
+}
+const sfx = {
+  lane:       () => tone({ freq: 520, freqEnd: 640, dur: 0.05, type: 'square', vol: 0.08 }),
+  fwLaunch:   () => { tone({ freq: 300, freqEnd: 900, dur: 0.18, type: 'sawtooth', vol: 0.12 });
+                      noise({ dur: 0.12, vol: 0.06, filterFreq: 3000 }); },
+  fwHit:      () => { noise({ dur: 0.18, vol: 0.25, filterFreq: 1800, filterQ: 2 });
+                      tone({ freq: 180, freqEnd: 60, dur: 0.22, type: 'square', vol: 0.1 }); },
+  hit:        () => { noise({ dur: 0.25, vol: 0.3, filterFreq: 300 });
+                      tone({ freq: 130, freqEnd: 70, dur: 0.2, type: 'sawtooth', vol: 0.2 }); },
+  heal:       () => { tone({ freq: 660, dur: 0.08, type: 'triangle', vol: 0.15 });
+                      tone({ freq: 880, dur: 0.1, type: 'triangle', vol: 0.15, delay: 0.08 });
+                      tone({ freq: 1320, dur: 0.14, type: 'triangle', vol: 0.14, delay: 0.16 }); },
+  shieldHit:  () => { tone({ freq: 700, freqEnd: 500, dur: 0.1, type: 'triangle', vol: 0.14 });
+                      noise({ dur: 0.05, vol: 0.06, filterFreq: 4000 }); },
+  shieldBreak:() => { noise({ dur: 0.3, vol: 0.25, filterFreq: 2000, filterQ: 3 });
+                      tone({ freq: 400, freqEnd: 100, dur: 0.25, type: 'square', vol: 0.15 }); },
+  upgradePick:() => { tone({ freq: 523, dur: 0.09, type: 'triangle', vol: 0.14 });
+                      tone({ freq: 659, dur: 0.09, type: 'triangle', vol: 0.14, delay: 0.08 });
+                      tone({ freq: 784, dur: 0.12, type: 'triangle', vol: 0.14, delay: 0.16 });
+                      tone({ freq: 1047, dur: 0.18, type: 'triangle', vol: 0.16, delay: 0.26 }); },
+  gameOver:   () => { tone({ freq: 520, freqEnd: 180, dur: 0.5, type: 'sawtooth', vol: 0.22 });
+                      tone({ freq: 260, freqEnd: 90, dur: 0.6, type: 'square', vol: 0.18, delay: 0.18 }); },
+  legendary:  () => { tone({ freq: 800, dur: 0.1, type: 'triangle', vol: 0.18 });
+                      tone({ freq: 1200, dur: 0.12, type: 'triangle', vol: 0.16, delay: 0.08 });
+                      tone({ freq: 1600, dur: 0.18, type: 'triangle', vol: 0.14, delay: 0.18 });
+                      noise({ dur: 0.25, vol: 0.08, filterFreq: 4000 }); },
+  bomb:       () => { noise({ dur: 0.5, vol: 0.32, filterFreq: 500, filterQ: 1 });
+                      tone({ freq: 100, freqEnd: 30, dur: 0.5, type: 'sawtooth', vol: 0.22 }); },
+  circle:     () => { tone({ freq: 440, dur: 0.1, type: 'sine', vol: 0.18 });
+                      tone({ freq: 660, dur: 0.1, type: 'sine', vol: 0.18, delay: 0.1 });
+                      tone({ freq: 880, dur: 0.15, type: 'sine', vol: 0.16, delay: 0.2 });
+                      noise({ dur: 0.3, vol: 0.1, filterFreq: 3000, delay: 0.05 }); },
+  slowStart:  () => { tone({ freq: 700, freqEnd: 350, dur: 0.35, type: 'triangle', vol: 0.18 }); },
+  slowEnd:    () => { tone({ freq: 350, freqEnd: 700, dur: 0.2, type: 'triangle', vol: 0.12 }); },
+  heartPickup:() => { tone({ freq: 1046, dur: 0.08, type: 'triangle', vol: 0.16 });
+                      tone({ freq: 1318, dur: 0.1, type: 'triangle', vol: 0.14, delay: 0.07 }); },
+};
+
+// ============================================================
+// Game state
+// ============================================================
+let game;
+
+// ---- Home cyclist image asset (flat-illustration) ----
+const homeCyclistImg = new Image();
+let homeCyclistImgReady = false;
+homeCyclistImg.onload = () => { homeCyclistImgReady = true; };
+homeCyclistImg.src = 'cyclist_home.png';
+
+// ---------- Persistent save (best, coins, dev points, upgrades, skins) ----------
+const SAVE_KEY = 'pedalRushSave_v2';
+const DEFAULT_SAVE = {
+  best: 0,
+  coins: 0,
+  dp: 0,                // development points
+  skin: 'default',
+  owned: ['default'],
+  dev: {},              // { maxHp: levelsTaken, shield: x, immunity: x, legImm: x, fwCd: x }
+};
+function loadSave() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) {
+      // Migrate old best score if present
+      const oldBest = parseInt(localStorage.getItem('pedalRushBest') || '0', 10) || 0;
+      return { ...DEFAULT_SAVE, best: oldBest };
+    }
+    const parsed = JSON.parse(raw);
+    return { ...DEFAULT_SAVE, ...parsed, dev: { ...(parsed.dev || {}) }, owned: [...(parsed.owned || ['default'])] };
+  } catch (e) { return { ...DEFAULT_SAVE }; }
+}
+function saveNow() {
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify(SAVE)); } catch (e) {}
+}
+let SAVE = loadSave();
+// Legacy shim so existing code that reads bestScore still works
+let bestScore = SAVE.best;
+function saveBest(v) {
+  SAVE.best = Math.floor(v);
+  bestScore = SAVE.best;
+  saveNow();
+}
+
+// ---------- Skins ----------
+const SKINS = {
+  default:     { name: 'Classic',      price: 0,    locked: false, frame: '#d64747', jersey: '#5a7dd6', arm: '#3f5fbf', helmet: '#e8e8e8' },
+  red_racer:   { name: 'Red Racer',    price: 500,  locked: false, frame: '#e82828', jersey: '#b01818', arm: '#7a1010', helmet: '#ffd0d0' },
+  neon_blue:   { name: 'Neon Blue',    price: 500,  locked: false, frame: '#00c8ff', jersey: '#0070c0', arm: '#004580', helmet: '#e0f5ff' },
+  forest:      { name: 'Forest',       price: 800,  locked: false, frame: '#2a8a4a', jersey: '#1a6438', arm: '#0e3a20', helmet: '#d8e8c0' },
+  sunset_pink: { name: 'Sunset Pink',  price: 800,  locked: false, frame: '#ff5da7', jersey: '#c93580', arm: '#80205a', helmet: '#ffe0ee' },
+  gold:        { name: 'Gold Plated',  price: 1500, locked: false, frame: '#ffc83a', jersey: '#c89020', arm: '#8c6010', helmet: '#fff3b0' },
+  stealth:     { name: 'Stealth',      price: 1500, locked: false, frame: '#1a1a1a', jersey: '#2c2c2c', arm: '#0a0a0a', helmet: '#404040' },
+};
+function currentSkin() { return SKINS[SAVE.skin] || SKINS.default; }
+
+// ---------- Develop (permanent upgrades with multi-level costs) ----------
+// Each entry: id -> { name, desc, levels: [{ cost, label }] }
+// Every upgrade has 5 levels with steeply-escalating costs.
+const DEV = {
+  maxHp:    { name: 'Max Health',         desc: 'Start each run with more max HP.',
+              levels: [
+                {cost:10,  label:'+1 → 4 HP'},
+                {cost:25,  label:'+1 → 5 HP'},
+                {cost:50,  label:'+1 → 6 HP'},
+                {cost:100, label:'+1 → 7 HP'},
+                {cost:200, label:'+1 → 8 HP'},
+              ] },
+  shield:   { name: 'Starting Shield',    desc: 'Begin each run with shield already up.',
+              levels: [
+                {cost:10,  label:'Start with 1 shield'},
+                {cost:25,  label:'Start with 2 shield'},
+                {cost:50,  label:'Start with 3 shield'},
+                {cost:100, label:'Start with 4 shield'},
+                {cost:200, label:'Start with 5 shield'},
+              ] },
+  immunity: { name: 'Hit Immunity',       desc: 'Longer invulnerability after a hit.',
+              levels: [
+                {cost:15,  label:'+0.25s (0.75s)'},
+                {cost:30,  label:'+0.25s (1.00s)'},
+                {cost:60,  label:'+0.25s (1.25s)'},
+                {cost:120, label:'+0.25s (1.50s)'},
+                {cost:240, label:'+0.25s (1.75s)'},
+              ] },
+  legImm:   { name: 'Legendary Immunity', desc: 'Extend the 5s Immunity legendary.',
+              levels: [
+                {cost:100,  label:'+1s (6s)'},
+                {cost:200,  label:'+1s (7s)'},
+                {cost:400,  label:'+1s (8s)'},
+                {cost:700,  label:'+1s (9s)'},
+                {cost:1100, label:'+1s (10s)'},
+              ] },
+  fwCd:     { name: 'Firework Min CD',    desc: 'Lower the firework cooldown floor.',
+              levels: [
+                {cost:10, label:'-1s (9s)'},
+                {cost:15, label:'-1s (8s)'},
+                {cost:20, label:'-1s (7s)'},
+                {cost:30, label:'-1s (6s)'},
+                {cost:50, label:'-1s (5s)'},
+              ] },
+};
+function devLevel(id) { return SAVE.dev[id] || 0; }
+function devNextCost(id) {
+  const d = DEV[id]; const lvl = devLevel(id);
+  if (lvl >= d.levels.length) return null;
+  return d.levels[lvl].cost;
+}
+
+function newGame() {
+  const s = {
+    t: 0,                        // frames
+    scroll: 0,                   // road scroll offset
+    speed: 4.0,                  // scroll speed (px/frame)
+    score: 0,                    // meters
+    state: 'menu',               // 'menu' | 'playing' | 'upgrade' | 'gameover' | 'develop' | 'shop'
+    menuFrom: 'menu',            // which screen the user came from (so Back knows)
+    cyclist: { lane: 1, x: LANE_X[1], wheel: 0 },
+    obstacles: [],
+    drops: [],
+    fireworks: [],
+    particles: [],
+    floaters: [],                // floating text
+    // Stats
+    hp: 3, maxHp: 3,
+    hitImmuneDur: 30,            // frames (0.5s @ 60fps)
+    immTimer: 0,
+    shieldMax: 0, shield: 0,
+    shieldBreakImm: 0,           // frames granted on shield break
+    fwUnlocked: false,
+    fwCooldownMax: 600,          // 10s
+    fwCooldown: 0,
+    fwMulti: 1,                  // how many fireworks per shot
+    heartDropsUnlocked: false,
+    heartDropRate: 1,            // stack multiplier for heart spawn rate
+    // Legendary charges
+    legImmCharges: 0,            // 5s immunity on any hit
+    legBombCharges: 0,           // bomb on any hit
+    legReviveCharges: 0,         // revive on fatal hit (Second Wind)
+    legCircleCharges: 0,         // Circle of Immortality — absorb + random buff
+    // Time tier
+    slowUnlocked: false,
+    slowDurationFrames: 90,      // 1.5s base at 60fps
+    slowTimer: 0,                // frames of active slow remaining
+    slowJustEnded: 0,            // cooldown-visual only
+    upgradesTaken: {},           // id -> count
+    nextUpgradeAt: 1000,
+    upgradeOptions: [],
+    spawnTimer: 90,
+    spawnPauseTimer: 0,          // bomb's 2s grace
+    heartDropTimer: 600,         // frames until next heart drop roll
+    coinsEarned: 0,              // coins collected this run (for end-of-run tally)
+    dpEarned: 0,                 // development points earned this run
+    milestonesHit: {},           // { 1000: true, ... } so we don't double-reward
+  };
+  // ---- Apply permanent Develop upgrades ----
+  const devMaxHp    = devLevel('maxHp');     // +1 per level
+  const devShield   = devLevel('shield');    // cap increase
+  const devImmunity = devLevel('immunity');  // +15 frames (0.25s) per level
+  const devLegImm   = devLevel('legImm');    // +60 frames (1s) per level
+  const devFwCd     = devLevel('fwCd');      // -60 frames (1s) off min cooldown per level
+
+  s.maxHp = 3 + devMaxHp;                   // +1 per level, up to 5 levels (cap 8)
+  s.hp = s.maxHp;
+  s.hitImmuneDur = 30 + devImmunity * 15;   // 30 frames = 0.5s base; +0.25s (15f) per level
+  // Shield: each Develop level grants +1 STARTING shield.
+  // Cap stays high so in-run S1/S2 still have room to push further.
+  s.shieldCap = 8;
+  s.shieldMax = devShield;
+  s.shield    = devShield;
+  s.legImmDuration = 300 + devLegImm * 60;  // 5s base, +1s per level
+  // Firework cooldown: Develop lowers BOTH the starting cooldown AND the floor
+  // that in-run attack upgrades can push toward.
+  s.fwCooldownMax = 600 - devFwCd * 60;     // 10s base, -1s per Develop level
+  s.fwMinCooldown = 60;                     // in-run upgrades floor at 1s
+
+  // Test modes via URL (?test=circle gives you 3 Circle charges, etc.)
+  // Only for trying out legendaries without grinding to 3km.
+  try {
+    const params = new URLSearchParams(location.search);
+    const test = (params.get('test') || '').toLowerCase();
+    if (test === 'circle')  s.legCircleCharges = 3;
+    if (test === 'bomb')    s.legBombCharges   = 3;
+    if (test === 'imm')     s.legImmCharges    = 3;
+    if (test === 'revive')  s.legReviveCharges = 3;
+    if (test === 'all')     { s.legCircleCharges = 2; s.legBombCharges = 2; s.legImmCharges = 2; s.legReviveCharges = 2; }
+  } catch (e) {}
+  return s;
+}
+
+// ============================================================
+// Upgrades
+// ============================================================
+// Each upgrade: id, tier ('health'|'shield'|'attack'|'legendary'),
+// name, desc, weight, eligible(g), apply(g), stack?
+const UPGRADES = [
+  // --- Health ---
+  { id: 'H1', tier: 'health', name: 'Max Heart +1', weight: 3,
+    desc: 'Increase max health by 1 and heal 1.',
+    eligible: g => g.maxHp < 10,
+    apply: g => { g.maxHp++; g.hp = Math.min(g.maxHp, g.hp+1); } },
+  { id: 'H2', tier: 'health', name: 'Heart Drops', weight: 3,
+    desc: g => g.heartDropsUnlocked
+      ? 'Heart drops spawn more often on the road.'
+      : 'Hearts start appearing on the road. Ride over one to refill 1 heart.',
+    eligible: g => !g.heartDropsUnlocked || g.heartDropRate < 3,
+    apply: g => {
+      if (!g.heartDropsUnlocked) { g.heartDropsUnlocked = true; }
+      else { g.heartDropRate = Math.min(3, g.heartDropRate + 0.5); }
+    } },
+  { id: 'H3', tier: 'health', name: 'Tougher Skin', weight: 2,
+    desc: g => `Immunity after a hit +0.25s (now ${(g.hitImmuneDur/60).toFixed(2)}s).`,
+    eligible: g => g.hitImmuneDur < 240, // cap at 4s so dev+in-run can combine
+    apply: g => { g.hitImmuneDur = Math.min(240, g.hitImmuneDur + 15); } },
+
+  // --- Shield (always rollable; Develop gives a starting bubble on top) ---
+  { id: 'S1', tier: 'shield', name: 'Gain Shield (2 HP)', weight: 3,
+    desc: 'Bubble shield absorbs 2 hits before breaking. Breaking grants no immunity.',
+    eligible: g => g.shieldMax === 0,
+    apply: g => { g.shieldMax = 2; g.shield = 2; } },
+  { id: 'S2', tier: 'shield', name: 'Reinforced Shield', weight: 3,
+    desc: 'Shield can absorb +1 more hit (refills instantly).',
+    eligible: g => g.shieldMax > 0 && g.shieldMax < g.shieldCap,
+    apply: g => { g.shieldMax++; g.shield = g.shieldMax; } },
+  { id: 'S3', tier: 'shield', name: 'Shield Burst', weight: 2,
+    desc: g => `Shield break grants +0.25s immunity (now ${(g.shieldBreakImm/60).toFixed(2)}s).`,
+    eligible: g => g.shieldMax > 0 && g.shieldBreakImm < 60, // cap 1s
+    apply: g => { g.shieldBreakImm = Math.min(60, g.shieldBreakImm + 15); } },
+
+  // --- Attack ---
+  { id: 'A1', tier: 'attack', name: 'Unlock Fireworks', weight: 3,
+    desc: 'Press ↑/W/tap-top to fire a firework forward. 10s cooldown.',
+    eligible: g => !g.fwUnlocked,
+    apply: g => { g.fwUnlocked = true; } },
+  { id: 'A2', tier: 'attack', name: 'Faster Fireworks', weight: 3,
+    desc: g => `Firework cooldown -2s (now ${(g.fwCooldownMax/60).toFixed(1)}s).`,
+    eligible: g => g.fwUnlocked && g.fwCooldownMax > (g.fwMinCooldown || 300),
+    apply: g => { g.fwCooldownMax = Math.max((g.fwMinCooldown || 300), g.fwCooldownMax - 120); } },
+  { id: 'A3', tier: 'attack', name: 'Double Burst', weight: 2,
+    desc: 'Fireworks fire an extra shot in a nearby lane.',
+    eligible: g => g.fwUnlocked && g.fwMulti < 3,
+    apply: g => { g.fwMulti++; } },
+
+  // --- Time (slow-mo) ---
+  { id: 'T1', tier: 'time', name: 'Unlock Slow-Mo', weight: 3,
+    desc: 'Press ↓/S/touch the time button to slow everything down for 1.5s. No cooldown.',
+    eligible: g => !g.slowUnlocked,
+    apply: g => { g.slowUnlocked = true; } },
+  { id: 'T2', tier: 'time', name: 'Longer Slow-Mo', weight: 3,
+    desc: g => `Slow-Mo duration +1s (now ${(g.slowDurationFrames/60).toFixed(1)}s).`,
+    eligible: g => g.slowUnlocked && g.slowDurationFrames < 420, // cap 7s
+    apply: g => { g.slowDurationFrames = Math.min(420, g.slowDurationFrames + 60); } },
+
+  // --- Legendary (rare, locked until 3km) ---
+  { id: 'L1', tier: 'legendary', name: '★ 5s Immunity', weight: 0.25,
+    desc: '+1 charge. Auto-triggers on hit: absorbs it and grants 5 seconds of immunity.',
+    eligible: g => g.score >= 3000 && g.legImmCharges < 5,
+    apply: g => { g.legImmCharges++; } },
+  { id: 'L2', tier: 'legendary', name: '★ Bomb', weight: 0.25,
+    desc: '+1 charge. Auto-triggers on hit: wipes the screen; spawns pause 2s.',
+    eligible: g => g.score >= 3000 && g.legBombCharges < 5,
+    apply: g => { g.legBombCharges++; } },
+  { id: 'L3', tier: 'legendary', name: '★ Second Wind', weight: 0.25,
+    desc: '+1 charge. Auto-triggers only when a hit would kill you: survives it and grants 5s immunity.',
+    eligible: g => g.score >= 3000 && g.legReviveCharges < 5,
+    apply: g => { g.legReviveCharges++; } },
+  { id: 'L4', tier: 'legendary', name: '★ Circle of Immortality', weight: 0.2,
+    desc: '+1 charge. Auto-triggers on hit: absorbs it and grants a random reward (full heal OR full shield refill).',
+    eligible: g => g.score >= 3000 && g.legCircleCharges < 5,
+    apply: g => { g.legCircleCharges++; } },
+];
+const TIER_COLORS = {
+  health: '#f05a5a',
+  shield: '#4fa8ff',
+  attack: '#ffb03a',
+  time:   '#4fd17a',
+  legendary: '#c48cff',
+};
+// Helper to get description (may be a string or a function)
+function upgradeDesc(u, g) { return typeof u.desc === 'function' ? u.desc(g) : u.desc; }
+
+function rollUpgradeOptions(g) {
+  const pool = UPGRADES.filter(u => u.eligible(g));
+  if (pool.length === 0) return [];
+  const picks = [];
+  const used = new Set();
+  const wsum = arr => arr.reduce((s,u) => s + u.weight, 0);
+  while (picks.length < 3 && picks.length < pool.length) {
+    const remain = pool.filter(u => !used.has(u.id));
+    if (remain.length === 0) break;
+    let r = Math.random() * wsum(remain);
+    for (const u of remain) {
+      r -= u.weight;
+      if (r <= 0) { picks.push(u); used.add(u.id); break; }
+    }
+  }
+  return picks;
+}
+
+// ============================================================
+// Obstacles
+// ============================================================
+const OBSTACLES = ['rock', 'cone', 'pothole', 'car'];
+function spawnObstacleInLane(g, lane, yOffset = 0) {
+  const kind = choice(OBSTACLES);
+  let w, h;
+  if (kind === 'rock')     { w = 60; h = 46; }
+  else if (kind === 'cone'){ w = 40; h = 52; }
+  else if (kind === 'pothole'){ w = 72; h = 40; }
+  else                     { w = 70; h = 100; } // car
+  g.obstacles.push({
+    kind, lane,
+    x: LANE_X[lane],
+    y: -h + yOffset,
+    w, h,
+    alive: true,
+  });
+}
+function spawnObstacle(g) { // legacy
+  spawnObstacleInLane(g, Math.floor(Math.random() * 3));
+}
+
+function drawObstacle(o) {
+  const x = o.x, y = o.y;
+  // Soft drop shadow under every obstacle
+  ctx.fillStyle = 'rgba(0,0,0,0.32)';
+  ctx.beginPath();
+  ctx.ellipse(x + 4, y + Math.max(o.h*0.45, 16), o.w*0.45, 6, 0, 0, Math.PI*2);
+  ctx.fill();
+
+  if (o.kind === 'rock') {
+    // Base
+    ctx.fillStyle = '#7a7a82';
+    ctx.beginPath(); ctx.ellipse(x, y, o.w/2, o.h/2, 0, 0, Math.PI*2); ctx.fill();
+    // Bottom shadow half
+    ctx.fillStyle = '#4d4d56';
+    ctx.beginPath();
+    ctx.ellipse(x + 2, y + 4, o.w/2 - 2, o.h/2 - 2, 0, 0, Math.PI);
+    ctx.fill();
+    // Top highlight
+    ctx.fillStyle = '#a0a0a8';
+    ctx.beginPath(); ctx.ellipse(x - 6, y - 8, o.w/4, o.h/6, 0.4, 0, Math.PI*2); ctx.fill();
+    // Cracks
+    ctx.strokeStyle = '#333'; ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(x - 6, y - 4); ctx.lineTo(x - 1, y + 2);
+    ctx.moveTo(x + 2, y - 6); ctx.lineTo(x + 8, y - 1);
+    ctx.stroke();
+    // Outline
+    ctx.strokeStyle = '#1a1a1f'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.ellipse(x, y, o.w/2, o.h/2, 0, 0, Math.PI*2); ctx.stroke();
+  } else if (o.kind === 'cone') {
+    // Cone with smooth gradient
+    const gradC = ctx.createLinearGradient(x - o.w/2, y, x + o.w/2, y);
+    gradC.addColorStop(0,   '#c45a18');
+    gradC.addColorStop(0.5, '#ff8a30');
+    gradC.addColorStop(1,   '#a8480e');
+    ctx.fillStyle = gradC;
+    ctx.beginPath();
+    ctx.moveTo(x, y - o.h/2);
+    ctx.lineTo(x - o.w/2, y + o.h/2);
+    ctx.lineTo(x + o.w/2, y + o.h/2);
+    ctx.closePath(); ctx.fill();
+    // Reflective stripe
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+    ctx.beginPath();
+    ctx.moveTo(x - o.w/3, y + o.h/8);
+    ctx.lineTo(x + o.w/3, y + o.h/8);
+    ctx.lineTo(x + o.w/3 + 2, y + o.h/8 + 5);
+    ctx.lineTo(x - o.w/3 - 2, y + o.h/8 + 5);
+    ctx.closePath(); ctx.fill();
+    // Tip highlight
+    ctx.fillStyle = '#ffb070';
+    ctx.beginPath();
+    ctx.moveTo(x, y - o.h/2);
+    ctx.lineTo(x - 3, y - o.h/2 + 8);
+    ctx.lineTo(x + 3, y - o.h/2 + 8);
+    ctx.closePath(); ctx.fill();
+    // Base plate
+    ctx.fillStyle = '#1a1a1f';
+    roundRect(x - o.w/2 - 3, y + o.h/2 - 4, o.w + 6, 5, 1.5); ctx.fill();
+    // Outline
+    ctx.strokeStyle = '#3a1a08'; ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(x, y - o.h/2);
+    ctx.lineTo(x - o.w/2, y + o.h/2);
+    ctx.lineTo(x + o.w/2, y + o.h/2);
+    ctx.closePath(); ctx.stroke();
+  } else if (o.kind === 'pothole') {
+    // Outer ring with rough crumbled edge
+    ctx.fillStyle = '#2a2a2f';
+    ctx.beginPath(); ctx.ellipse(x, y, o.w/2 + 3, o.h/2 + 2, 0, 0, Math.PI*2); ctx.fill();
+    // Pit (radial gradient — appears deep)
+    const pitGrad = ctx.createRadialGradient(x - 2, y - 2, 2, x, y, o.w/2);
+    pitGrad.addColorStop(0,   '#1a1a1f');
+    pitGrad.addColorStop(0.7, '#050507');
+    pitGrad.addColorStop(1,   '#000');
+    ctx.fillStyle = pitGrad;
+    ctx.beginPath(); ctx.ellipse(x, y, o.w/2, o.h/2, 0, 0, Math.PI*2); ctx.fill();
+    // Highlight rim (top arc)
+    ctx.strokeStyle = 'rgba(120, 110, 95, 0.5)'; ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.ellipse(x, y - 1, o.w/2 - 2, o.h/2 - 2, 0, Math.PI*1.1, Math.PI*1.9);
+    ctx.stroke();
+  } else { // car
+    // Car body — rich crimson with vertical gradient (Dave palette)
+    const carGrad = ctx.createLinearGradient(x, y - o.h/2, x, y + o.h/2);
+    carGrad.addColorStop(0,   '#d94040');
+    carGrad.addColorStop(0.5, '#a82020');
+    carGrad.addColorStop(1,   '#7a1010');
+    ctx.fillStyle = carGrad;
+    roundRect(x - o.w/2, y - o.h/2, o.w, o.h, 12); ctx.fill();
+    // Outline
+    ctx.strokeStyle = '#3a0808'; ctx.lineWidth = 2;
+    roundRect(x - o.w/2, y - o.h/2, o.w, o.h, 12); ctx.stroke();
+    // Windshield (front + back)
+    const wGrad = ctx.createLinearGradient(x, y - o.h/2 + 8, x, y - o.h/2 + 30);
+    wGrad.addColorStop(0, '#3a4d6e');
+    wGrad.addColorStop(1, '#1a2638');
+    ctx.fillStyle = wGrad;
+    roundRect(x - o.w/2 + 7, y - o.h/2 + 8, o.w - 14, 22, 5); ctx.fill();
+    const wGrad2 = ctx.createLinearGradient(x, y + o.h/2 - 30, x, y + o.h/2 - 8);
+    wGrad2.addColorStop(0, '#1a2638');
+    wGrad2.addColorStop(1, '#3a4d6e');
+    ctx.fillStyle = wGrad2;
+    roundRect(x - o.w/2 + 7, y + o.h/2 - 30, o.w - 14, 22, 5); ctx.fill();
+    // Headlights with glow
+    ctx.fillStyle = '#fff4b8';
+    ctx.fillRect(x - o.w/2 + 4, y - o.h/2 + 2, 12, 6);
+    ctx.fillRect(x + o.w/2 - 16, y - o.h/2 + 2, 12, 6);
+    // Headlight glow
+    ctx.fillStyle = 'rgba(255, 240, 180, 0.35)';
+    ctx.beginPath(); ctx.arc(x - o.w/2 + 10, y - o.h/2 + 5, 8, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(x + o.w/2 - 10, y - o.h/2 + 5, 8, 0, Math.PI*2); ctx.fill();
+    // Roof highlight strip
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.18)';
+    ctx.fillRect(x - o.w/2 + 4, y - 2, o.w - 8, 4);
+    // Side mirrors
+    ctx.fillStyle = '#3a0808';
+    ctx.fillRect(x - o.w/2 - 2, y - 8, 3, 6);
+    ctx.fillRect(x + o.w/2 - 1, y - 8, 3, 6);
+  }
+}
+
+function obstacleRadius(o) {
+  return Math.min(o.w, o.h) * 0.45;
+}
+
+// ============================================================
+// Drops (hearts)
+// ============================================================
+function trySpawnHeartDrop(g) {
+  if (!g.heartDropsUnlocked) return;
+  g.heartDropTimer -= slowMult(g);
+  if (g.heartDropTimer <= 0) {
+    // Base interval shrinks with heartDropRate stack
+    const base = 420 / g.heartDropRate;
+    const top  = 900 / g.heartDropRate;
+    g.heartDropTimer = Math.floor(rand(base, top));
+    if (g.hp < g.maxHp) {
+      const lane = Math.floor(Math.random() * 3);
+      g.drops.push({ type: 'heart', lane, x: LANE_X[lane], y: -20, r: 16, bob: 0 });
+    }
+  }
+}
+// Coin drops are always on, but sparse. Small coins worth a few each.
+function trySpawnCoinDrop(g) {
+  if (g.coinDropTimer === undefined) g.coinDropTimer = 420;
+  g.coinDropTimer -= slowMult(g);
+  if (g.coinDropTimer <= 0) {
+    g.coinDropTimer = Math.floor(rand(360, 720));
+    const lane = Math.floor(Math.random() * 3);
+    // Small chance to drop a cluster of 3 in a row
+    if (Math.random() < 0.10) {
+      for (let i = 0; i < 3; i++) {
+        g.drops.push({ type: 'coin', lane, x: LANE_X[lane], y: -20 - i*40, r: 12, bob: i*0.8, value: 2 });
+      }
+    } else {
+      g.drops.push({ type: 'coin', lane, x: LANE_X[lane], y: -20, r: 12, bob: 0, value: 2 });
+    }
+  }
+}
+function drawCoin(x, y, r, t) {
+  // Spinning coin: width flickers to simulate rotation
+  const w = r * (0.55 + 0.45 * Math.abs(Math.cos(t * 0.15)));
+  ctx.save();
+  ctx.translate(x, y);
+  // Outer gold ring
+  ctx.fillStyle = '#d9a800';
+  ctx.beginPath(); ctx.ellipse(0, 0, w, r, 0, 0, Math.PI*2); ctx.fill();
+  // Inner face
+  ctx.fillStyle = '#ffd63a';
+  ctx.beginPath(); ctx.ellipse(0, 0, w * 0.75, r * 0.75, 0, 0, Math.PI*2); ctx.fill();
+  // $ mark
+  ctx.fillStyle = '#8a6600';
+  ctx.font = 'bold 14px system-ui';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('$', 0, 1);
+  ctx.restore();
+}
+function drawHeart(x, y, r, color='#f15555', outline='#5c0000') {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(r/12, r/12);
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(0, 4);
+  ctx.bezierCurveTo(-14, -8, -10, -18, 0, -10);
+  ctx.bezierCurveTo(10, -18, 14, -8, 0, 4);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = outline; ctx.lineWidth = 1.5; ctx.stroke();
+  ctx.restore();
+}
+
+// ============================================================
+// Fireworks (player projectiles)
+// ============================================================
+function shootFirework(g) {
+  if (!g.fwUnlocked || g.fwCooldown > 0) return;
+  g.fwCooldown = g.fwCooldownMax;
+  const baseLane = g.cyclist.lane;
+  const lanes = [baseLane];
+  if (g.fwMulti >= 2) {
+    // fire in adjacent lane(s)
+    const adj = [];
+    if (baseLane - 1 >= 0) adj.push(baseLane - 1);
+    if (baseLane + 1 <= 2) adj.push(baseLane + 1);
+    if (adj.length) lanes.push(choice(adj));
+  }
+  if (g.fwMulti >= 3) {
+    // fire in the other adjacent if there are 2
+    if (baseLane === 1) {
+      if (!lanes.includes(0)) lanes.push(0);
+      if (!lanes.includes(2)) lanes.push(2);
+    } else {
+      if (!lanes.includes(1)) lanes.push(1);
+    }
+  }
+  for (const ln of lanes) {
+    g.fireworks.push({ lane: ln, x: LANE_X[ln], y: CYCLIST_Y - 30, vy: -14, trail: [] });
+  }
+  sfx.fwLaunch();
+}
+function drawFirework(f) {
+  // ---- Smoke trail (gray, behind the flame) ----
+  for (let i = 0; i < f.trail.length; i++) {
+    const t = f.trail[i];
+    const a = i / f.trail.length;
+    ctx.fillStyle = `rgba(180, 180, 180, ${(1 - a) * 0.18})`;
+    ctx.beginPath(); ctx.arc(t.x, t.y + 4, 3 + (1 - a) * 5, 0, Math.PI*2); ctx.fill();
+  }
+  // ---- Flame trail (orange/yellow, behind the rocket) ----
+  for (let i = 0; i < f.trail.length; i++) {
+    const t = f.trail[i];
+    const a = i / f.trail.length; // 0=oldest 1=newest
+    // Outer flame (orange)
+    ctx.fillStyle = `rgba(255, 130, 30, ${a * 0.55})`;
+    ctx.beginPath(); ctx.arc(t.x, t.y + 2, 2.5 + a*3.5, 0, Math.PI*2); ctx.fill();
+    // Inner flame (yellow-white)
+    ctx.fillStyle = `rgba(255, 230, 130, ${a * 0.7})`;
+    ctx.beginPath(); ctx.arc(t.x, t.y + 2, 1 + a*2, 0, Math.PI*2); ctx.fill();
+  }
+
+  // ---- Sparks shooting backwards from the rocket ----
+  for (let i = 0; i < 4; i++) {
+    const offset = (i / 4) * Math.PI * 2 + (f.y * 0.05);
+    const sx = f.x + Math.cos(offset) * 4;
+    const sy = f.y + 6 + Math.abs(Math.sin(offset) * 2);
+    ctx.fillStyle = `rgba(255, 220, 140, 0.7)`;
+    ctx.beginPath(); ctx.arc(sx, sy, 1.2, 0, Math.PI*2); ctx.fill();
+  }
+
+  // ---- ROCKET body (sleek capsule pointing up) ----
+  // Outer glow
+  const glow = ctx.createRadialGradient(f.x, f.y, 2, f.x, f.y, 14);
+  glow.addColorStop(0, 'rgba(255, 220, 100, 0.5)');
+  glow.addColorStop(1, 'rgba(255, 220, 100, 0)');
+  ctx.fillStyle = glow;
+  ctx.beginPath(); ctx.arc(f.x, f.y, 14, 0, Math.PI*2); ctx.fill();
+
+  // Body (red tube)
+  ctx.fillStyle = '#c62828';
+  roundRect(f.x - 3, f.y - 6, 6, 14, 2.5); ctx.fill();
+  // Body highlight (left side)
+  ctx.fillStyle = 'rgba(255,255,255,0.35)';
+  ctx.fillRect(f.x - 2.5, f.y - 5, 1, 12);
+  // White stripe band
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(f.x - 3, f.y - 1, 6, 2);
+  // Nose cone (yellow tip)
+  ctx.fillStyle = '#ffd23a';
+  ctx.beginPath();
+  ctx.moveTo(f.x - 3, f.y - 6);
+  ctx.lineTo(f.x + 3, f.y - 6);
+  ctx.lineTo(f.x, f.y - 11);
+  ctx.closePath(); ctx.fill();
+  // Nose highlight
+  ctx.fillStyle = 'rgba(255,255,255,0.55)';
+  ctx.beginPath();
+  ctx.moveTo(f.x - 1.5, f.y - 6);
+  ctx.lineTo(f.x, f.y - 9);
+  ctx.lineTo(f.x - 0.5, f.y - 6);
+  ctx.closePath(); ctx.fill();
+  // Fins (small triangles at the back)
+  ctx.fillStyle = '#8a1818';
+  ctx.beginPath();
+  ctx.moveTo(f.x - 3, f.y + 6);
+  ctx.lineTo(f.x - 5, f.y + 9);
+  ctx.lineTo(f.x - 3, f.y + 9);
+  ctx.closePath(); ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(f.x + 3, f.y + 6);
+  ctx.lineTo(f.x + 5, f.y + 9);
+  ctx.lineTo(f.x + 3, f.y + 9);
+  ctx.closePath(); ctx.fill();
+  // Outline
+  ctx.strokeStyle = '#3a0a0a'; ctx.lineWidth = 0.8;
+  roundRect(f.x - 3, f.y - 6, 6, 14, 2.5); ctx.stroke();
+}
+function explodeAt(g, x, y, color='#ffd24a', big=false) {
+  const n = big ? 40 : 24;
+  for (let i = 0; i < n; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const sp = rand(big ? 3 : 1.5, big ? 10 : 6);
+    g.particles.push({
+      x, y, vx: Math.cos(a)*sp, vy: Math.sin(a)*sp,
+      life: rand(20, 40), max: 40, color,
+    });
+  }
+}
+
+// ============================================================
+// Cyclist (top-down)
+// ============================================================
+function drawCyclist(g) {
+  const c = g.cyclist;
+  const flicker = g.immTimer > 0 && (Math.floor(g.t/4) % 2 === 0);
+  if (flicker) { /* skip frame to flash */ }
+  else {
+    const cx = c.x, cy = CYCLIST_Y;
+    // Soft layered shadow beneath the bike (depth)
+    ctx.fillStyle = 'rgba(0,0,0,0.18)';
+    ctx.beginPath(); ctx.ellipse(cx, cy + 32, 28, 9, 0, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = 'rgba(0,0,0,0.32)';
+    ctx.beginPath(); ctx.ellipse(cx, cy + 30, 22, 7, 0, 0, Math.PI*2); ctx.fill();
+
+    // ============================================================
+    // ROAD CYCLIST — top-down realistic
+    // Front of the bike is at the TOP (negative Y), rear at bottom.
+    // Rider is hunched forward in the racing crouch.
+    // ============================================================
+    const skin = currentSkin();
+    const pedalPhase = Math.sin(c.wheel);
+
+    // ---- WHEELS (thin road tires) ----
+    // Rear wheel
+    ctx.fillStyle = '#1a1a1c';                              // tire
+    roundRect(cx - 1.5, cy + 16, 3, 22, 1.5); ctx.fill();
+    // Rim highlight
+    ctx.fillStyle = '#3a3a40';
+    ctx.fillRect(cx - 0.5, cy + 17, 1, 20);
+    // Hub
+    ctx.fillStyle = '#dadada';
+    ctx.beginPath(); ctx.arc(cx, cy + 27, 1.8, 0, Math.PI*2); ctx.fill();
+
+    // Front wheel
+    ctx.fillStyle = '#1a1a1c';
+    roundRect(cx - 1.5, cy - 38, 3, 22, 1.5); ctx.fill();
+    ctx.fillStyle = '#3a3a40';
+    ctx.fillRect(cx - 0.5, cy - 37, 1, 20);
+    ctx.fillStyle = '#dadada';
+    ctx.beginPath(); ctx.arc(cx, cy - 27, 1.8, 0, Math.PI*2); ctx.fill();
+
+    // ---- FRAME (diamond, two tubes) ----
+    ctx.strokeStyle = skin.frame; ctx.lineWidth = 2.5; ctx.lineCap = 'round';
+    ctx.beginPath();
+    // Down tube + seat tube (X around center)
+    ctx.moveTo(cx, cy + 16); ctx.lineTo(cx, cy + 4);     // seat tube
+    ctx.moveTo(cx, cy + 4);  ctx.lineTo(cx, cy - 14);    // top tube (under torso)
+    ctx.moveTo(cx, cy - 14); ctx.lineTo(cx, cy - 4);     // head tube
+    ctx.moveTo(cx, cy + 4);  ctx.lineTo(cx, cy - 14);    // down tube
+    ctx.stroke();
+    // Frame highlight
+    ctx.strokeStyle = 'rgba(255,255,255,0.25)'; ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(cx - 0.5, cy + 14); ctx.lineTo(cx - 0.5, cy - 12);
+    ctx.stroke();
+    ctx.lineCap = 'butt';
+
+    // ---- CHAINSTAYS (back from bottom-bracket to rear hub) ----
+    ctx.strokeStyle = skin.frame; ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(cx - 1, cy + 4); ctx.lineTo(cx - 2, cy + 22);
+    ctx.moveTo(cx + 1, cy + 4); ctx.lineTo(cx + 2, cy + 22);
+    ctx.stroke();
+
+    // ---- CRANKS + PEDALS (animated rotation) ----
+    ctx.strokeStyle = '#111'; ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    ctx.moveTo(cx - 7, cy + 4 - pedalPhase * 2.5);
+    ctx.lineTo(cx + 7, cy + 4 + pedalPhase * 2.5);
+    ctx.stroke();
+    // Pedal blocks (visible from above)
+    ctx.fillStyle = '#222';
+    roundRect(cx - 10, cy + 4 - pedalPhase * 2.5 - 2, 4, 4, 1); ctx.fill();
+    roundRect(cx + 6,  cy + 4 + pedalPhase * 2.5 - 2, 4, 4, 1); ctx.fill();
+
+    // ---- DROP HANDLEBARS — curve like a horseshoe ----
+    // Stem (short bar from head tube forward)
+    ctx.strokeStyle = '#1a1a1c'; ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - 14); ctx.lineTo(cx, cy - 18);
+    ctx.stroke();
+    // Drop bar curves: from center forward, sweeping out and back to grips
+    ctx.strokeStyle = '#1a1a1c'; ctx.lineWidth = 2;
+    ctx.beginPath();
+    // Left side
+    ctx.moveTo(cx, cy - 18);
+    ctx.bezierCurveTo(cx - 4, cy - 22, cx - 11, cy - 21, cx - 11, cy - 16);
+    // Right side
+    ctx.moveTo(cx, cy - 18);
+    ctx.bezierCurveTo(cx + 4, cy - 22, cx + 11, cy - 21, cx + 11, cy - 16);
+    ctx.stroke();
+    // Bar tape (grips) — colored end wraps
+    ctx.strokeStyle = '#0a0a0a'; ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(cx - 11, cy - 18); ctx.lineTo(cx - 11, cy - 14);
+    ctx.moveTo(cx + 11, cy - 18); ctx.lineTo(cx + 11, cy - 14);
+    ctx.stroke();
+    // Brake hoods (small bumps on the bar)
+    ctx.fillStyle = '#222';
+    roundRect(cx - 12.5, cy - 15, 3, 4, 1); ctx.fill();
+    roundRect(cx + 9.5,  cy - 15, 3, 4, 1); ctx.fill();
+
+    // ---- SEAT ----
+    ctx.fillStyle = '#0e0e10';
+    ctx.beginPath();
+    ctx.moveTo(cx - 3, cy + 14);
+    ctx.lineTo(cx + 3, cy + 14);
+    ctx.lineTo(cx + 2, cy + 19);
+    ctx.lineTo(cx - 2, cy + 19);
+    ctx.closePath(); ctx.fill();
+
+    // ============================================================
+    // RIDER — viewed from above, hunched in racing crouch
+    // ============================================================
+    // Legs (calves visible at sides — pump with pedals)
+    ctx.strokeStyle = '#0e0e10'; ctx.lineWidth = 5; ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(cx - 4, cy + 8); ctx.lineTo(cx - 8, cy + 4 - pedalPhase * 2.5);
+    ctx.moveTo(cx + 4, cy + 8); ctx.lineTo(cx + 8, cy + 4 + pedalPhase * 2.5);
+    ctx.stroke();
+    // Cycling shorts (lycra) — black knee patch
+    ctx.strokeStyle = skin.arm; ctx.lineWidth = 3.5;
+    ctx.beginPath();
+    ctx.moveTo(cx - 4, cy + 6); ctx.lineTo(cx - 4, cy + 10);
+    ctx.moveTo(cx + 4, cy + 6); ctx.lineTo(cx + 4, cy + 10);
+    ctx.stroke();
+    ctx.lineCap = 'butt';
+
+    // Torso — narrower crouch silhouette
+    // Main jersey body
+    ctx.fillStyle = skin.arm;
+    ctx.beginPath();
+    ctx.moveTo(cx - 6, cy + 8);    // hips
+    ctx.lineTo(cx - 7, cy - 4);    // shoulder line
+    ctx.lineTo(cx - 5, cy - 8);    // collar
+    ctx.lineTo(cx + 5, cy - 8);
+    ctx.lineTo(cx + 7, cy - 4);
+    ctx.lineTo(cx + 6, cy + 8);
+    ctx.closePath(); ctx.fill();
+    // Jersey shading on the back (along spine)
+    ctx.fillStyle = 'rgba(0,0,0,0.18)';
+    ctx.fillRect(cx - 1.5, cy - 6, 3, 14);
+    // Jersey center stripe (per skin)
+    ctx.fillStyle = skin.jersey;
+    ctx.fillRect(cx - 1, cy - 6, 2, 14);
+    // Side stripes (sponsor accent)
+    ctx.fillStyle = skin.jersey;
+    ctx.fillRect(cx - 6, cy + 2, 1, 5);
+    ctx.fillRect(cx + 5, cy + 2, 1, 5);
+    // Jersey sleeves edge
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(cx - 7, cy - 2, 1.5, 3);
+    ctx.fillRect(cx + 5.5, cy - 2, 1.5, 3);
+
+    // Arms reaching forward to the drop bars
+    ctx.strokeStyle = skin.arm; ctx.lineWidth = 3.5; ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(cx - 5, cy - 7); ctx.lineTo(cx - 11, cy - 14);
+    ctx.moveTo(cx + 5, cy - 7); ctx.lineTo(cx + 11, cy - 14);
+    ctx.stroke();
+    // Hands gripping
+    ctx.fillStyle = '#0a0a0a';
+    ctx.beginPath(); ctx.arc(cx - 11, cy - 14, 1.6, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx + 11, cy - 14, 1.6, 0, Math.PI*2); ctx.fill();
+    ctx.lineCap = 'butt';
+
+    // Aero teardrop helmet — pointed forward
+    ctx.fillStyle = skin.helmet;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - 18);                 // pointed front
+    ctx.bezierCurveTo(cx - 5, cy - 17, cx - 5, cy - 9, cx, cy - 9);
+    ctx.bezierCurveTo(cx + 5, cy - 9, cx + 5, cy - 17, cx, cy - 18);
+    ctx.closePath(); ctx.fill();
+    // Helmet shading (lower half)
+    ctx.fillStyle = 'rgba(0,0,0,0.22)';
+    ctx.beginPath();
+    ctx.moveTo(cx - 5, cy - 12);
+    ctx.bezierCurveTo(cx - 5, cy - 9, cx + 5, cy - 9, cx + 5, cy - 12);
+    ctx.lineTo(cx, cy - 11);
+    ctx.closePath(); ctx.fill();
+    // Helmet vents (slits along the top) — three vents
+    ctx.fillStyle = '#1a1a1c';
+    ctx.fillRect(cx - 0.8, cy - 16, 1.6, 4);
+    ctx.fillRect(cx - 3, cy - 14, 1.4, 3);
+    ctx.fillRect(cx + 1.6, cy - 14, 1.4, 3);
+    // Sun-glasses peek (small dark line at front)
+    ctx.fillStyle = '#000';
+    ctx.fillRect(cx - 2, cy - 11, 4, 1);
+    // Helmet outline
+    ctx.strokeStyle = '#888'; ctx.lineWidth = 0.6;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - 18);
+    ctx.bezierCurveTo(cx - 5, cy - 17, cx - 5, cy - 9, cx, cy - 9);
+    ctx.bezierCurveTo(cx + 5, cy - 9, cx + 5, cy - 17, cx, cy - 18);
+    ctx.closePath(); ctx.stroke();
+  }
+  // Shield bubble
+  if (g.shield > 0) {
+    const alpha = 0.25 + 0.15 * Math.sin(g.t * 0.1);
+    ctx.strokeStyle = `rgba(100, 180, 255, ${0.8})`;
+    ctx.lineWidth = 3;
+    ctx.fillStyle = `rgba(100, 180, 255, ${alpha})`;
+    ctx.beginPath(); ctx.arc(c.x, CYCLIST_Y + 4, 34, 0, Math.PI*2);
+    ctx.fill(); ctx.stroke();
+  }
+  // Immunity halo
+  if (g.immTimer > 0) {
+    ctx.strokeStyle = `rgba(255, 240, 120, ${0.7})`;
+    ctx.lineWidth = 2;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath(); ctx.arc(c.x, CYCLIST_Y + 4, 40, 0, Math.PI*2); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+  // ★ Circle of Immortality aura — persistent while charges are held
+  if (g.legCircleCharges > 0) {
+    const cx = c.x, cy = CYCLIST_Y + 4;
+    const tt = g.t * 0.05;
+    const pulse = 0.55 + 0.45 * Math.sin(g.t * 0.12);
+    const radius = 44;
+
+    // Dark red radial glow behind the bike
+    const grad = ctx.createRadialGradient(cx, cy, 12, cx, cy, radius + 12);
+    grad.addColorStop(0.00, `rgba(190, 20, 35, ${0.00})`);
+    grad.addColorStop(0.55, `rgba(170, 15, 30, ${0.16 * pulse})`);
+    grad.addColorStop(0.85, `rgba(80, 0, 10, ${0.20 * pulse})`);
+    grad.addColorStop(1.00, `rgba(20, 0, 0, 0)`);
+    ctx.fillStyle = grad;
+    ctx.beginPath(); ctx.arc(cx, cy, radius + 12, 0, Math.PI*2); ctx.fill();
+
+    // Two counter-rotating ring segments (red + black) — gives a woven look
+    for (let ring = 0; ring < 2; ring++) {
+      const rot = (ring === 0 ? 1 : -1) * tt;
+      ctx.strokeStyle = ring === 0 ? 'rgba(210, 30, 50, 0.9)' : 'rgba(15, 15, 15, 0.85)';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      const segs = 6;
+      for (let i = 0; i < segs; i++) {
+        const a1 = rot + (i / segs) * Math.PI * 2;
+        const a2 = a1 + Math.PI / segs; // half-arc gaps
+        ctx.arc(cx, cy, radius, a1, a2);
+        ctx.moveTo(cx + Math.cos(a2 + 0.001) * radius, cy + Math.sin(a2 + 0.001) * radius);
+      }
+      ctx.stroke();
+    }
+
+    // Orbiting stars — one per charge, each spinning on its own
+    const n = g.legCircleCharges;
+    for (let i = 0; i < n; i++) {
+      const a = tt * 1.6 + (i / n) * Math.PI * 2;
+      const sx = cx + Math.cos(a) * radius;
+      const sy = cy + Math.sin(a) * radius;
+      const starSpin = g.t * 0.08 + i;
+      // black outline
+      drawStar(sx, sy, 5, 8, 3.6, starSpin, '#0a0a0a', null, 2.2);
+      // crimson fill
+      drawStar(sx, sy, 5, 7, 3.0, starSpin, '#d21e30', '#ffd5db', 1);
+    }
+  }
+}
+
+// 5-point (or N-point) star helper.
+// cx,cy,points, outerR, innerR, rotation, fill, strokeColor, strokeWidth
+function drawStar(cx, cy, points, rOuter, rInner, rot, fill, stroke, strokeWidth) {
+  ctx.beginPath();
+  for (let i = 0; i < points * 2; i++) {
+    const r = i % 2 === 0 ? rOuter : rInner;
+    const a = rot + (i / (points * 2)) * Math.PI * 2 - Math.PI / 2;
+    const x = cx + Math.cos(a) * r;
+    const y = cy + Math.sin(a) * r;
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.closePath();
+  if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+  if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = strokeWidth || 1; ctx.stroke(); }
+}
+
+// ============================================================
+// Road
+// ============================================================
+// ============================================================
+// Road & background — layered, color-graded, atmospheric
+// ============================================================
+// Cached background patterns/gradients (built once)
+let _bgCache = null;
+function ensureBgCache() {
+  if (_bgCache) return _bgCache;
+  // Sky-tint gradient applied as a global atmospheric overlay
+  const sky = ctx.createLinearGradient(0, 0, 0, H);
+  sky.addColorStop(0,    'rgba(255, 200, 140, 0.10)'); // warm top (sun-baked)
+  sky.addColorStop(0.5,  'rgba(255, 220, 180, 0.04)');
+  sky.addColorStop(1,    'rgba(40, 60, 100, 0.10)');   // cool bottom
+  // Vignette
+  const vg = ctx.createRadialGradient(W/2, H/2, Math.min(W,H)*0.3, W/2, H/2, Math.max(W,H)*0.7);
+  vg.addColorStop(0, 'rgba(0,0,0,0)');
+  vg.addColorStop(1, 'rgba(0,0,0,0.45)');
+  // Road gradient — slightly brighter in middle, darker edges (subtle 3D feel)
+  const roadGrad = ctx.createLinearGradient(ROAD_X, 0, ROAD_X + ROAD_W, 0);
+  roadGrad.addColorStop(0,    '#2a2c34');
+  roadGrad.addColorStop(0.5,  '#3a3c46');
+  roadGrad.addColorStop(1,    '#2a2c34');
+  // Grass gradient — vibrant teal-green like Dave the Diver
+  const grassGrad = ctx.createLinearGradient(0, 0, 0, H);
+  grassGrad.addColorStop(0,   '#3a7654');
+  grassGrad.addColorStop(0.5, '#2f6248');
+  grassGrad.addColorStop(1,   '#244e3a');
+  // Curated grass-detail palette
+  return _bgCache = { sky, vg, roadGrad, grassGrad };
+}
+
+function drawRoad(g) {
+  const cache = ensureBgCache();
+
+  // ---- Grass base (left + right strips) ----
+  ctx.fillStyle = cache.grassGrad;
+  ctx.fillRect(0, 0, ROAD_X, H);
+  ctx.fillRect(ROAD_X + ROAD_W, 0, W - ROAD_X - ROAD_W, H);
+
+  // ---- Realistic grass: many vertical blades in varied greens ----
+  // Three layers from dark→light, scrolling slightly differently for depth.
+  drawGrassLayer(g, 0,         ROAD_X,             '#1f4a36', 1.5, 70, 0.5);  // darkest distant
+  drawGrassLayer(g, ROAD_X+ROAD_W, W,              '#1f4a36', 1.5, 70, 0.5);
+  drawGrassLayer(g, 0,         ROAD_X,             '#2d6a4d', 1.8, 50, 0.8);  // mid
+  drawGrassLayer(g, ROAD_X+ROAD_W, W,              '#2d6a4d', 1.8, 50, 0.8);
+  drawGrassLayer(g, 0,         ROAD_X,             '#3a8a63', 2.2, 35, 1.0);  // brightest foreground
+  drawGrassLayer(g, ROAD_X+ROAD_W, W,              '#3a8a63', 2.2, 35, 1.0);
+
+  // Sparse darker tufts (small clumps every now and then)
+  ctx.fillStyle = '#1a3a28';
+  for (let i = 0; i < 8; i++) {
+    const y = ((i * 110 + g.scroll * 1.0) % (H + 30) + (H + 30)) % (H + 30) - 15;
+    drawGrassTuft(28 + (i*17) % 50, y);
+    drawGrassTuft(W - 28 - (i*13) % 50, (y + 60) % (H + 30) - 15);
+  }
+
+  // ---- Road body with subtle gradient ----
+  ctx.fillStyle = cache.roadGrad;
+  ctx.fillRect(ROAD_X, 0, ROAD_W, H);
+
+  // ---- Asphalt speckle texture (scrolls with road) ----
+  ctx.fillStyle = 'rgba(80, 80, 90, 0.35)';
+  for (let i = 0; i < 30; i++) {
+    const y = ((i * 31 + g.scroll * 1.0) % H + H) % H;
+    const x = ROAD_X + ((i * 47 + 13) % ROAD_W);
+    ctx.fillRect(x, y, 2, 2);
+  }
+  // Lighter asphalt highlights
+  ctx.fillStyle = 'rgba(140, 145, 160, 0.22)';
+  for (let i = 0; i < 14; i++) {
+    const y = ((i * 67 + g.scroll * 1.0) % H + H) % H;
+    const x = ROAD_X + ((i * 79 + 27) % ROAD_W);
+    ctx.fillRect(x, y, 1, 1);
+  }
+
+  // ---- Road edges — warm glow (Dave style accent) ----
+  // Outer dark line
+  ctx.fillStyle = '#1a1a1f';
+  ctx.fillRect(ROAD_X - 4, 0, 4, H);
+  ctx.fillRect(ROAD_X + ROAD_W, 0, 4, H);
+  // Inner warm stripe with glow
+  const edgeGradL = ctx.createLinearGradient(ROAD_X - 6, 0, ROAD_X + 4, 0);
+  edgeGradL.addColorStop(0, 'rgba(255, 200, 100, 0)');
+  edgeGradL.addColorStop(1, 'rgba(255, 200, 100, 0.5)');
+  ctx.fillStyle = edgeGradL;
+  ctx.fillRect(ROAD_X - 6, 0, 10, H);
+  const edgeGradR = ctx.createLinearGradient(ROAD_X + ROAD_W - 4, 0, ROAD_X + ROAD_W + 6, 0);
+  edgeGradR.addColorStop(0, 'rgba(255, 200, 100, 0.5)');
+  edgeGradR.addColorStop(1, 'rgba(255, 200, 100, 0)');
+  ctx.fillStyle = edgeGradR;
+  ctx.fillRect(ROAD_X + ROAD_W - 4, 0, 10, H);
+  // Sharp inner edge stripe
+  ctx.fillStyle = '#f5d27a';
+  ctx.fillRect(ROAD_X, 0, 2, H);
+  ctx.fillRect(ROAD_X + ROAD_W - 2, 0, 2, H);
+
+  // ---- Lane dividers — soft glow ----
+  for (let lane = 1; lane <= 2; lane++) {
+    const x = ROAD_X + LANE_W * lane - 1;
+    // Subtle outer glow
+    ctx.fillStyle = 'rgba(245, 230, 180, 0.10)';
+    ctx.fillRect(x - 3, 0, 8, H);
+    // Solid inner line
+    ctx.fillStyle = 'rgba(245, 235, 200, 0.55)';
+    ctx.fillRect(x, 0, 2, H);
+  }
+}
+
+// Grass blade layer: many short vertical strokes scattered across a strip.
+// Uses a deterministic pattern offset by scroll so blades feel like they're
+// actually moving past the camera.
+function drawGrassLayer(g, x0, x1, color, bladeH, count, scrollMul) {
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  const widthSpan = x1 - x0;
+  for (let i = 0; i < count; i++) {
+    // Pseudo-random but deterministic positions
+    const px = x0 + ((i * 37 + 11) % widthSpan);
+    const baseY = ((i * 53 + g.scroll * scrollMul) % (H + bladeH * 4) + (H + bladeH * 4)) % (H + bladeH * 4) - bladeH * 2;
+    // Slight lean for organic feel
+    const lean = ((i % 3) - 1) * 0.6;
+    ctx.moveTo(px, baseY);
+    ctx.lineTo(px + lean, baseY - bladeH);
+  }
+  ctx.stroke();
+  ctx.lineCap = 'butt';
+}
+
+// Cluster of darker grass blades (a tuft) — adds visual variety
+function drawGrassTuft(x, y) {
+  ctx.strokeStyle = '#1a3a28';
+  ctx.lineWidth = 1.2;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  const blades = [
+    [-3, 0, -3, -4],
+    [-1, 0, -1, -5],
+    [ 1, 0,  0, -6],
+    [ 2, 0,  3, -4],
+    [-2, 0, -2, -3],
+  ];
+  for (const [x1, y1, x2, y2] of blades) {
+    ctx.moveTo(x + x1, y + y1);
+    ctx.lineTo(x + x2, y + y2);
+  }
+  ctx.stroke();
+  ctx.lineCap = 'butt';
+}
+
+// Cinematic overlay — applied last so it sits over everything
+function drawAtmosphere(g) {
+  const cache = ensureBgCache();
+  // Warm/cool sky tint
+  ctx.fillStyle = cache.sky;
+  ctx.fillRect(0, 0, W, H);
+  // Ambient light shaft (top-left, faint, drifting)
+  const shaftX = 60 + Math.sin(g.t * 0.005) * 20;
+  const shaftGrad = ctx.createLinearGradient(shaftX, 0, shaftX + 240, H * 0.7);
+  shaftGrad.addColorStop(0,   'rgba(255, 230, 170, 0.0)');
+  shaftGrad.addColorStop(0.4, 'rgba(255, 230, 170, 0.06)');
+  shaftGrad.addColorStop(1,   'rgba(255, 230, 170, 0.0)');
+  ctx.fillStyle = shaftGrad;
+  ctx.fillRect(0, 0, W, H);
+  // Vignette
+  ctx.fillStyle = cache.vg;
+  ctx.fillRect(0, 0, W, H);
+}
+
+// ============================================================
+// HUD
+// ============================================================
+function drawHUD(g) {
+  // Hearts
+  for (let i = 0; i < g.maxHp; i++) {
+    const filled = i < g.hp;
+    drawHeart(22 + i*26, 24, 11,
+      filled ? '#f15555' : '#3a1010',
+      filled ? '#5c0000' : '#1a0606');
+  }
+  // Shield
+  if (g.shieldMax > 0) {
+    for (let i = 0; i < g.shieldMax; i++) {
+      const filled = i < g.shield;
+      ctx.fillStyle = filled ? '#6cc3ff' : '#1a2a3a';
+      ctx.strokeStyle = '#0a2030'; ctx.lineWidth = 1.5;
+      const x = 22 + i*22, y = 48;
+      ctx.beginPath();
+      ctx.moveTo(x, y - 10);
+      ctx.lineTo(x + 9, y - 6);
+      ctx.lineTo(x + 9, y + 4);
+      ctx.lineTo(x, y + 12);
+      ctx.lineTo(x - 9, y + 4);
+      ctx.lineTo(x - 9, y - 6);
+      ctx.closePath();
+      ctx.fill(); ctx.stroke();
+    }
+  }
+  // Distance (top right)
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 18px system-ui, Arial';
+  ctx.textAlign = 'right';
+  ctx.fillText(`${Math.floor(g.score)} m`, W - 14, 26);
+  ctx.font = '13px system-ui, Arial';
+  ctx.fillStyle = '#ccc';
+  ctx.fillText(`next upgrade: ${Math.max(0, Math.ceil(g.nextUpgradeAt - g.score))} m`, W - 14, 46);
+  // Best record
+  ctx.fillStyle = '#ffd66a';
+  ctx.font = 'bold 12px system-ui, Arial';
+  ctx.fillText(`BEST  ${bestScore} m`, W - 14, 64);
+  // Coins earned this run
+  ctx.fillStyle = '#ffd63a';
+  ctx.font = 'bold 12px system-ui, Arial';
+  ctx.fillText(`+${g.coinsEarned || 0}$`, W - 14, 82);
+  ctx.textAlign = 'left';
+
+  // Firework cooldown bar
+  if (g.fwUnlocked) {
+    const barW = 160, barH = 10;
+    const bx = W/2 - barW/2, by = H - 22;
+    ctx.fillStyle = '#222'; ctx.fillRect(bx, by, barW, barH);
+    const pct = 1 - g.fwCooldown / g.fwCooldownMax;
+    ctx.fillStyle = g.fwCooldown <= 0 ? '#ffd24a' : '#9a7a2a';
+    ctx.fillRect(bx, by, barW * pct, barH);
+    ctx.strokeStyle = '#000'; ctx.lineWidth = 1; ctx.strokeRect(bx, by, barW, barH);
+    ctx.fillStyle = '#fff'; ctx.font = 'bold 11px system-ui';
+    ctx.textAlign = 'center';
+    ctx.fillText(g.fwCooldown <= 0 ? '↑ READY' : `firework ${(g.fwCooldown/60).toFixed(1)}s`, W/2, by - 3);
+    ctx.textAlign = 'left';
+  }
+
+  // Legendary charges
+  let ly = 76;
+  ctx.font = 'bold 13px system-ui'; ctx.textAlign = 'left';
+  if (g.legCircleCharges > 0) {
+    ctx.fillStyle = '#ff3344';
+    ctx.fillText(`★ Circle ×${g.legCircleCharges}`, 14, ly); ly += 18;
+  }
+  if (g.legImmCharges > 0) {
+    ctx.fillStyle = '#ffe56b';
+    ctx.fillText(`★ 5s Immunity ×${g.legImmCharges}`, 14, ly); ly += 18;
+  }
+  if (g.legBombCharges > 0) {
+    ctx.fillStyle = '#c48cff';
+    ctx.fillText(`★ Bomb ×${g.legBombCharges}`, 14, ly); ly += 18;
+  }
+  if (g.legReviveCharges > 0) {
+    ctx.fillStyle = '#8cffb7';
+    ctx.fillText(`★ Second Wind ×${g.legReviveCharges}`, 14, ly); ly += 18;
+  }
+  // Bomb grace
+  if (g.spawnPauseTimer > 0) {
+    ctx.fillStyle = 'rgba(196,140,255,0.8)';
+    ctx.font = 'bold 14px system-ui'; ctx.textAlign = 'center';
+    ctx.fillText('CLEAR!', W/2, 80);
+    ctx.textAlign = 'left';
+  }
+
+  // Slow-time button (bottom-right) — shown once unlocked
+  if (g.slowUnlocked) drawSlowButton(g);
+}
+
+function drawSlowButton(g) {
+  const r = slowButtonRect();
+  const cx = r.x + r.w/2, cy = r.y + r.h/2;
+  const active = g.slowTimer > 0;
+  // Button bg
+  ctx.fillStyle = active ? 'rgba(79, 209, 122, 0.35)' : 'rgba(20, 30, 20, 0.6)';
+  ctx.strokeStyle = '#4fd17a';
+  ctx.lineWidth = active ? 3 : 2;
+  ctx.beginPath(); ctx.arc(cx, cy, r.w/2, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+  // Clock icon
+  ctx.strokeStyle = '#4fd17a'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(cx, cy, 15, 0, Math.PI*2); ctx.stroke();
+  ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(cx, cy); ctx.lineTo(cx, cy - 10);
+  ctx.moveTo(cx, cy); ctx.lineTo(cx + 8, cy + 5);
+  ctx.stroke(); ctx.lineCap = 'butt';
+  // Duration label
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 10px system-ui'; ctx.textAlign = 'center';
+  if (active) {
+    ctx.fillText(`${(g.slowTimer/60).toFixed(1)}s`, cx, cy + 28);
+  } else {
+    ctx.fillText(`${(g.slowDurationFrames/60).toFixed(1)}s`, cx, cy + 28);
+  }
+  ctx.textAlign = 'left';
+  // Arrow hint under the button
+  if (!active) {
+    ctx.fillStyle = 'rgba(255,255,255,0.55)';
+    ctx.font = 'bold 10px system-ui'; ctx.textAlign = 'center';
+    ctx.fillText(isTouchDevice ? 'TAP' : '↓ / S', cx, cy - 26);
+    ctx.textAlign = 'left';
+  }
+}
+
+function drawUpgradeScreen(g) {
+  // Dim
+  ctx.fillStyle = 'rgba(0,0,0,0.72)';
+  ctx.fillRect(0, 0, W, H);
+  // Title
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 28px system-ui, Arial';
+  ctx.textAlign = 'center';
+  ctx.fillText('CHOOSE AN UPGRADE', W/2, 120);
+  ctx.font = '14px system-ui';
+  ctx.fillStyle = '#bbb';
+  ctx.fillText(
+    `Distance ${Math.floor(g.score)} m · ` + (isTouchDevice ? 'tap a card' : 'press 1, 2, or 3'),
+    W/2, 144);
+
+  // Cards
+  const cardW = 150, cardH = 300, gap = 20;
+  const totalW = cardW * 3 + gap * 2;
+  const startX = (W - totalW) / 2;
+  const y = 180;
+  for (let i = 0; i < g.upgradeOptions.length; i++) {
+    const u = g.upgradeOptions[i];
+    const x = startX + i * (cardW + gap);
+    // Card bg
+    ctx.fillStyle = '#1a1f26';
+    roundRect(x, y, cardW, cardH, 12); ctx.fill();
+    // Tier color bar
+    ctx.fillStyle = TIER_COLORS[u.tier];
+    roundRect(x, y, cardW, 8, 12); ctx.fill();
+    // Card outline
+    ctx.strokeStyle = TIER_COLORS[u.tier];
+    ctx.lineWidth = 2;
+    roundRect(x, y, cardW, cardH, 12); ctx.stroke();
+
+    // Tier label
+    ctx.fillStyle = TIER_COLORS[u.tier];
+    ctx.font = 'bold 13px system-ui';
+    ctx.textAlign = 'center';
+    ctx.fillText(u.tier.toUpperCase(), x + cardW/2, y + 34);
+
+    // Icon
+    drawUpgradeIcon(u, x + cardW/2, y + 80);
+
+    // Name
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 15px system-ui';
+    wrapText(u.name, x + cardW/2, y + 140, cardW - 16, 18);
+
+    // Desc
+    ctx.fillStyle = '#c8c8c8';
+    ctx.font = '12px system-ui';
+    wrapText(upgradeDesc(u, g), x + cardW/2, y + 190, cardW - 18, 16);
+
+    // Key
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 22px system-ui';
+    ctx.fillText(String(i+1), x + cardW/2, y + cardH - 16);
+  }
+  ctx.textAlign = 'left';
+}
+
+function drawUpgradeIcon(u, cx, cy) {
+  const color = TIER_COLORS[u.tier];
+  ctx.fillStyle = '#0e1218';
+  ctx.beginPath(); ctx.arc(cx, cy, 26, 0, Math.PI*2); ctx.fill();
+  ctx.strokeStyle = color; ctx.lineWidth = 2;
+  ctx.stroke();
+  if (u.tier === 'health') {
+    drawHeart(cx, cy, 14);
+  } else if (u.tier === 'shield') {
+    ctx.fillStyle = '#6cc3ff';
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - 14);
+    ctx.lineTo(cx + 12, cy - 8);
+    ctx.lineTo(cx + 12, cy + 6);
+    ctx.lineTo(cx, cy + 16);
+    ctx.lineTo(cx - 12, cy + 6);
+    ctx.lineTo(cx - 12, cy - 8);
+    ctx.closePath();
+    ctx.fill();
+  } else if (u.tier === 'attack') {
+    // firework
+    ctx.fillStyle = '#ffd24a';
+    ctx.beginPath(); ctx.arc(cx, cy, 6, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = '#ff6a20'; ctx.lineWidth = 2;
+    for (let i = 0; i < 8; i++) {
+      const a = i * Math.PI / 4;
+      ctx.beginPath();
+      ctx.moveTo(cx + Math.cos(a)*8, cy + Math.sin(a)*8);
+      ctx.lineTo(cx + Math.cos(a)*16, cy + Math.sin(a)*16);
+      ctx.stroke();
+    }
+  } else if (u.tier === 'time') {
+    // clock
+    ctx.strokeStyle = color; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.arc(cx, cy, 13, 0, Math.PI*2); ctx.stroke();
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(cx, cy); ctx.lineTo(cx, cy - 9);
+    ctx.moveTo(cx, cy); ctx.lineTo(cx + 7, cy + 4);
+    ctx.stroke(); ctx.lineCap = 'butt';
+  } else {
+    // legendary star — colors depend on which legendary
+    const starColors = {
+      L1: '#ffe56b',
+      L2: '#c48cff',
+      L3: '#8cffb7',
+      L4: '#ff3344', // Circle of Immortality — red
+    };
+    const stroke = u.id === 'L4' ? '#000' : null;
+    ctx.fillStyle = starColors[u.id] || color;
+    ctx.beginPath();
+    for (let i = 0; i < 10; i++) {
+      const a = -Math.PI/2 + i * Math.PI/5;
+      const r = (i % 2 === 0) ? 16 : 7;
+      const px = cx + Math.cos(a) * r;
+      const py = cy + Math.sin(a) * r;
+      if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    }
+    ctx.closePath(); ctx.fill();
+    if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = 2; ctx.stroke(); }
+  }
+}
+
+function wrapText(text, cx, y, maxW, lineH) {
+  const words = text.split(' ');
+  let line = '';
+  const lines = [];
+  for (const w of words) {
+    const test = line ? (line + ' ' + w) : w;
+    if (ctx.measureText(test).width > maxW && line) {
+      lines.push(line); line = w;
+    } else line = test;
+  }
+  if (line) lines.push(line);
+  for (let i = 0; i < lines.length; i++) {
+    ctx.fillText(lines[i], cx, y + i*lineH);
+  }
+}
+
+function roundRect(x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x+r, y);
+  ctx.arcTo(x+w, y,   x+w, y+h, r);
+  ctx.arcTo(x+w, y+h, x,   y+h, r);
+  ctx.arcTo(x,   y+h, x,   y,   r);
+  ctx.arcTo(x,   y,   x+w, y,   r);
+  ctx.closePath();
+}
+
+// ============================================================
+// Collisions
+// ============================================================
+function circleHit(ax, ay, ar, bx, by, br) {
+  const dx = ax - bx, dy = ay - by;
+  return dx*dx + dy*dy < (ar + br) * (ar + br);
+}
+
+function handleHit(g, o) {
+  // Triggered when cyclist touches obstacle o.
+  // Resolution order: Circle > Bomb > 5s Immunity > Shield > Second Wind (if fatal) > HP loss
+  // Circle absorbs the hit AND heals/refills shield — best defense, use first.
+  if (g.legCircleCharges > 0) {
+    g.legCircleCharges--;
+    o.alive = false;
+    // red+black burst
+    explodeAt(g, o.x, o.y, '#ff2233', true);
+    explodeAt(g, o.x, o.y, '#111111', false);
+    const options = [];
+    if (g.hp < g.maxHp) options.push('heal');
+    if (g.shieldMax > 0 && g.shield < g.shieldMax) options.push('shield');
+    if (options.length === 0) options.push('heal'); // graceful no-op
+    const pick = choice(options);
+    if (pick === 'heal') {
+      g.hp = g.maxHp;
+      addFloater(g, 'CIRCLE: FULL HEAL!', g.cyclist.x, CYCLIST_Y - 40, '#ff3344');
+    } else {
+      g.shield = g.shieldMax;
+      addFloater(g, 'CIRCLE: SHIELD REFILL!', g.cyclist.x, CYCLIST_Y - 40, '#6cc3ff');
+    }
+    sfx.circle();
+    return;
+  }
+  if (g.legBombCharges > 0) {
+    g.legBombCharges--;
+    for (const ob of g.obstacles) {
+      explodeAt(g, ob.x, ob.y, '#c48cff', true);
+      ob.alive = false;
+    }
+    g.spawnPauseTimer = 120; // 2s
+    addFloater(g, 'BOOM!', g.cyclist.x, CYCLIST_Y - 40, '#c48cff');
+    sfx.bomb();
+    return;
+  }
+  if (g.legImmCharges > 0) {
+    g.legImmCharges--;
+    g.immTimer = g.legImmDuration || 300; // 5s base, +1s per Develop level
+    o.alive = false;
+    explodeAt(g, o.x, o.y, '#ffe56b', true);
+    const secs = Math.round((g.legImmDuration || 300) / 60);
+    addFloater(g, `${secs}s IMMUNE!`, g.cyclist.x, CYCLIST_Y - 40, '#ffe56b');
+    sfx.legendary();
+    return;
+  }
+  // Shield absorbs next
+  if (g.shield > 0) {
+    g.shield--;
+    o.alive = false;
+    explodeAt(g, o.x, o.y, '#6cc3ff');
+    addFloater(g, 'shield!', o.x, o.y, '#6cc3ff');
+    if (g.shield === 0) {
+      sfx.shieldBreak();
+      if (g.shieldBreakImm > 0) {
+        g.immTimer = Math.max(g.immTimer, g.shieldBreakImm);
+      }
+    } else {
+      sfx.shieldHit();
+    }
+    return;
+  }
+  // Would be fatal? Second Wind saves.
+  if (g.hp - 1 <= 0 && g.legReviveCharges > 0) {
+    g.legReviveCharges--;
+    g.immTimer = 300; // 5s
+    o.alive = false;
+    explodeAt(g, o.x, o.y, '#8cffb7', true);
+    addFloater(g, 'SECOND WIND!', g.cyclist.x, CYCLIST_Y - 40, '#8cffb7');
+    sfx.legendary();
+    return;
+  }
+  // Normal hit
+  g.hp--;
+  o.alive = false;
+  explodeAt(g, o.x, o.y, '#ff7070');
+  addFloater(g, '-1', o.x, o.y, '#ff7070');
+  g.immTimer = g.hitImmuneDur;
+  sfx.hit();
+  if (g.hp <= 0) {
+    endRun(g);
+  }
+}
+
+// Compute rewards, set state to 'gameover', persist save.
+function endRun(g) {
+  g.state = 'gameover';
+  const finalScore = Math.floor(g.score);
+  const isNewBest = finalScore > bestScore;
+
+  // --- Coin rewards ---
+  // Passive: 1 coin per 250m (was 100m — too generous)
+  const passive = Math.floor(finalScore / 250);
+  // Milestone bonuses (trimmed down)
+  let milestone = 0;
+  const brackets = [
+    { m: 1000,  bonus: 5 },
+    { m: 3000,  bonus: 15 },
+    { m: 5000,  bonus: 40 },
+    { m: 10000, bonus: 100 },
+    { m: 15000, bonus: 250 },
+  ];
+  for (const b of brackets) if (finalScore >= b.m) milestone += b.bonus;
+  // New-best bonus
+  const bestBonus = isNewBest ? 30 : 0;
+  const totalCoins = (g.coinsEarned || 0) + passive + milestone + bestBonus;
+
+  // --- DP rewards ---
+  // 1 DP per 500m (2 DP per km)
+  g.dpEarned = Math.floor(finalScore / 500);
+
+  // Stash breakdown for the game-over screen
+  g.rewardBreakdown = {
+    pickup: g.coinsEarned || 0,
+    passive, milestone, bestBonus,
+    totalCoins,
+    dp: g.dpEarned,
+    newBest: isNewBest,
+  };
+
+  // Persist
+  SAVE.coins += totalCoins;
+  SAVE.dp += g.dpEarned;
+  if (isNewBest) SAVE.best = finalScore;
+  bestScore = SAVE.best;
+  saveNow();
+
+  sfx.gameOver();
+}
+
+function addFloater(g, text, x, y, color='#fff') {
+  g.floaters.push({ text, x, y, vy: -1.2, life: 60, max: 60, color });
+}
+
+// ============================================================
+// Menu system — home screen, Develop, Shop
+// ============================================================
+// Layout helper: three stacked buttons on home screen (above the road strip)
+function homeButtons() {
+  const bw = 260, bh = 60, gap = 16;
+  const startY = 220;  // upper-middle, like the original layout
+  const x = (W - bw) / 2;
+  return [
+    { id: 'play',    label: '▶  PLAY',     x, y: startY,               w: bw, h: bh, color: '#5cb85c' },
+    { id: 'develop', label: '⚙  DEVELOP',  x, y: startY + (bh+gap),    w: bw, h: bh, color: '#4aa3ff' },
+    { id: 'shop',    label: '🛒  SHOP',    x, y: startY + (bh+gap)*2,  w: bw, h: bh, color: '#d4a437' },
+  ];
+}
+
+// Develop menu: list of rows, one per DEV upgrade
+function devRows() {
+  const rowW = 400, rowH = 56, gap = 10;
+  const startY = 120;
+  const x = (W - rowW) / 2;
+  const ids = Object.keys(DEV);
+  return ids.map((id, i) => ({
+    id, upgrade: DEV[id],
+    x, y: startY + i * (rowH + gap), w: rowW, h: rowH,
+  }));
+}
+function devBackRect() { return { x: W/2 - 80, y: H - 60, w: 160, h: 42 }; }
+
+// Shop menu: 3-column grid of skin cards
+function shopCards() {
+  const ids = Object.keys(SKINS);
+  const cols = 3, cardW = 130, cardH = 140, gap = 12;
+  const totalW = cardW * cols + gap * (cols - 1);
+  const startX = (W - totalW) / 2;
+  const startY = 110;
+  return ids.map((id, i) => {
+    const col = i % cols, row = Math.floor(i / cols);
+    return {
+      id, skin: SKINS[id],
+      x: startX + col * (cardW + gap),
+      y: startY + row * (cardH + gap),
+      w: cardW, h: cardH,
+    };
+  });
+}
+function shopBackRect() { return { x: W/2 - 80, y: H - 60, w: 160, h: 42 }; }
+
+function pointInRect(px, py, r) {
+  return px >= r.x && px <= r.x + r.w && py >= r.y && py <= r.y + r.h;
+}
+
+// Tracks where a menu tap landed (set in handleTouch, consumed by handleMenuInput)
+let menuClick = null;
+function menuTap(clientX, clientY) {
+  const { x, y } = canvasCoords(clientX, clientY);
+  menuClick = { x, y };
+}
+
+function handleMenuInput(g) {
+  // Touch click (single tap)
+  const click = menuClick;
+  menuClick = null;
+
+  if (g.state === 'menu') {
+    const btns = homeButtons();
+    // Keyboard shortcuts
+    if (pressed['Digit1'] || pressed['Enter'] || pressed['Space']) { startPlayingFromMenu(); return; }
+    if (pressed['Digit2']) { g.state = 'develop'; return; }
+    if (pressed['Digit3']) { g.state = 'shop'; return; }
+    // Click / touch
+    if (click) {
+      for (const b of btns) {
+        if (pointInRect(click.x, click.y, b)) {
+          if (b.id === 'play')    { startPlayingFromMenu(); return; }
+          if (b.id === 'develop') { g.state = 'develop';    return; }
+          if (b.id === 'shop')    { g.state = 'shop';       return; }
+        }
+      }
+    }
+    return;
+  }
+
+  if (g.state === 'develop') {
+    if (pressed['Escape'] || pressed['KeyB'] || pressed['KeyM']) { g.state = 'menu'; return; }
+    const rows = devRows();
+    if (click) {
+      if (pointInRect(click.x, click.y, devBackRect())) { g.state = 'menu'; return; }
+      for (const r of rows) {
+        if (pointInRect(click.x, click.y, r)) { tryBuyDev(r.id); return; }
+      }
+    }
+    return;
+  }
+
+  if (g.state === 'shop') {
+    if (pressed['Escape'] || pressed['KeyB'] || pressed['KeyM']) { g.state = 'menu'; return; }
+    const cards = shopCards();
+    if (click) {
+      if (pointInRect(click.x, click.y, shopBackRect())) { g.state = 'menu'; return; }
+      for (const c of cards) {
+        if (pointInRect(click.x, click.y, c)) { tapSkin(c.id); return; }
+      }
+    }
+    return;
+  }
+}
+
+function startPlayingFromMenu() {
+  game = newGame();
+  game.state = 'playing';
+  sfx.upgradePick();
+}
+
+function tryBuyDev(id) {
+  const cost = devNextCost(id);
+  if (cost == null) return;             // max level
+  if (SAVE.dp < cost) { sfx.hit(); return; } // not enough — small thunk
+  SAVE.dp -= cost;
+  SAVE.dev[id] = (SAVE.dev[id] || 0) + 1;
+  saveNow();
+  sfx.upgradePick();
+}
+
+function tapSkin(id) {
+  const s = SKINS[id];
+  if (!s || s.locked) { sfx.hit(); return; }
+  const owned = SAVE.owned.includes(id);
+  if (!owned) {
+    if (SAVE.coins < s.price) { sfx.hit(); return; }
+    SAVE.coins -= s.price;
+    SAVE.owned.push(id);
+    SAVE.skin = id; // auto-equip on purchase
+    saveNow();
+    sfx.upgradePick();
+    return;
+  }
+  // Owned: equip it
+  SAVE.skin = id;
+  saveNow();
+  sfx.lane();
+}
+
+// ============================================================
+// Update / Draw
+// ============================================================
+function update(g) {
+  g.t++;
+
+  // -------- Paused: freeze the world, only listen for resume --------
+  if (g.state === 'paused') {
+    if (pressed['KeyR']) { g.state = 'playing'; }      // R also resumes
+    return;
+  }
+
+  // -------- Home menu / Develop / Shop: handle input, skip physics --------
+  if (g.state === 'menu' || g.state === 'develop' || g.state === 'shop') {
+    handleMenuInput(g);
+    return;
+  }
+
+  if (g.state === 'upgrade') {
+    for (let i = 1; i <= 3; i++) {
+      if (pressed['Digit' + i]) {
+        const u = g.upgradeOptions[i-1];
+        if (u) {
+          u.apply(g);
+          g.upgradesTaken[u.id] = (g.upgradesTaken[u.id] || 0) + 1;
+          g.state = 'playing';
+          g.nextUpgradeAt += 1000;
+          g.upgradeOptions = [];
+          sfx.upgradePick();
+          break;
+        }
+      }
+    }
+    return;
+  }
+  if (g.state === 'gameover') {
+    if (pressed['KeyR']) { game = newGame(); game.state = 'playing'; }
+    if (pressed['Escape'] || pressed['KeyM']) { game = newGame(); game.state = 'menu'; }
+    return;
+  }
+
+  // Lane changes (edge-triggered)
+  if (pressed['ArrowLeft'] || pressed['KeyA']) {
+    if (g.cyclist.lane > 0) { g.cyclist.lane--; sfx.lane(); }
+  }
+  if (pressed['ArrowRight'] || pressed['KeyD']) {
+    if (g.cyclist.lane < 2) { g.cyclist.lane++; sfx.lane(); }
+  }
+  if (pressed['ArrowUp'] || pressed['KeyW']) {
+    shootFirework(g);
+  }
+  // Slow-time activation
+  if ((pressed['ArrowDown'] || pressed['KeyS'] || pressed['SlowBtn'])
+      && g.slowUnlocked && g.slowTimer <= 0) {
+    g.slowTimer = g.slowDurationFrames;
+    sfx.slowStart();
+  }
+
+  // Smooth cyclist x toward lane
+  const tx = LANE_X[g.cyclist.lane];
+  g.cyclist.x += (tx - g.cyclist.x) * 0.25;
+  g.cyclist.wheel += 0.4 * slowMult(g);
+
+  // Speed ramps fast but soft-caps around 18 so it stays reactable.
+  // (During slow-time, effective scroll speed is reduced.)
+  const rawSpeed = 4.0 + g.score / 350 + Math.pow(g.score / 2500, 1.3);
+  const baseSpeed = Math.min(18, rawSpeed);
+  g.speed = baseSpeed * slowMult(g);
+  g.scroll += g.speed;
+  g.score += g.speed * 0.1;
+  // Slow timer tick
+  if (g.slowTimer > 0) {
+    g.slowTimer--;
+    if (g.slowTimer === 0) sfx.slowEnd();
+  }
+
+  // Immunity
+  if (g.immTimer > 0) g.immTimer--;
+
+  // Firework cooldown
+  if (g.fwCooldown > 0) g.fwCooldown--;
+
+  // Spawning — scale with slow-time so density stays consistent
+  const sm = slowMult(g);
+  if (g.spawnPauseTimer > 0) g.spawnPauseTimer--;
+  else {
+    g.spawnTimer -= sm;
+    if (g.spawnTimer <= 0) {
+      const firstLane = Math.floor(Math.random() * 3);
+      spawnObstacleInLane(g, firstLane);
+      // Difficulty ramps indefinitely — tighter spawns, occasional double-spawn
+      const base = Math.max(16, 95 - Math.floor(g.score / 40));
+      g.spawnTimer = Math.floor(rand(base * 0.8, base * 1.3));
+      // Chance of a second obstacle in another lane scales with distance.
+      // Always leaves at least one lane open.
+      const doubleChance = Math.min(0.45, g.score / 9000);
+      if (Math.random() < doubleChance) {
+        const options = [0,1,2].filter(l => l !== firstLane);
+        const secondLane = choice(options);
+        spawnObstacleInLane(g, secondLane, -rand(20, 80));
+      }
+    }
+  }
+  trySpawnHeartDrop(g);
+  trySpawnCoinDrop(g);
+
+  // Ambient dust particles trailing the cyclist (motion atmosphere)
+  if (g.t % 5 === 0) {
+    const c = g.cyclist;
+    g.particles.push({
+      x: c.x + (Math.random() - 0.5) * 12,
+      y: CYCLIST_Y + 26 + Math.random() * 4,
+      vx: (Math.random() - 0.5) * 0.4,
+      vy: 0.5 + Math.random() * 0.6,
+      life: 30, max: 30,
+      color: '#c8b888',
+    });
+  }
+
+  // Move obstacles
+  for (const o of g.obstacles) {
+    o.y += g.speed;
+  }
+  // Move drops
+  for (const d of g.drops) {
+    d.y += g.speed;
+    d.bob += 0.15;
+  }
+  // Move fireworks
+  for (const f of g.fireworks) {
+    f.trail.push({ x: f.x, y: f.y });
+    if (f.trail.length > 8) f.trail.shift();
+    f.y += f.vy;
+  }
+  // Move particles
+  for (const p of g.particles) {
+    p.x += p.vx; p.y += p.vy;
+    p.vx *= 0.95; p.vy *= 0.95;
+    p.life--;
+  }
+  // Floaters
+  for (const ft of g.floaters) {
+    ft.y += ft.vy; ft.life--;
+  }
+
+  // Firework vs obstacle
+  for (const f of g.fireworks) {
+    if (f.dead) continue;
+    for (const o of g.obstacles) {
+      if (!o.alive) continue;
+      if (o.lane !== f.lane) continue;
+      if (Math.abs(o.y - f.y) < obstacleRadius(o) + 10) {
+        o.alive = false;
+        f.dead = true;
+        explodeAt(g, o.x, o.y, '#ffa040', true);
+        addFloater(g, 'BOOM', o.x, o.y, '#ffd24a');
+        sfx.fwHit();
+        break;
+      }
+    }
+  }
+
+  // Cyclist collisions
+  const cx = g.cyclist.x, cy = CYCLIST_Y + 4, cr = 18;
+  if (g.immTimer <= 0) {
+    for (const o of g.obstacles) {
+      if (!o.alive) continue;
+      if (circleHit(cx, cy, cr, o.x, o.y, obstacleRadius(o))) {
+        handleHit(g, o);
+        if (g.state === 'gameover') break;
+      }
+    }
+  }
+  // Pickups (always active): hearts and coins
+  for (const d of g.drops) {
+    if (d.dead) continue;
+    if (circleHit(cx, cy, cr, d.x, d.y, d.r)) {
+      if (d.type === 'heart') {
+        if (g.hp < g.maxHp) {
+          g.hp++;
+          addFloater(g, '+1 ♥', d.x, d.y, '#ff8080');
+          d.dead = true;
+          sfx.heartPickup();
+        }
+      } else if (d.type === 'coin') {
+        g.coinsEarned += (d.value || 5);
+        addFloater(g, `+${d.value || 5}$`, d.x, d.y, '#ffd63a');
+        d.dead = true;
+        sfx.heartPickup(); // reuse chime
+      }
+    }
+  }
+
+  // Cull
+  g.obstacles = g.obstacles.filter(o => o.alive && o.y < H + 80);
+  g.drops = g.drops.filter(d => !d.dead && d.y < H + 40);
+  g.fireworks = g.fireworks.filter(f => !f.dead && f.y > -40);
+  g.particles = g.particles.filter(p => p.life > 0);
+  g.floaters = g.floaters.filter(f => f.life > 0);
+
+  // Upgrade trigger
+  if (g.score >= g.nextUpgradeAt && g.state === 'playing') {
+    const opts = rollUpgradeOptions(g);
+    if (opts.length > 0) {
+      g.upgradeOptions = opts;
+      g.state = 'upgrade';
+    } else {
+      g.nextUpgradeAt += 1000;
+    }
+  }
+}
+
+function draw(g) {
+  ctx.clearRect(0, 0, W, H);
+  // Menu states draw their own backgrounds and skip the gameplay render
+  if (g.state === 'menu')    { drawMenu(g);    return; }
+  if (g.state === 'develop') { drawDevelop(g); return; }
+  if (g.state === 'shop')    { drawShop(g);    return; }
+  drawRoad(g);
+  // Drops (hearts and coins) — with radial glow halo
+  for (const d of g.drops) {
+    const bobY = d.y + Math.sin(d.bob) * 3;
+    const pulse = 0.7 + 0.3 * Math.sin(g.t * 0.1 + d.bob);
+    if (d.type === 'coin') {
+      // Glow halo
+      const haloGrad = ctx.createRadialGradient(d.x, bobY, 4, d.x, bobY, d.r * 2.2);
+      haloGrad.addColorStop(0, `rgba(255, 220, 90, ${0.35 * pulse})`);
+      haloGrad.addColorStop(1, 'rgba(255, 220, 90, 0)');
+      ctx.fillStyle = haloGrad;
+      ctx.beginPath(); ctx.arc(d.x, bobY, d.r * 2.2, 0, Math.PI*2); ctx.fill();
+      drawCoin(d.x, bobY, d.r, g.t + d.bob * 10);
+      ctx.strokeStyle = 'rgba(255, 220, 120, 0.45)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.arc(d.x, bobY, d.r + 4, 0, Math.PI*2); ctx.stroke();
+    } else {
+      // Heart glow halo
+      const haloGrad = ctx.createRadialGradient(d.x, bobY, 4, d.x, bobY, d.r * 2.2);
+      haloGrad.addColorStop(0, `rgba(255, 110, 130, ${0.35 * pulse})`);
+      haloGrad.addColorStop(1, 'rgba(255, 110, 130, 0)');
+      ctx.fillStyle = haloGrad;
+      ctx.beginPath(); ctx.arc(d.x, bobY, d.r * 2.2, 0, Math.PI*2); ctx.fill();
+      drawHeart(d.x, bobY, d.r);
+      ctx.strokeStyle = 'rgba(255, 200, 200, 0.5)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.arc(d.x, bobY, d.r + 4, 0, Math.PI*2); ctx.stroke();
+    }
+  }
+  // Obstacles
+  for (const o of g.obstacles) if (o.alive) drawObstacle(o);
+  // Cyclist
+  drawCyclist(g);
+  // Fireworks
+  for (const f of g.fireworks) if (!f.dead) drawFirework(f);
+  // Particles
+  for (const p of g.particles) {
+    const a = p.life / p.max;
+    ctx.fillStyle = p.color.startsWith('#') ? hexAlpha(p.color, a) : p.color;
+    ctx.beginPath(); ctx.arc(p.x, p.y, 3, 0, Math.PI*2); ctx.fill();
+  }
+  // Floaters
+  ctx.textAlign = 'center';
+  for (const ft of g.floaters) {
+    ctx.globalAlpha = Math.max(0, ft.life / ft.max);
+    ctx.fillStyle = ft.color;
+    ctx.font = 'bold 14px system-ui';
+    ctx.fillText(ft.text, ft.x, ft.y);
+  }
+  ctx.globalAlpha = 1;
+  ctx.textAlign = 'left';
+
+  drawAtmosphere(g);  // cinematic tint + vignette
+  drawSlowTint(g);
+  drawHUD(g);
+
+  if (g.state === 'upgrade') drawUpgradeScreen(g);
+  if (g.state === 'gameover') drawGameOver(g);
+  if (g.state === 'paused')   drawPauseOverlay(g);
+  // In-game pause button (only during play)
+  if (g.state === 'playing') drawPauseButton();
+}
+
+function drawPauseButton() {
+  const r = pauseButtonRect();
+  ctx.fillStyle = 'rgba(0,0,0,0.55)';
+  roundRect(r.x, r.y, r.w, r.h, 6); ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+  ctx.lineWidth = 1.5; ctx.stroke();
+  // Pause bars
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(r.x + 9, r.y + 7, 4, 16);
+  ctx.fillRect(r.x + 17, r.y + 7, 4, 16);
+}
+
+function drawPauseOverlay(g) {
+  ctx.fillStyle = 'rgba(0,0,0,0.6)';
+  ctx.fillRect(0, 0, W, H);
+  ctx.textAlign = 'center';
+  // Big pause icon
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(W/2 - 28, H/2 - 80, 16, 60);
+  ctx.fillRect(W/2 + 12, H/2 - 80, 16, 60);
+  // PAUSED label
+  ctx.font = 'bold 38px system-ui';
+  ctx.fillText('PAUSED', W/2, H/2 + 8);
+  // Hint
+  ctx.font = '15px system-ui';
+  ctx.fillStyle = '#bbb';
+  ctx.fillText(isTouchDevice ? 'Tap anywhere to resume' : 'P / Esc / click to resume', W/2, H/2 + 38);
+  ctx.textAlign = 'left';
+}
+
+function gameOverMenuRect() { return { x: W/2 - 80, y: H/2 + 105, w: 160, h: 38 }; }
+
+function drawGameOver(g) {
+  ctx.fillStyle = 'rgba(0,0,0,0.78)';
+  ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = '#fff';
+  ctx.textAlign = 'center';
+  ctx.font = 'bold 38px system-ui';
+  ctx.fillText('GAME OVER', W/2, 110);
+  ctx.font = 'bold 18px system-ui';
+  ctx.fillText(`You rode ${Math.floor(g.score)} meters`, W/2, 140);
+
+  const rb = g.rewardBreakdown || { pickup:0, passive:0, milestone:0, bestBonus:0, totalCoins:0, dp:0, newBest:false };
+  const y0 = 180;
+  // Box
+  ctx.fillStyle = 'rgba(30,35,45,0.85)';
+  roundRect(W/2 - 170, y0, 340, 210, 10); ctx.fill();
+  ctx.strokeStyle = '#6fa8ff'; ctx.lineWidth = 2; ctx.stroke();
+
+  // Rewards breakdown
+  ctx.textAlign = 'left';
+  ctx.font = 'bold 16px system-ui';
+  ctx.fillStyle = '#ffd63a';
+  ctx.fillText('REWARDS', W/2 - 150, y0 + 26);
+  ctx.font = '14px system-ui';
+  ctx.fillStyle = '#ddd';
+  let ly = y0 + 52;
+  const row = (label, val, color) => {
+    ctx.fillStyle = '#bbb'; ctx.fillText(label, W/2 - 150, ly);
+    ctx.fillStyle = color || '#ffd63a';
+    ctx.textAlign = 'right'; ctx.fillText(val, W/2 + 150, ly);
+    ctx.textAlign = 'left';
+    ly += 22;
+  };
+  row('Coins picked up',  `+${rb.pickup}$`);
+  row('Passive (1/100m)', `+${rb.passive}$`);
+  row('Milestone bonus',  `+${rb.milestone}$`);
+  if (rb.bestBonus) row('New-best bonus', `+${rb.bestBonus}$`);
+  ctx.fillStyle = '#4a5a7a';
+  ctx.fillRect(W/2 - 150, ly, 300, 1); ly += 12;
+  ctx.font = 'bold 15px system-ui';
+  row('Total coins', `+${rb.totalCoins}$`, '#ffd63a');
+  row('Dev Points earned', `+${rb.dp} DP`, '#8cffb7');
+
+  // Best line
+  ctx.textAlign = 'center';
+  ctx.font = 'bold 17px system-ui';
+  ctx.fillStyle = rb.newBest ? '#ffd66a' : '#aaa';
+  ctx.fillText(rb.newBest ? `★ NEW BEST! ${bestScore} m` : `Best: ${bestScore} m`, W/2, 410);
+
+  // Continue hints + Menu button
+  ctx.fillStyle = '#fff'; ctx.font = '14px system-ui';
+  ctx.fillText(isTouchDevice ? 'Tap anywhere to ride again' : 'Press R to ride again  •  M for menu', W/2, 445);
+
+  const mb = gameOverMenuRect();
+  ctx.fillStyle = '#4aa3ff';
+  roundRect(mb.x, mb.y, mb.w, mb.h, 10); ctx.fill();
+  ctx.fillStyle = '#fff'; ctx.font = 'bold 16px system-ui';
+  ctx.fillText('⌂  MAIN MENU', W/2, mb.y + 25);
+  ctx.textAlign = 'left';
+}
+
+// ---------- Home / Develop / Shop drawing ----------
+// Persistent currency pills: $ in top-right, DP in top-left
+function drawCurrencyHud() {
+  const pw = 110;
+  drawCurrencyPill(12,            12, `${SAVE.dp} DP`,  '#8cffb7', pw); // top-left
+  drawCurrencyPill(W - pw - 12,   12, `${SAVE.coins}$`, '#ffd63a', pw); // top-right
+}
+
+function drawMenu(g) {
+  // ============================================================
+  // Cinematic home screen — gradient sky, animated cyclist, polished UI
+  // ============================================================
+  // ---- Sky gradient background ----
+  const sky = ctx.createLinearGradient(0, 0, 0, H);
+  sky.addColorStop(0,    '#1a2d44');  // deep blue at top
+  sky.addColorStop(0.5,  '#2a3f5e');
+  sky.addColorStop(1,    '#3a5d80');  // lighter blue at bottom
+  ctx.fillStyle = sky;
+  ctx.fillRect(0, 0, W, H);
+
+  // ---- Subtle starfield (top portion) ----
+  for (let i = 0; i < 25; i++) {
+    const sx = (i * 73) % W;
+    const sy = (i * 37) % (H * 0.4);
+    const tw = 0.4 + 0.6 * Math.abs(Math.sin(g.t * 0.02 + i));
+    ctx.fillStyle = `rgba(255, 255, 220, ${tw * 0.35})`;
+    ctx.fillRect(sx, sy, 1, 1);
+  }
+
+  // ---- Sun glow in upper-right ----
+  const sunGrad = ctx.createRadialGradient(W * 0.78, H * 0.18, 5, W * 0.78, H * 0.18, 130);
+  sunGrad.addColorStop(0, 'rgba(255, 220, 130, 0.5)');
+  sunGrad.addColorStop(0.4, 'rgba(255, 180, 100, 0.18)');
+  sunGrad.addColorStop(1, 'rgba(255, 180, 100, 0)');
+  ctx.fillStyle = sunGrad;
+  ctx.beginPath(); ctx.arc(W * 0.78, H * 0.18, 130, 0, Math.PI*2); ctx.fill();
+
+  // ---- Distant horizon mountains (silhouette) ----
+  ctx.fillStyle = '#1d2638';
+  ctx.beginPath();
+  ctx.moveTo(0, H * 0.45);
+  for (let x = 0; x <= W; x += 30) {
+    const peak = Math.sin(x * 0.012) * 18 + Math.cos(x * 0.005) * 12;
+    ctx.lineTo(x, H * 0.45 - peak);
+  }
+  ctx.lineTo(W, H);
+  ctx.lineTo(0, H);
+  ctx.closePath(); ctx.fill();
+
+  // ---- Foreground hill ----
+  ctx.fillStyle = '#152436';
+  ctx.beginPath();
+  ctx.moveTo(0, H * 0.55);
+  for (let x = 0; x <= W; x += 24) {
+    const peak = Math.sin(x * 0.008) * 10 + Math.cos(x * 0.014) * 8;
+    ctx.lineTo(x, H * 0.55 - peak);
+  }
+  ctx.lineTo(W, H);
+  ctx.lineTo(0, H);
+  ctx.closePath(); ctx.fill();
+
+  // ---- Animated road ribbon (a strip the cyclist rides on) — bigger now ----
+  const roadY = H * 0.74;
+  const roadH = 100;                                   // taller for breathing room
+  ctx.fillStyle = '#1a1f28';
+  ctx.fillRect(0, roadY - 2, W, roadH + 4);
+  ctx.fillStyle = '#2a3140';
+  ctx.fillRect(0, roadY, W, roadH);
+  // Dashed yellow centerline — middle of the road, like a real street
+  ctx.fillStyle = 'rgba(245, 235, 200, 0.6)';
+  const dashOffset = -((g.t * 4) % 60);
+  for (let x = dashOffset; x < W; x += 60) {
+    ctx.fillRect(x, roadY + roadH / 2 - 2, 30, 4);
+  }
+  // Gold edge stripes top + bottom
+  ctx.fillStyle = '#f5d27a';
+  ctx.fillRect(0, roadY, W, 2);
+  ctx.fillRect(0, roadY + roadH - 2, W, 2);
+
+  // ---- Cyclist (centered on road) ----
+  drawHomeCyclist(g, roadY);
+
+  // ---- Title with shadow + glow ----
+  ctx.textAlign = 'center';
+  // Glow
+  ctx.fillStyle = 'rgba(255, 200, 100, 0.18)';
+  ctx.font = 'bold 60px system-ui';
+  ctx.fillText('PEDAL RUSH', W/2, 96);
+  // Drop shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.55)';
+  ctx.font = 'bold 56px system-ui';
+  ctx.fillText('PEDAL RUSH', W/2 + 2, 100 + 2);
+  // Main title — gold gradient look
+  const titleGrad = ctx.createLinearGradient(0, 60, 0, 110);
+  titleGrad.addColorStop(0,   '#ffe890');
+  titleGrad.addColorStop(0.5, '#ffd23a');
+  titleGrad.addColorStop(1,   '#c8920a');
+  ctx.fillStyle = titleGrad;
+  ctx.fillText('PEDAL RUSH', W/2, 100);
+  // Subtitle
+  ctx.fillStyle = '#9bb8e0';
+  ctx.font = 'italic 14px system-ui';
+  ctx.fillText('— roguelite cycling —', W/2, 124);
+  // Best record
+  ctx.fillStyle = '#ffd66a';
+  ctx.font = 'bold 14px system-ui';
+  ctx.fillText(`★  BEST: ${bestScore} m`, W/2, 152);
+
+  // ---- Buttons (lower section, below the road) ----
+  const btns = homeButtons();
+  for (const b of btns) drawBigButton(b, g.t);
+
+  // Footer hint
+  ctx.fillStyle = '#7d8da5';
+  ctx.font = '12px system-ui';
+  ctx.fillText('Click / tap  •  or press 1 / 2 / 3', W/2, H - 18);
+  ctx.textAlign = 'left';
+
+  drawCurrencyHud();
+}
+
+// Home-screen cyclist — clean flat-illustration style matching the casual rider reference.
+// Solid flat colors (no shading), rotating wheels, pumping legs, applied skin colors.
+// Rides briskly across the road strip so the screen feels alive.
+function drawHomeCyclist(g, roadY) {
+  const skin = currentSkin();
+  // Moves left-to-right across the road strip (~3 seconds per crossing)
+  const cycleLen = 180;
+  const phase = (g.t % cycleLen) / cycleLen;
+  const cx = -120 + phase * (W + 240);
+  // Sit on the asphalt, below the yellow centerline (in the lower lane)
+  const cy = roadY + 50;
+  const wheelSpin = g.t * 0.55;
+  const pedalA = wheelSpin * 0.5;
+  const bob = Math.abs(Math.sin(pedalA)) * 1.3;
+
+  // ---- Drop shadow ----
+  ctx.fillStyle = 'rgba(0,0,0,0.45)';
+  ctx.beginPath();
+  ctx.ellipse(cx, cy + 22, 36, 4, 0, 0, Math.PI*2);
+  ctx.fill();
+
+  // ---- Speed lines (behind) ----
+  ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+  ctx.lineWidth = 1.2;
+  for (let i = 0; i < 4; i++) {
+    const lx = cx - 30 - i * 11;
+    const ly = cy - 4 + (i - 1.5) * 6;
+    ctx.beginPath();
+    ctx.moveTo(lx, ly); ctx.lineTo(lx - 18 - i*3, ly);
+    ctx.stroke();
+  }
+
+  // ============================================================
+  // BIKE — simple flat shapes (thicker, bigger overall)
+  // ============================================================
+  const rwx = cx - 30, rwy = cy + 18;            // rear wheel
+  const fwx = cx + 30, fwy = cy + 18;            // front wheel
+  const wR  = 18;                                // wheel radius
+  const bb  = { x: cx,      y: cy + 8  };        // bottom bracket
+  const stT = { x: cx - 8,  y: cy - 18 };        // seat tube top
+  const htT = { x: cx + 20, y: cy - 18 };        // head tube top
+
+  // Wheels (black tire ring + thin rim + spinning spokes + hub)
+  for (const [wx, wy] of [[rwx, rwy], [fwx, fwy]]) {
+    // Tire
+    ctx.fillStyle = '#0a0a0c';
+    ctx.beginPath(); ctx.arc(wx, wy, wR, 0, Math.PI*2); ctx.fill();
+    // Open center (lets spokes show against bg)
+    ctx.fillStyle = '#2a3140';
+    ctx.beginPath(); ctx.arc(wx, wy, wR - 2.5, 0, Math.PI*2); ctx.fill();
+    // Spokes
+    ctx.strokeStyle = 'rgba(220,220,225,0.75)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let s = 0; s < 10; s++) {
+      const a = wheelSpin + s * Math.PI / 5;
+      ctx.moveTo(wx, wy);
+      ctx.lineTo(wx + Math.cos(a) * (wR - 3), wy + Math.sin(a) * (wR - 3));
+    }
+    ctx.stroke();
+    // Hub
+    ctx.fillStyle = '#dadada';
+    ctx.beginPath(); ctx.arc(wx, wy, 2.2, 0, Math.PI*2); ctx.fill();
+  }
+
+  // Frame — flat thick tubes in skin.frame color
+  ctx.strokeStyle = skin.frame; ctx.lineWidth = 4.5; ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(bb.x, bb.y);   ctx.lineTo(stT.x, stT.y);     // seat tube
+  ctx.moveTo(bb.x, bb.y);   ctx.lineTo(htT.x, htT.y);     // down tube
+  ctx.moveTo(stT.x, stT.y); ctx.lineTo(htT.x, htT.y);     // top tube
+  ctx.moveTo(bb.x, bb.y);   ctx.lineTo(rwx, rwy);         // chainstay
+  ctx.moveTo(stT.x, stT.y); ctx.lineTo(rwx, rwy);         // seat stay
+  ctx.moveTo(htT.x, htT.y); ctx.lineTo(fwx, fwy);         // fork
+  ctx.stroke();
+  ctx.lineCap = 'butt';
+
+  // Drop handlebars (simple curve forward + down)
+  ctx.strokeStyle = '#1a1a1c'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(htT.x, htT.y); ctx.lineTo(htT.x + 4, htT.y - 8);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(htT.x + 4, htT.y - 8);
+  ctx.bezierCurveTo(htT.x + 18, htT.y - 9, htT.x + 18, htT.y + 5, htT.x + 12, htT.y + 7);
+  ctx.stroke();
+  ctx.lineCap = 'butt';
+
+  // Saddle
+  ctx.fillStyle = '#0e0e10';
+  ctx.beginPath();
+  ctx.moveTo(stT.x - 6, stT.y - 2); ctx.lineTo(stT.x + 4, stT.y - 2);
+  ctx.lineTo(stT.x + 3, stT.y); ctx.lineTo(stT.x - 6, stT.y);
+  ctx.closePath(); ctx.fill();
+
+  // Crank + pedal (animated)
+  const pedalX = bb.x + Math.cos(pedalA) * 8;
+  const pedalY = bb.y + Math.sin(pedalA) * 8;
+  ctx.strokeStyle = '#1a1a1c'; ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.moveTo(bb.x, bb.y); ctx.lineTo(pedalX, pedalY);
+  ctx.stroke();
+  // Pedal block
+  ctx.fillStyle = '#0a0a0c';
+  ctx.fillRect(pedalX - 5, pedalY - 1.5, 10, 3);
+
+  // ============================================================
+  // RIDER — simple flat colors (casual cycling style from reference)
+  // ============================================================
+  const SKIN_TONE = '#f4c8a0';
+  const SHORTS_GRAY = '#a8a8b0';
+  const SHOE_TEAL = '#4adfc4';
+
+  // Anchors (bigger, taller proportions)
+  const hipX  = stT.x + 2, hipY  = stT.y - 1 + bob;
+  const shldX = htT.x - 2, shldY = htT.y - 26 + bob;
+  const handX = htT.x + 12, handY = htT.y + 7;
+
+  // ---- LEG (animated with pedal — thicker) ----
+  const kneeX = (hipX + pedalX) / 2 + 4;
+  const kneeY = (hipY + pedalY) / 2 - 5;
+  // Upper leg in shorts (gray) — thicker stroke
+  ctx.strokeStyle = SHORTS_GRAY; ctx.lineWidth = 9; ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(hipX, hipY); ctx.lineTo(kneeX, kneeY);
+  ctx.stroke();
+  // Lower leg (skin) — thicker
+  ctx.strokeStyle = SKIN_TONE; ctx.lineWidth = 6;
+  ctx.beginPath();
+  ctx.moveTo(kneeX, kneeY); ctx.lineTo(pedalX, pedalY - 3);
+  ctx.stroke();
+  // Teal shoe — bigger
+  ctx.fillStyle = SHOE_TEAL;
+  roundRect(pedalX - 7, pedalY - 5, 14, 4, 1.5); ctx.fill();
+  ctx.lineCap = 'butt';
+
+  // ---- TORSO (red shirt — uses skin.arm color) — bigger, thicker ----
+  ctx.fillStyle = skin.arm;
+  ctx.beginPath();
+  ctx.moveTo(hipX - 5, hipY - 3);
+  ctx.lineTo(shldX - 2, shldY);
+  ctx.lineTo(shldX + 7, shldY + 3);
+  ctx.lineTo(hipX + 6, hipY);
+  ctx.closePath(); ctx.fill();
+  // Shirt center accent (skin.jersey color)
+  ctx.fillStyle = skin.jersey;
+  ctx.beginPath();
+  ctx.moveTo(hipX - 2, hipY - 3);
+  ctx.lineTo(shldX, shldY + 1);
+  ctx.lineTo(shldX + 2, shldY + 2);
+  ctx.lineTo(hipX, hipY - 1);
+  ctx.closePath(); ctx.fill();
+  // Shirt sleeve (short sleeve hint at shoulder)
+  ctx.fillStyle = skin.arm;
+  ctx.beginPath();
+  ctx.arc(shldX + 4, shldY + 2, 4, 0, Math.PI*2);
+  ctx.fill();
+
+  // ---- ARM (skin tone, thicker) ----
+  ctx.strokeStyle = SKIN_TONE; ctx.lineWidth = 5; ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(shldX + 4, shldY + 2); ctx.lineTo(handX, handY);
+  ctx.stroke();
+  // Hand
+  ctx.fillStyle = SKIN_TONE;
+  ctx.beginPath(); ctx.arc(handX, handY, 3, 0, Math.PI*2); ctx.fill();
+  ctx.lineCap = 'butt';
+
+  // ---- HEAD + HELMET — bigger ----
+  const headX = shldX + 5, headY = shldY - 6;
+  // Neck (skin tone)
+  ctx.fillStyle = SKIN_TONE;
+  ctx.fillRect(shldX + 2, shldY - 4, 4, 5);
+  // Head (skin tone — face base) — bigger
+  ctx.beginPath(); ctx.ellipse(headX, headY, 8, 7, 0, 0, Math.PI*2); ctx.fill();
+  // Helmet on top (skin.helmet color, aero teardrop) — bigger
+  ctx.fillStyle = skin.helmet;
+  ctx.beginPath();
+  ctx.moveTo(headX + 9, headY - 2);
+  ctx.bezierCurveTo(headX + 10, headY - 9, headX - 7, headY - 10, headX - 8, headY - 4);
+  ctx.bezierCurveTo(headX - 6, headY - 1, headX + 5, headY - 1, headX + 9, headY - 2);
+  ctx.closePath(); ctx.fill();
+  // Helmet vents (3 dark slits)
+  ctx.fillStyle = '#0a0a0c';
+  ctx.fillRect(headX - 5, headY - 6, 2, 2);
+  ctx.fillRect(headX - 1, headY - 7, 2, 2);
+  ctx.fillRect(headX + 3, headY - 6, 2, 2);
+  // Eyes/sunglasses
+  ctx.fillStyle = '#000';
+  ctx.fillRect(headX + 3, headY + 1, 5, 2);
+}
+
+// Helper: detailed wheel for the home cyclist
+function drawHomeWheel(x, y, r, spin) {
+  // Tire (thick black ring) with outline
+  ctx.fillStyle = '#0a0a0c';
+  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2); ctx.fill();
+  // Outer rim (silver)
+  ctx.fillStyle = '#646874';
+  ctx.beginPath(); ctx.arc(x, y, r - 2.5, 0, Math.PI*2); ctx.fill();
+  // Wheel interior (sky-colored — lets spokes show)
+  ctx.fillStyle = '#2a3140';
+  ctx.beginPath(); ctx.arc(x, y, r - 4, 0, Math.PI*2); ctx.fill();
+  // Spokes (rotating)
+  ctx.strokeStyle = 'rgba(220, 222, 230, 0.85)';
+  ctx.lineWidth = 0.9;
+  ctx.beginPath();
+  for (let s = 0; s < 12; s++) {
+    const a = spin + s * Math.PI / 6;
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + Math.cos(a) * (r - 4), y + Math.sin(a) * (r - 4));
+  }
+  ctx.stroke();
+  // Hub
+  ctx.fillStyle = '#dadada';
+  ctx.beginPath(); ctx.arc(x, y, 2.6, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#0a0a0c';
+  ctx.beginPath(); ctx.arc(x, y, 1.1, 0, Math.PI*2); ctx.fill();
+  // Tire highlight (top-left arc)
+  ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.arc(x, y, r - 0.5, Math.PI * 1.15, Math.PI * 1.6);
+  ctx.stroke();
+}
+
+// Static top-down cyclist for the shop card preview.
+// Mirrors the in-game drawCyclist() composition at small scale.
+function drawShopPreviewCyclist(cx, cy, skin) {
+  // Wheels (thin)
+  ctx.fillStyle = '#1a1a1c';
+  roundRect(cx - 1.5, cy + 16, 3, 22, 1.5); ctx.fill();
+  roundRect(cx - 1.5, cy - 38, 3, 22, 1.5); ctx.fill();
+  ctx.fillStyle = '#dadada';
+  ctx.beginPath(); ctx.arc(cx, cy + 27, 1.5, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(cx, cy - 27, 1.5, 0, Math.PI*2); ctx.fill();
+
+  // Frame (skin-colored diamond)
+  ctx.strokeStyle = skin.frame; ctx.lineWidth = 2.5; ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(cx, cy + 16); ctx.lineTo(cx, cy + 4);
+  ctx.moveTo(cx, cy + 4);  ctx.lineTo(cx, cy - 14);
+  ctx.stroke();
+  ctx.lineCap = 'butt';
+
+  // Chainstays
+  ctx.strokeStyle = skin.frame; ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.moveTo(cx - 1, cy + 4); ctx.lineTo(cx - 2, cy + 22);
+  ctx.moveTo(cx + 1, cy + 4); ctx.lineTo(cx + 2, cy + 22);
+  ctx.stroke();
+
+  // Cranks
+  ctx.strokeStyle = '#111'; ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(cx - 6, cy + 4); ctx.lineTo(cx + 6, cy + 4);
+  ctx.stroke();
+  ctx.fillStyle = '#222';
+  roundRect(cx - 9, cy + 2, 4, 4, 1); ctx.fill();
+  roundRect(cx + 5, cy + 2, 4, 4, 1); ctx.fill();
+
+  // Drop bars (curved horseshoe)
+  ctx.strokeStyle = '#1a1a1c'; ctx.lineWidth = 1.6;
+  ctx.beginPath();
+  ctx.moveTo(cx, cy - 14); ctx.lineTo(cx, cy - 18);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(cx, cy - 18);
+  ctx.bezierCurveTo(cx - 4, cy - 22, cx - 11, cy - 21, cx - 11, cy - 16);
+  ctx.moveTo(cx, cy - 18);
+  ctx.bezierCurveTo(cx + 4, cy - 22, cx + 11, cy - 21, cx + 11, cy - 16);
+  ctx.stroke();
+  // Bar tape grips
+  ctx.strokeStyle = '#0a0a0a'; ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.moveTo(cx - 11, cy - 18); ctx.lineTo(cx - 11, cy - 14);
+  ctx.moveTo(cx + 11, cy - 18); ctx.lineTo(cx + 11, cy - 14);
+  ctx.stroke();
+
+  // Saddle
+  ctx.fillStyle = '#0e0e10';
+  ctx.beginPath();
+  ctx.moveTo(cx - 3, cy + 14); ctx.lineTo(cx + 3, cy + 14);
+  ctx.lineTo(cx + 2, cy + 19); ctx.lineTo(cx - 2, cy + 19);
+  ctx.closePath(); ctx.fill();
+
+  // Rider torso (jersey body)
+  ctx.fillStyle = skin.arm;
+  ctx.beginPath();
+  ctx.moveTo(cx - 6, cy + 8);
+  ctx.lineTo(cx - 7, cy - 4);
+  ctx.lineTo(cx - 5, cy - 8);
+  ctx.lineTo(cx + 5, cy - 8);
+  ctx.lineTo(cx + 7, cy - 4);
+  ctx.lineTo(cx + 6, cy + 8);
+  ctx.closePath(); ctx.fill();
+  // Spine shading
+  ctx.fillStyle = 'rgba(0,0,0,0.18)';
+  ctx.fillRect(cx - 1.5, cy - 6, 3, 14);
+  // Center stripe
+  ctx.fillStyle = skin.jersey;
+  ctx.fillRect(cx - 1, cy - 6, 2, 14);
+  // Sleeve cuffs (white)
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(cx - 7, cy - 2, 1.5, 3);
+  ctx.fillRect(cx + 5.5, cy - 2, 1.5, 3);
+
+  // Arms reaching forward to drop bars
+  ctx.strokeStyle = skin.arm; ctx.lineWidth = 3.2; ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(cx - 5, cy - 7); ctx.lineTo(cx - 11, cy - 14);
+  ctx.moveTo(cx + 5, cy - 7); ctx.lineTo(cx + 11, cy - 14);
+  ctx.stroke();
+  ctx.fillStyle = '#0a0a0a';
+  ctx.beginPath(); ctx.arc(cx - 11, cy - 14, 1.4, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(cx + 11, cy - 14, 1.4, 0, Math.PI*2); ctx.fill();
+  ctx.lineCap = 'butt';
+
+  // Aero teardrop helmet
+  ctx.fillStyle = skin.helmet;
+  ctx.beginPath();
+  ctx.moveTo(cx, cy - 18);
+  ctx.bezierCurveTo(cx - 5, cy - 17, cx - 5, cy - 9, cx, cy - 9);
+  ctx.bezierCurveTo(cx + 5, cy - 9, cx + 5, cy - 17, cx, cy - 18);
+  ctx.closePath(); ctx.fill();
+  // Helmet shading
+  ctx.fillStyle = 'rgba(0,0,0,0.22)';
+  ctx.beginPath();
+  ctx.moveTo(cx - 5, cy - 12);
+  ctx.bezierCurveTo(cx - 5, cy - 9, cx + 5, cy - 9, cx + 5, cy - 12);
+  ctx.lineTo(cx, cy - 11);
+  ctx.closePath(); ctx.fill();
+  // Helmet vents
+  ctx.fillStyle = '#1a1a1c';
+  ctx.fillRect(cx - 0.8, cy - 16, 1.6, 4);
+  ctx.fillRect(cx - 3, cy - 14, 1.4, 3);
+  ctx.fillRect(cx + 1.6, cy - 14, 1.4, 3);
+  // Sunglasses peek
+  ctx.fillStyle = '#000';
+  ctx.fillRect(cx - 2, cy - 11, 4, 1);
+}
+
+// Helper: trace the full diamond bike frame with current stroke
+function drawHomeFrame(bb, stT, htT, rwx, rwy, fwx, fwy) {
+  ctx.beginPath();
+  // Seat tube: BB up to seat top
+  ctx.moveTo(bb.x, bb.y);   ctx.lineTo(stT.x, stT.y);
+  // Down tube: BB up-forward to head tube top
+  ctx.moveTo(bb.x, bb.y);   ctx.lineTo(htT.x, htT.y);
+  // Top tube: seat top to head tube top
+  ctx.moveTo(stT.x, stT.y); ctx.lineTo(htT.x, htT.y);
+  // Chainstay: BB to rear hub
+  ctx.moveTo(bb.x, bb.y);   ctx.lineTo(rwx, rwy);
+  // Seat stay: seat top to rear hub
+  ctx.moveTo(stT.x, stT.y); ctx.lineTo(rwx, rwy);
+  // Fork: head tube top to front hub
+  ctx.moveTo(htT.x, htT.y); ctx.lineTo(fwx, fwy);
+  ctx.stroke();
+}
+
+function drawCurrencyPill(x, y, label, color, pw) {
+  const w = pw || 120;
+  ctx.fillStyle = 'rgba(0,0,0,0.55)';
+  roundRect(x, y, w, 28, 14); ctx.fill();
+  ctx.strokeStyle = color; ctx.lineWidth = 1.5; ctx.stroke();
+  ctx.fillStyle = color; ctx.font = 'bold 14px system-ui';
+  ctx.textAlign = 'center';
+  ctx.fillText(label, x + w/2, y + 19);
+  ctx.textAlign = 'left';
+}
+
+function drawBigButton(b, t) {
+  const glow = 0.5 + 0.5 * Math.sin(t * 0.08);
+  // Drop shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.45)';
+  roundRect(b.x + 2, b.y + 4, b.w, b.h, 14); ctx.fill();
+  // Body — darker→lighter gradient for depth
+  const grad = ctx.createLinearGradient(b.x, b.y, b.x, b.y + b.h);
+  // Convert b.color to a slightly lighter top and darker bottom
+  grad.addColorStop(0, lightenColor(b.color, 0.18));
+  grad.addColorStop(1, darkenColor(b.color, 0.2));
+  ctx.fillStyle = grad;
+  roundRect(b.x, b.y, b.w, b.h, 14); ctx.fill();
+  // Inner highlight (top edge)
+  ctx.fillStyle = 'rgba(255,255,255,0.18)';
+  roundRect(b.x + 4, b.y + 3, b.w - 8, 6, 4); ctx.fill();
+  // Outline + animated glow
+  ctx.strokeStyle = `rgba(255,255,255,${0.35 + 0.20 * glow})`;
+  ctx.lineWidth = 2; roundRect(b.x, b.y, b.w, b.h, 14); ctx.stroke();
+  // Label with subtle shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.5)';
+  ctx.font = 'bold 24px system-ui';
+  ctx.textAlign = 'center';
+  ctx.fillText(b.label, b.x + b.w/2 + 1, b.y + b.h/2 + 9);
+  ctx.fillStyle = '#fff';
+  ctx.fillText(b.label, b.x + b.w/2, b.y + b.h/2 + 8);
+  ctx.textAlign = 'left';
+}
+
+// Color helpers — accept #rrggbb and shift toward white/black
+function lightenColor(hex, amt) { return shadeColor(hex, amt); }
+function darkenColor(hex, amt)  { return shadeColor(hex, -amt); }
+function shadeColor(hex, amt) {
+  const c = hex.replace('#','');
+  const r = parseInt(c.substr(0,2), 16);
+  const g = parseInt(c.substr(2,2), 16);
+  const b = parseInt(c.substr(4,2), 16);
+  const f = v => Math.max(0, Math.min(255, Math.round(amt > 0 ? v + (255 - v) * amt : v + v * amt)));
+  return `rgb(${f(r)},${f(g)},${f(b)})`;
+}
+
+function drawDevelop(g) {
+  ctx.fillStyle = '#1a2230'; ctx.fillRect(0, 0, W, H);
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#8cffb7';
+  ctx.font = 'bold 30px system-ui';
+  ctx.fillText('DEVELOP', W/2, 60);
+  ctx.fillStyle = '#bbb'; ctx.font = '13px system-ui';
+  ctx.fillText('Permanent upgrades — apply to every run', W/2, 82);
+
+  const rows = devRows();
+  for (const r of rows) drawDevRow(r);
+
+  // Back
+  const bb = devBackRect();
+  ctx.fillStyle = '#4a4a55';
+  roundRect(bb.x, bb.y, bb.w, bb.h, 10); ctx.fill();
+  ctx.fillStyle = '#fff'; ctx.font = 'bold 15px system-ui';
+  ctx.textAlign = 'center';
+  ctx.fillText('← BACK', bb.x + bb.w/2, bb.y + 26);
+  ctx.textAlign = 'left';
+
+  drawCurrencyHud();
+}
+
+function drawDevRow(r) {
+  const lvl = devLevel(r.id);
+  const maxLvl = r.upgrade.levels.length;
+  const atMax = lvl >= maxLvl;
+  const nextCost = atMax ? null : r.upgrade.levels[lvl].cost;
+  const nextLabel = atMax ? '—' : r.upgrade.levels[lvl].label;
+  const canAfford = nextCost != null && SAVE.dp >= nextCost;
+
+  // Card
+  ctx.fillStyle = atMax ? 'rgba(40,60,50,0.8)' : (canAfford ? 'rgba(42,60,80,0.9)' : 'rgba(38,42,54,0.9)');
+  roundRect(r.x, r.y, r.w, r.h, 10); ctx.fill();
+  ctx.strokeStyle = atMax ? '#2a8a58' : (canAfford ? '#6fa8ff' : '#3a4458');
+  ctx.lineWidth = 2; ctx.stroke();
+
+  // Name + desc
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 15px system-ui';
+  ctx.textAlign = 'left';
+  ctx.fillText(r.upgrade.name, r.x + 14, r.y + 22);
+  ctx.fillStyle = '#aab';
+  ctx.font = '11px system-ui';
+  ctx.fillText(r.upgrade.desc, r.x + 14, r.y + 38);
+
+  // Level dots
+  const dotsX = r.x + 14, dotsY = r.y + 48;
+  for (let i = 0; i < maxLvl; i++) {
+    ctx.fillStyle = i < lvl ? '#8cffb7' : '#394556';
+    ctx.beginPath(); ctx.arc(dotsX + i * 12, dotsY, 4, 0, Math.PI*2); ctx.fill();
+  }
+
+  // Cost / max pill on right
+  ctx.textAlign = 'right';
+  ctx.font = 'bold 14px system-ui';
+  if (atMax) {
+    ctx.fillStyle = '#8cffb7';
+    ctx.fillText('MAX', r.x + r.w - 14, r.y + 24);
+  } else {
+    ctx.fillStyle = canAfford ? '#ffd63a' : '#888';
+    ctx.fillText(`${nextCost} DP`, r.x + r.w - 14, r.y + 24);
+    ctx.fillStyle = '#aab';
+    ctx.font = '11px system-ui';
+    ctx.fillText(nextLabel, r.x + r.w - 14, r.y + 40);
+  }
+  ctx.textAlign = 'left';
+}
+
+function drawShop(g) {
+  ctx.fillStyle = '#1a2230'; ctx.fillRect(0, 0, W, H);
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#ffd63a';
+  ctx.font = 'bold 30px system-ui';
+  ctx.fillText('SHOP', W/2, 60);
+  ctx.fillStyle = '#bbb'; ctx.font = '13px system-ui';
+  ctx.fillText('Skins (more coming soon)', W/2, 82);
+
+  const cards = shopCards();
+  for (const c of cards) drawShopCard(c);
+
+  // Back
+  const bb = shopBackRect();
+  ctx.fillStyle = '#4a4a55';
+  roundRect(bb.x, bb.y, bb.w, bb.h, 10); ctx.fill();
+  ctx.fillStyle = '#fff'; ctx.font = 'bold 15px system-ui';
+  ctx.textAlign = 'center';
+  ctx.fillText('← BACK', bb.x + bb.w/2, bb.y + 26);
+  ctx.textAlign = 'left';
+
+  drawCurrencyHud();
+}
+
+function drawShopCard(c) {
+  const s = c.skin;
+  const owned = SAVE.owned.includes(c.id);
+  const equipped = SAVE.skin === c.id;
+  // Card bg
+  ctx.fillStyle = s.locked ? 'rgba(30,32,40,0.9)' :
+                  equipped ? 'rgba(42,82,60,0.9)' :
+                  owned ? 'rgba(36,50,70,0.9)' : 'rgba(40,46,60,0.9)';
+  roundRect(c.x, c.y, c.w, c.h, 10); ctx.fill();
+  ctx.strokeStyle = s.locked ? '#333' :
+                    equipped ? '#8cffb7' :
+                    owned ? '#6fa8ff' : '#aaa';
+  ctx.lineWidth = 2; ctx.stroke();
+
+  // Preview — top-down road cyclist matching the in-game look
+  const pcx = c.x + c.w/2, pcy = c.y + 52;
+  if (!s.locked) {
+    drawShopPreviewCyclist(pcx, pcy, s);
+  } else {
+    ctx.fillStyle = '#555';
+    ctx.font = 'bold 32px system-ui';
+    ctx.textAlign = 'center';
+    ctx.fillText('🔒', pcx, pcy + 6);
+  }
+
+  // Name
+  ctx.fillStyle = s.locked ? '#666' : '#fff';
+  ctx.font = 'bold 13px system-ui';
+  ctx.textAlign = 'center';
+  ctx.fillText(s.name, pcx, c.y + 90);
+
+  // Status / price
+  ctx.font = 'bold 12px system-ui';
+  if (s.locked) {
+    ctx.fillStyle = '#666';
+    ctx.fillText('LOCKED', pcx, c.y + 115);
+  } else if (equipped) {
+    ctx.fillStyle = '#8cffb7';
+    ctx.fillText('EQUIPPED', pcx, c.y + 115);
+  } else if (owned) {
+    ctx.fillStyle = '#6fa8ff';
+    ctx.fillText('TAP TO EQUIP', pcx, c.y + 115);
+  } else {
+    const afford = SAVE.coins >= s.price;
+    ctx.fillStyle = afford ? '#ffd63a' : '#aaa';
+    ctx.fillText(`${s.price}$`, pcx, c.y + 110);
+    ctx.fillStyle = afford ? '#8cffb7' : '#666';
+    ctx.font = '11px system-ui';
+    ctx.fillText(afford ? 'TAP TO BUY' : 'need coins', pcx, c.y + 126);
+  }
+  ctx.textAlign = 'left';
+}
+
+function drawSlowTint(g) {
+  if (g.slowTimer <= 0) return;
+  // Greenish tint + subtle vignette
+  ctx.fillStyle = 'rgba(79, 209, 122, 0.08)';
+  ctx.fillRect(0, 0, W, H);
+  // Vignette
+  const grad = ctx.createRadialGradient(W/2, H/2, W*0.2, W/2, H/2, W*0.75);
+  grad.addColorStop(0, 'rgba(0,0,0,0)');
+  grad.addColorStop(1, 'rgba(20,80,40,0.35)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H);
+  // "SLOW" marker at top
+  ctx.fillStyle = '#9fffc5';
+  ctx.font = 'bold 12px system-ui';
+  ctx.textAlign = 'center';
+  ctx.fillText('◐ SLOW-MO ◑', W/2, 24);
+  ctx.textAlign = 'left';
+}
+
+function hexAlpha(hex, a) {
+  const r = parseInt(hex.slice(1,3), 16);
+  const g = parseInt(hex.slice(3,5), 16);
+  const b = parseInt(hex.slice(5,7), 16);
+  return `rgba(${r},${g},${b},${a})`;
+}
+
+// ============================================================
+// Main loop
+// ============================================================
+game = newGame();
+
+// Fixed-timestep loop: run update() at exactly 60 logical ticks/sec
+// regardless of monitor refresh rate (60/120/144Hz) or tab throttling.
+// Without this, the game runs 2.4x faster on a 144Hz display, etc.
+const FIXED_DT_MS = 1000 / 60;   // one logical tick = ~16.67ms
+const MAX_CATCHUP_MS = 250;       // cap accumulator to avoid spiral-of-death
+let lastFrameTime = 0;
+let accumulator = 0;
+
+function frame(now) {
+  if (!lastFrameTime) lastFrameTime = now;
+  let delta = now - lastFrameTime;
+  lastFrameTime = now;
+  if (delta > MAX_CATCHUP_MS) delta = MAX_CATCHUP_MS; // tab was hidden, etc.
+  accumulator += delta;
+
+  // Run as many fixed ticks as fit. On a 60Hz display this is ~1/frame.
+  // On 144Hz it's ~0-1/frame averaging ~0.42. On 30Hz throttled it's ~2/frame.
+  let safety = 5; // hard cap per frame
+  while (accumulator >= FIXED_DT_MS && safety-- > 0) {
+    update(game);
+    accumulator -= FIXED_DT_MS;
+    // edge-triggered keys consumed once per logical tick
+    for (const k in pressed) pressed[k] = false;
+  }
+
+  draw(game);
+  if (isTouchDevice && touchHintShown > 0 && game.state === 'playing') {
+    drawTouchHint(touchHintShown);
+    touchHintShown--;
+  }
+  requestAnimationFrame(frame);
+}
+
+function drawTouchHint(timer) {
+  const a = Math.min(1, timer / 360) * 0.55;
+  // Firework zone (top)
+  ctx.fillStyle = `rgba(255, 210, 74, ${a*0.18})`;
+  ctx.fillRect(0, 0, W, H * 0.38);
+  // Left zone
+  ctx.fillStyle = `rgba(100, 180, 255, ${a*0.18})`;
+  ctx.fillRect(0, H * 0.38, W/2, H * 0.62);
+  // Right zone
+  ctx.fillStyle = `rgba(255, 140, 140, ${a*0.18})`;
+  ctx.fillRect(W/2, H * 0.38, W/2, H * 0.62);
+
+  ctx.fillStyle = `rgba(255, 255, 255, ${a})`;
+  ctx.textAlign = 'center';
+  ctx.font = 'bold 18px system-ui';
+  ctx.fillText('TAP TOP → FIREWORK', W/2, H * 0.38 / 2);
+  ctx.font = 'bold 16px system-ui';
+  ctx.fillText('◀  LEFT', W * 0.25, H * 0.7);
+  ctx.fillText('RIGHT  ▶', W * 0.75, H * 0.7);
+  ctx.textAlign = 'left';
+}
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
