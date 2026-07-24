@@ -14,13 +14,18 @@
       </div>
 
       <div class="card wordle-wrap">
+        <p class="muted center" id="wordle-subtitle"></p>
         <p class="muted center">
-          خمّن الكلمة المكوّنة من ٥ أحرف خلال ٦ محاولات. أخضر = الحرف في مكانه
-          الصحيح، أصفر = الحرف موجود لكن في مكان آخر، رمادي = الحرف غير
-          موجود.
+          أخضر = الحرف في مكانه الصحيح، أصفر = الحرف موجود لكن في مكان آخر،
+          رمادي = الحرف غير موجود.
         </p>
 
         <div id="wordle-grid" class="wordle-grid"></div>
+
+        <button id="wordle-hint-btn" class="btn btn-outline">
+          💡 تلميح (الفئة)
+        </button>
+        <div id="wordle-hint-box" class="hint-box hidden"></div>
 
         <div id="wordle-message" class="wordle-message"></div>
 
