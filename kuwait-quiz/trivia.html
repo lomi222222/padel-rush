@@ -59,7 +59,7 @@
     <div id="question-overlay" class="overlay hidden">
       <div class="question-card">
         <div class="question-meta">
-          <span id="q-team" class="badge"></span>
+          <span id="q-picker" class="badge"></span>
           <span id="q-category" class="badge"></span>
           <span id="q-points" class="points"></span>
         </div>
@@ -68,9 +68,8 @@
 
         <div id="q-hint" class="hint-box hidden"></div>
         <div id="q-choices" class="choices-grid hidden"></div>
-        <div id="q-attempt" class="attempt-banner hidden"></div>
 
-        <div id="q-abilities" class="abilities-row"></div>
+        <div id="q-team-abilities" class="team-abilities-list"></div>
 
         <div id="q-resolve" class="resolve-row">
           <button id="reveal-btn" class="btn btn-outline btn-block">
@@ -80,10 +79,8 @@
 
         <div id="q-answer-box" class="hidden stack">
           <div class="question-text" id="q-answer-text" style="font-size: 20px; color: var(--green-dark)"></div>
-          <div class="resolve-row">
-            <button id="correct-btn" class="btn btn-success">صحيح ✅</button>
-            <button id="wrong-btn" class="btn btn-danger">خطأ ❌</button>
-          </div>
+          <p class="muted center">أي فريق أجاب إجابة صحيحة؟</p>
+          <div id="q-winner-buttons" class="winner-buttons"></div>
         </div>
       </div>
     </div>

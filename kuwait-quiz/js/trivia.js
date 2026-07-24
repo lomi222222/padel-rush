@@ -30,11 +30,11 @@
   // ===== State =====
   let teamCount = 2;
   let teams = [];
-  let currentTeamIndex = 0;
+  let pickerIndex = 0; // whose turn it is to pick a category/cell (does not restrict who can answer)
   let board = []; // { cat, diff, points, question, used }
   let cellsUsedCount = 0;
   let totalCells = 0;
-  let activeCell = null; // { boardIndex, points, correctAnswer, choicesShuffled, doubled, twoGuessActive, guessNumber, revealedHint, revealedChoices, revealed }
+  let activeCell = null; // { boardIndex, points, correctAnswer, choicesShuffled, revealedHint, revealedChoices, revealed, doubledByTeam, twoGuessByTeam }
 
   function defaultTeamName(i) {
     return "الفريق " + ["الأول", "الثاني", "الثالث", "الرابع"][i];
@@ -105,7 +105,7 @@
         doublePoints: false,
       },
     }));
-    currentTeamIndex = 0;
+    pickerIndex = 0;
     buildBoard();
     document.getElementById("setup-screen").classList.add("hidden");
     document.getElementById("board-screen").classList.remove("hidden");
@@ -151,7 +151,7 @@
     el.innerHTML = "";
     teams.forEach((team, i) => {
       const chip = document.createElement("div");
-      chip.className = "team-chip" + (i === currentTeamIndex ? " current" : "");
+      chip.className = "team-chip" + (i === pickerIndex ? " current" : "");
       chip.style.background = team.color;
 
       const name = document.createElement("div");
@@ -213,19 +213,17 @@
 
   // ===== Question overlay =====
   const overlay = document.getElementById("question-overlay");
-  const qTeamEl = document.getElementById("q-team");
+  const qPickerEl = document.getElementById("q-picker");
   const qCategoryEl = document.getElementById("q-category");
   const qPointsEl = document.getElementById("q-points");
   const qTextEl = document.getElementById("q-text");
   const qHintEl = document.getElementById("q-hint");
   const qChoicesEl = document.getElementById("q-choices");
-  const qAttemptEl = document.getElementById("q-attempt");
-  const qAbilitiesEl = document.getElementById("q-abilities");
+  const qTeamAbilitiesEl = document.getElementById("q-team-abilities");
   const revealBtn = document.getElementById("reveal-btn");
   const qAnswerBox = document.getElementById("q-answer-box");
   const qAnswerText = document.getElementById("q-answer-text");
-  const correctBtn = document.getElementById("correct-btn");
-  const wrongBtn = document.getElementById("wrong-btn");
+  const qWinnerButtonsEl = document.getElementById("q-winner-buttons");
 
   function categoryName(key) {
     const c = CATEGORIES.find((x) => x.key === key);
@@ -239,27 +237,27 @@
       points: cell.points,
       correctAnswer: cell.question.choices[0],
       choicesShuffled: shuffle(cell.question.choices),
-      doubled: false,
-      twoGuessActive: false,
-      guessNumber: 1,
       revealedHint: false,
       revealedChoices: false,
       revealed: false,
+      doubledByTeam: null,
+      twoGuessByTeam: null,
     };
     renderQuestionOverlay(cell);
     overlay.classList.remove("hidden");
   }
 
   function renderQuestionOverlay(cell) {
-    const team = teams[currentTeamIndex];
+    const picker = teams[pickerIndex];
 
-    qTeamEl.textContent = "دور: " + team.name;
-    qTeamEl.style.background = team.color;
-    qTeamEl.style.color = "#fff";
+    qPickerEl.textContent = "يختار الفئة: " + picker.name;
+    qPickerEl.style.background = picker.color;
+    qPickerEl.style.color = "#fff";
     qCategoryEl.textContent = categoryName(cell.cat);
-    qPointsEl.textContent = activeCell.doubled
-      ? activeCell.points * 2 + " نقطة (مضاعفة)"
-      : activeCell.points + " نقطة";
+    qPointsEl.textContent =
+      activeCell.doubledByTeam !== null
+        ? activeCell.points * 2 + " نقطة (مضاعفة لفريق " + teams[activeCell.doubledByTeam].name + ")"
+        : activeCell.points + " نقطة";
     qTextEl.textContent = cell.question.q;
 
     // hint
@@ -284,48 +282,95 @@
       qChoicesEl.classList.add("hidden");
     }
 
-    // two-guess attempt banner
-    if (activeCell.twoGuessActive) {
-      qAttemptEl.classList.remove("hidden");
-      qAttemptEl.textContent =
-        activeCell.guessNumber === 1
-          ? "🎯 القدرة مفعّلة: المحاولة الأولى من اثنتين"
-          : "⏳ المحاولة الثانية والأخيرة";
-    } else {
-      qAttemptEl.classList.add("hidden");
-    }
-
-    // abilities
-    qAbilitiesEl.innerHTML = "";
-    ABILITIES.forEach((a) => {
-      const btn = document.createElement("button");
-      btn.className = "ability-btn";
-      btn.textContent = a.label;
-      btn.disabled = team.abilitiesUsed[a.key];
-      btn.addEventListener("click", () => useAbility(a.key));
-      qAbilitiesEl.appendChild(btn);
-    });
+    renderTeamAbilities();
 
     // reveal / answer box
     if (activeCell.revealed) {
       revealBtn.classList.add("hidden");
       qAnswerBox.classList.remove("hidden");
       qAnswerText.textContent = "الإجابة الصحيحة: " + activeCell.correctAnswer;
+      renderWinnerButtons();
     } else {
       revealBtn.classList.remove("hidden");
       qAnswerBox.classList.add("hidden");
     }
   }
 
-  function useAbility(key) {
-    const team = teams[currentTeamIndex];
+  // كل فريق له صف مساعدات خاص به، يمكن لأي فريق استخدام مساعدته الخاصة على أي سؤال
+  function renderTeamAbilities() {
+    qTeamAbilitiesEl.innerHTML = "";
+    teams.forEach((team, ti) => {
+      const block = document.createElement("div");
+      block.className = "team-ability-block";
+      block.style.borderColor = team.color;
+
+      const nameRow = document.createElement("div");
+      nameRow.className = "team-ability-name";
+      nameRow.style.color = team.color;
+
+      const nameSpan = document.createElement("span");
+      nameSpan.textContent = team.name;
+      nameRow.appendChild(nameSpan);
+
+      if (activeCell.doubledByTeam === ti) {
+        const badge = document.createElement("span");
+        badge.className = "ability-active-badge";
+        badge.textContent = "✖️2 مفعّلة";
+        nameRow.appendChild(badge);
+      }
+      if (activeCell.twoGuessByTeam === ti) {
+        const badge = document.createElement("span");
+        badge.className = "ability-active-badge";
+        badge.textContent = "2️⃣ إجابتين مفعّلة";
+        nameRow.appendChild(badge);
+      }
+
+      block.appendChild(nameRow);
+
+      const btnRow = document.createElement("div");
+      btnRow.className = "abilities-row";
+      ABILITIES.forEach((a) => {
+        const btn = document.createElement("button");
+        btn.className = "ability-btn";
+        btn.textContent = a.label;
+        btn.disabled = team.abilitiesUsed[a.key];
+        btn.addEventListener("click", () => useAbility(ti, a.key));
+        btnRow.appendChild(btn);
+      });
+      block.appendChild(btnRow);
+
+      qTeamAbilitiesEl.appendChild(block);
+    });
+  }
+
+  function renderWinnerButtons() {
+    qWinnerButtonsEl.innerHTML = "";
+    teams.forEach((team, ti) => {
+      const btn = document.createElement("button");
+      btn.className = "btn winner-team-btn";
+      btn.style.background = team.color;
+      btn.style.color = "#fff";
+      btn.textContent = team.name + " ✅";
+      btn.addEventListener("click", () => finalizeCell(ti));
+      qWinnerButtonsEl.appendChild(btn);
+    });
+
+    const noneBtn = document.createElement("button");
+    noneBtn.className = "btn btn-outline winner-team-btn";
+    noneBtn.textContent = "لا أحد أجاب صح ❌";
+    noneBtn.addEventListener("click", () => finalizeCell(null));
+    qWinnerButtonsEl.appendChild(noneBtn);
+  }
+
+  function useAbility(teamIndex, key) {
+    const team = teams[teamIndex];
     if (team.abilitiesUsed[key]) return;
     team.abilitiesUsed[key] = true;
 
-    if (key === "twoGuesses") activeCell.twoGuessActive = true;
+    if (key === "twoGuesses") activeCell.twoGuessByTeam = teamIndex;
     if (key === "choices") activeCell.revealedChoices = true;
     if (key === "firstLetter") activeCell.revealedHint = true;
-    if (key === "doublePoints") activeCell.doubled = true;
+    if (key === "doublePoints") activeCell.doubledByTeam = teamIndex;
 
     renderQuestionOverlay(board[activeCell.boardIndex]);
     renderScoreboard();
@@ -336,27 +381,18 @@
     renderQuestionOverlay(board[activeCell.boardIndex]);
   });
 
-  correctBtn.addEventListener("click", () => finalizeCell(true));
-
-  wrongBtn.addEventListener("click", () => {
-    if (activeCell.twoGuessActive && activeCell.guessNumber === 1) {
-      activeCell.guessNumber = 2;
-      renderQuestionOverlay(board[activeCell.boardIndex]);
-      return;
-    }
-    finalizeCell(false);
-  });
-
-  function finalizeCell(isCorrect) {
+  function finalizeCell(winnerIndex) {
     const cell = board[activeCell.boardIndex];
-    const team = teams[currentTeamIndex];
-    const pts = activeCell.points * (activeCell.doubled ? 2 : 1);
 
-    if (isCorrect) team.score += pts;
+    if (winnerIndex !== null) {
+      const winner = teams[winnerIndex];
+      const pts = activeCell.points * (activeCell.doubledByTeam === winnerIndex ? 2 : 1);
+      winner.score += pts;
+    }
 
     cell.used = true;
     cellsUsedCount++;
-    currentTeamIndex = (currentTeamIndex + 1) % teams.length;
+    pickerIndex = (pickerIndex + 1) % teams.length;
     activeCell = null;
 
     overlay.classList.add("hidden");

@@ -535,10 +535,50 @@ input[type="text"]:focus {
   flex: 1;
 }
 
-.attempt-banner {
-  text-align: center;
+/* ===== Per-team abilities ===== */
+.team-abilities-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.team-ability-block {
+  border: 2px solid var(--blue-100);
+  border-radius: 12px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.team-ability-name {
+  font-weight: 800;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.ability-active-badge {
+  font-size: 11px;
   font-weight: 700;
-  color: var(--muted);
+  background: var(--yellow);
+  color: var(--navy);
+  border-radius: 999px;
+  padding: 2px 10px;
+}
+
+/* ===== Winner picker ===== */
+.winner-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+}
+
+.winner-team-btn {
+  flex: 1 1 140px;
 }
 
 /* ===== End screen ===== */
@@ -593,7 +633,6 @@ input[type="text"]:focus {
 .wordle-row {
   display: flex;
   gap: 8px;
-  flex-direction: row-reverse;
 }
 
 .wordle-tile {
@@ -645,7 +684,6 @@ input[type="text"]:focus {
   display: flex;
   gap: 6px;
   justify-content: center;
-  flex-direction: row-reverse;
 }
 
 .key {
