@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+    <title>لعبة المعلومات - ألعاب الكويت</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="page">
+      <div class="topbar">
+        <h1>🎯 لعبة المعلومات</h1>
+        <a class="home-link" href="index.html">القائمة الرئيسية</a>
+      </div>
+
+      <!-- شاشة إعداد الفرق -->
+      <section id="setup-screen" class="card stack">
+        <h2 class="center">إعداد الفرق</h2>
+        <p class="muted center">اختر عدد الفرق (من 2 إلى 4) وأدخل أسماءهم</p>
+
+        <div class="team-setup-controls">
+          <span>عدد الفرق</span>
+          <div class="stepper">
+            <button type="button" id="dec-team">-</button>
+            <span id="team-count-label">2</span>
+            <button type="button" id="inc-team">+</button>
+          </div>
+        </div>
+
+        <div id="team-setup-list" class="team-setup-list"></div>
+
+        <button id="start-game-btn" class="btn btn-primary btn-block">
+          ابدأ اللعبة
+        </button>
+      </section>
+
+      <!-- شاشة اللوحة -->
+      <section id="board-screen" class="stack hidden">
+        <div id="scoreboard" class="scoreboard"></div>
+        <div class="board-scroll">
+          <div id="board" class="board"></div>
+        </div>
+      </section>
+
+      <!-- شاشة النهاية -->
+      <section id="end-screen" class="card stack hidden">
+        <div class="winner-banner">
+          <h2 id="winner-name">🏆 الفريق الفائز</h2>
+          <p id="winner-score"></p>
+        </div>
+        <div id="final-scores" class="final-scores"></div>
+        <button id="restart-btn" class="btn btn-primary btn-block">
+          العب مرة أخرى
+        </button>
+      </section>
+    </div>
+
+    <!-- نافذة السؤال -->
+    <div id="question-overlay" class="overlay hidden">
+      <div class="question-card">
+        <div class="question-meta">
+          <span id="q-team" class="badge"></span>
+          <span id="q-category" class="badge"></span>
+          <span id="q-points" class="points"></span>
+        </div>
+
+        <div id="q-text" class="question-text"></div>
+
+        <div id="q-hint" class="hint-box hidden"></div>
+        <div id="q-choices" class="choices-grid hidden"></div>
+        <div id="q-attempt" class="attempt-banner hidden"></div>
+
+        <div id="q-abilities" class="abilities-row"></div>
+
+        <div id="q-resolve" class="resolve-row">
+          <button id="reveal-btn" class="btn btn-outline btn-block">
+            إظهار الإجابة
+          </button>
+        </div>
+
+        <div id="q-answer-box" class="hidden stack">
+          <div class="question-text" id="q-answer-text" style="font-size: 20px; color: var(--green-dark)"></div>
+          <div class="resolve-row">
+            <button id="correct-btn" class="btn btn-success">صحيح ✅</button>
+            <button id="wrong-btn" class="btn btn-danger">خطأ ❌</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="js/questions.js"></script>
+    <script src="js/trivia.js"></script>
+  </body>
+</html>

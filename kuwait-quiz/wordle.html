@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+    <title>احزر الكلمة - ألعاب الكويت</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="page">
+      <div class="topbar">
+        <h1>🔤 احزر الكلمة</h1>
+        <a class="home-link" href="index.html">القائمة الرئيسية</a>
+      </div>
+
+      <div class="card wordle-wrap">
+        <p class="muted center">
+          خمّن الكلمة المكوّنة من ٥ أحرف خلال ٦ محاولات. أخضر = الحرف في مكانه
+          الصحيح، أصفر = الحرف موجود لكن في مكان آخر، رمادي = الحرف غير
+          موجود.
+        </p>
+
+        <div id="wordle-grid" class="wordle-grid"></div>
+
+        <div id="wordle-message" class="wordle-message"></div>
+
+        <div id="keyboard" class="keyboard"></div>
+
+        <button id="wordle-restart" class="btn btn-primary hidden">
+          كلمة جديدة 🔄
+        </button>
+      </div>
+    </div>
+
+    <script src="js/words.js"></script>
+    <script src="js/wordle.js"></script>
+  </body>
+</html>
