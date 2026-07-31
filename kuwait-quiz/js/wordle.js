@@ -13,11 +13,14 @@
     ["ENTER", "DEL"],
   ];
 
+  const ALL_CATEGORIES = [...new Set(WORDS.map((w) => w.category))];
+
   // ===== حالة الفريقين =====
   let teams = [];
   let teamIndex = 0;
   let roundsPlayed = [0, 0];
   let matchOver = false;
+  let selectedCategories = new Set(ALL_CATEGORIES);
 
   // ===== حالة الجولة الحالية =====
   let target = "";
@@ -62,9 +65,52 @@
   const roundEndEl = document.getElementById("wordle-round-end");
   const nextTeamBtn = document.getElementById("wordle-next-team-btn");
   const endMatchBtn = document.getElementById("wordle-end-match-btn");
+  const catAllCheckbox = document.getElementById("wordle-cat-all");
+  const catListEl = document.getElementById("wordle-category-list");
+  const catErrorEl = document.getElementById("wordle-category-error");
+
+  // ===== اختيار الفئات =====
+  function renderCategoryChecklist() {
+    catListEl.innerHTML = "";
+    ALL_CATEGORIES.forEach((cat) => {
+      const label = document.createElement("label");
+      label.className = "category-chip";
+
+      const box = document.createElement("input");
+      box.type = "checkbox";
+      box.checked = selectedCategories.has(cat);
+      box.addEventListener("change", () => {
+        if (box.checked) selectedCategories.add(cat);
+        else selectedCategories.delete(cat);
+        syncAllCheckbox();
+      });
+
+      label.appendChild(box);
+      label.appendChild(document.createTextNode(cat));
+      catListEl.appendChild(label);
+    });
+  }
+
+  function syncAllCheckbox() {
+    catAllCheckbox.checked = selectedCategories.size === ALL_CATEGORIES.length;
+  }
+
+  catAllCheckbox.addEventListener("change", () => {
+    selectedCategories = new Set(catAllCheckbox.checked ? ALL_CATEGORIES : []);
+    renderCategoryChecklist();
+  });
+
+  renderCategoryChecklist();
 
   // ===== إعداد الفريقين =====
   startBtn.addEventListener("click", () => {
+    if (selectedCategories.size === 0) {
+      catErrorEl.textContent = "اختر فئة واحدة على الأقل قبل البدء";
+      catErrorEl.classList.remove("hidden");
+      return;
+    }
+    catErrorEl.classList.add("hidden");
+
     teams = [
       { name: team1Input.value.trim() || defaultTeamName(0), color: TEAM_COLORS[0], score: 0 },
       { name: team2Input.value.trim() || defaultTeamName(1), color: TEAM_COLORS[1], score: 0 },
@@ -101,7 +147,8 @@
   }
 
   function pickWordEntry() {
-    return WORDS[Math.floor(Math.random() * WORDS.length)];
+    const pool = WORDS.filter((w) => selectedCategories.has(w.category));
+    return pool[Math.floor(Math.random() * pool.length)];
   }
 
   function applyTileSize() {

@@ -29,6 +29,16 @@
           </div>
         </div>
 
+        <p class="muted center">اختر الفئات (كلها مفعّلة افتراضياً)</p>
+        <div class="abilities-row">
+          <label class="category-chip all">
+            <input type="checkbox" id="wordle-cat-all" checked />
+            الكل
+          </label>
+        </div>
+        <div id="wordle-category-list" class="abilities-row"></div>
+        <p id="wordle-category-error" class="hidden" style="color: var(--red); font-weight: 700; text-align: center"></p>
+
         <button id="wordle-start-btn" class="btn btn-primary btn-block">
           ابدأ اللعبة
         </button>
