@@ -3,6 +3,8 @@
 
   const ARABIC_LETTER_RE = /^[ء-ي]$/;
   const ARABIC_DIGITS = ["٠", "١", "٢", "٣", "٤", "٥", "٦", "٧", "٨", "٩"];
+  const TEAM_COLORS = ["#12539f", "#06264a"];
+  const ROUNDS_PER_TEAM = 5;
 
   const KEYBOARD_ROWS = [
     ["ض", "ص", "ث", "ق", "ف", "غ", "ع", "ه", "خ", "ح", "ج", "د"],
@@ -11,24 +13,23 @@
     ["ENTER", "DEL"],
   ];
 
+  // ===== حالة الفريقين =====
+  let teams = [];
+  let teamIndex = 0;
+  let roundsPlayed = [0, 0];
+  let matchOver = false;
+
+  // ===== حالة الجولة الحالية =====
   let target = "";
   let targetChars = [];
   let wordLength = 5;
   let maxAttempts = 6;
   let category = "";
-  let hintUsed = false;
   let currentGuess = [];
-  let guesses = []; // { chars: [...], statuses: [...] }
+  let guesses = [];
   let gameOver = false;
-  let keyStatus = {}; // letter -> 'green' | 'yellow' | 'gray'
-
-  const subtitleEl = document.getElementById("wordle-subtitle");
-  const gridEl = document.getElementById("wordle-grid");
-  const messageEl = document.getElementById("wordle-message");
-  const keyboardEl = document.getElementById("keyboard");
-  const restartBtn = document.getElementById("wordle-restart");
-  const hintBtn = document.getElementById("wordle-hint-btn");
-  const hintBoxEl = document.getElementById("wordle-hint-box");
+  let keyStatus = {};
+  let hints = { categoryUsed: false, repeatUsed: false, revealLetterUses: 0 };
 
   function toArabicDigits(n) {
     return String(n)
@@ -37,12 +38,72 @@
       .join("");
   }
 
+  function defaultTeamName(i) {
+    return "الفريق " + (i === 0 ? "الأول" : "الثاني");
+  }
+
+  // ===== عناصر DOM =====
+  const setupScreen = document.getElementById("wordle-setup-screen");
+  const playScreen = document.getElementById("wordle-play-screen");
+  const endScreen = document.getElementById("wordle-end-screen");
+  const team1Input = document.getElementById("wordle-team1-input");
+  const team2Input = document.getElementById("wordle-team2-input");
+  const startBtn = document.getElementById("wordle-start-btn");
+
+  const scoreboardEl = document.getElementById("wordle-scoreboard");
+  const subtitleEl = document.getElementById("wordle-subtitle");
+  const gridEl = document.getElementById("wordle-grid");
+  const messageEl = document.getElementById("wordle-message");
+  const keyboardEl = document.getElementById("keyboard");
+  const hintLogEl = document.getElementById("wordle-hint-log");
+  const hintCategoryBtn = document.getElementById("wordle-hint-category-btn");
+  const hintRepeatBtn = document.getElementById("wordle-hint-repeat-btn");
+  const hintLetterBtn = document.getElementById("wordle-hint-letter-btn");
+  const roundEndEl = document.getElementById("wordle-round-end");
+  const nextTeamBtn = document.getElementById("wordle-next-team-btn");
+  const endMatchBtn = document.getElementById("wordle-end-match-btn");
+
+  // ===== إعداد الفريقين =====
+  startBtn.addEventListener("click", () => {
+    teams = [
+      { name: team1Input.value.trim() || defaultTeamName(0), color: TEAM_COLORS[0], score: 0 },
+      { name: team2Input.value.trim() || defaultTeamName(1), color: TEAM_COLORS[1], score: 0 },
+    ];
+    teamIndex = 0;
+    roundsPlayed = [0, 0];
+    matchOver = false;
+    setupScreen.classList.add("hidden");
+    playScreen.classList.remove("hidden");
+    endScreen.classList.add("hidden");
+    renderScoreboard();
+    startRound();
+  });
+
+  function renderScoreboard() {
+    scoreboardEl.innerHTML = "";
+    teams.forEach((team, i) => {
+      const chip = document.createElement("div");
+      chip.className = "team-chip" + (i === teamIndex ? " current" : "");
+      chip.style.background = team.color;
+
+      const name = document.createElement("div");
+      name.className = "name";
+      name.textContent = team.name;
+
+      const score = document.createElement("div");
+      score.className = "score";
+      score.textContent = toArabicDigits(team.score) + " نقطة";
+
+      chip.appendChild(name);
+      chip.appendChild(score);
+      scoreboardEl.appendChild(chip);
+    });
+  }
+
   function pickWordEntry() {
     return WORDS[Math.floor(Math.random() * WORDS.length)];
   }
 
-  // يحسب حجم المربع المناسب بناءً على العرض المتاح فعلياً وطول الكلمة الحالية،
-  // حتى لا تفيض الكلمات الطويلة عن الشاشة ولا تصغر الكلمات القصيرة بلا داعٍ
   function applyTileSize() {
     const container = gridEl.parentElement;
     const cs = getComputedStyle(container);
@@ -54,7 +115,22 @@
     gridEl.style.setProperty("--tile-size", size + "px");
   }
 
-  function startGame() {
+  // ===== نقاط الجولة =====
+  // المحاولة الأولى = 200×N (مضاعفة تلقائياً)، وأي محاولة بعدها = 100×(N-k+1)
+  function rawScoreForAttempt(attemptNumber) {
+    if (attemptNumber === 1) return 200 * maxAttempts;
+    return 100 * (maxAttempts - attemptNumber + 1);
+  }
+
+  function finalScoreForAttempt(attemptNumber) {
+    let score = rawScoreForAttempt(attemptNumber);
+    const flatDeduction = (hints.repeatUsed ? 50 : 0) + hints.revealLetterUses * 100;
+    score = Math.max(0, score - flatDeduction);
+    if (hints.categoryUsed) score = Math.floor(score / 2);
+    return score;
+  }
+
+  function startRound() {
     const entry = pickWordEntry();
     target = entry.word;
     category = entry.category;
@@ -66,21 +142,72 @@
     guesses = [];
     gameOver = false;
     keyStatus = {};
-    hintUsed = false;
+    hints = { categoryUsed: false, repeatUsed: false, revealLetterUses: 0 };
 
     subtitleEl.textContent =
-      "خمّن الكلمة المكوّنة من " + toArabicDigits(wordLength) + " أحرف خلال " + toArabicDigits(maxAttempts) + " محاولات";
+      "دور " + teams[teamIndex].name + " (الجولة " + toArabicDigits(roundsPlayed[teamIndex] + 1) + " من " + toArabicDigits(ROUNDS_PER_TEAM) + ") — كلمة من " + toArabicDigits(wordLength) + " أحرف خلال " + toArabicDigits(maxAttempts) + " محاولات";
     messageEl.textContent = "";
     messageEl.className = "wordle-message";
-    restartBtn.classList.add("hidden");
-    hintBtn.disabled = false;
-    hintBoxEl.classList.add("hidden");
-    hintBoxEl.textContent = "";
+    hintLogEl.innerHTML = "";
+    roundEndEl.classList.add("hidden");
+    updateHintButtons();
 
     applyTileSize();
     renderGrid();
     renderKeyboard();
+    renderScoreboard();
   }
+
+  function updateHintButtons() {
+    hintCategoryBtn.disabled = gameOver || hints.categoryUsed;
+    hintRepeatBtn.disabled = gameOver || hints.repeatUsed;
+
+    const allKnown = [...new Set(targetChars)].every((c) => keyStatus[c] === "green");
+    hintLetterBtn.disabled = gameOver || allKnown;
+  }
+
+  function logHint(text) {
+    const box = document.createElement("div");
+    box.className = "hint-box";
+    box.textContent = text;
+    hintLogEl.appendChild(box);
+  }
+
+  hintCategoryBtn.addEventListener("click", () => {
+    if (hintCategoryBtn.disabled) return;
+    hints.categoryUsed = true;
+    logHint("💡 الفئة: " + category);
+    updateHintButtons();
+  });
+
+  hintRepeatBtn.addEventListener("click", () => {
+    if (hintRepeatBtn.disabled) return;
+    hints.repeatUsed = true;
+    const hasDup = new Set(targetChars).size !== targetChars.length;
+    logHint(hasDup ? "🔁 نعم، يوجد حرف متكرر في الكلمة" : "🔁 لا، لا يوجد حرف متكرر في الكلمة");
+    updateHintButtons();
+  });
+
+  hintLetterBtn.addEventListener("click", () => {
+    if (hintLetterBtn.disabled) return;
+    hints.revealLetterUses++;
+
+    const yellowLetter = Object.keys(keyStatus).find((l) => keyStatus[l] === "yellow");
+    if (yellowLetter) {
+      const pos = targetChars.indexOf(yellowLetter);
+      keyStatus[yellowLetter] = "green";
+      logHint('🔤 الحرف "' + yellowLetter + '" في الموضع ' + toArabicDigits(pos + 1));
+    } else {
+      const revealed = new Set(Object.keys(keyStatus));
+      const candidates = [...new Set(targetChars)].filter((c) => !revealed.has(c));
+      const pick = candidates[Math.floor(Math.random() * candidates.length)];
+      keyStatus[pick] = "yellow";
+      logHint('🔤 الحرف "' + pick + '" موجود في الكلمة');
+    }
+
+    renderKeyboard();
+    updateHintButtons();
+  });
 
   function evaluateGuess(guessChars) {
     const statuses = new Array(wordLength).fill("gray");
@@ -197,6 +324,7 @@
     }
 
     const statuses = evaluateGuess(currentGuess);
+    const attemptNumber = guesses.length + 1;
     guesses.push({ chars: currentGuess.slice(), statuses });
     updateKeyStatus(currentGuess, statuses);
 
@@ -204,34 +332,40 @@
     currentGuess = [];
     renderGrid();
     renderKeyboard();
+    updateHintButtons();
 
     if (won) {
       gameOver = true;
-      showMessage("🎉 أحسنت! الكلمة هي: " + target, "win");
-      restartBtn.classList.remove("hidden");
+      const earned = finalScoreForAttempt(attemptNumber);
+      teams[teamIndex].score += earned;
+      showMessage("🎉 أحسنت يا " + teams[teamIndex].name + "! ربحتوا " + toArabicDigits(earned) + " نقطة", "win");
+      renderScoreboard();
+      updateHintButtons();
+      resolveRoundEnd();
       return;
     }
 
     if (guesses.length >= maxAttempts) {
       gameOver = true;
-      showMessage("😔 انتهت المحاولات! الكلمة كانت: " + target, "lose");
-      restartBtn.classList.remove("hidden");
+      showMessage("😔 انتهت المحاولات! الكلمة كانت: " + target + " (٠ نقطة)", "lose");
+      updateHintButtons();
+      resolveRoundEnd();
       return;
     }
 
     showMessage("", "");
   }
 
-  function useHint() {
-    if (hintUsed || gameOver) return;
-    hintUsed = true;
-    hintBtn.disabled = true;
-    hintBoxEl.classList.remove("hidden");
-    hintBoxEl.textContent = "💡 الفئة: " + category;
+  // تحسب نهاية الجولة، وتقرر هل انتهت المباراة (كل فريق لعب 5 جولات) أو لسه في دور تالي
+  function resolveRoundEnd() {
+    roundsPlayed[teamIndex]++;
+    matchOver = roundsPlayed.every((r) => r >= ROUNDS_PER_TEAM);
+    nextTeamBtn.textContent = matchOver ? "عرض النتيجة النهائية 🏆" : "دور الفريق التالي 👉";
+    roundEndEl.classList.remove("hidden");
   }
 
   document.addEventListener("keydown", (e) => {
-    if (gameOver) return;
+    if (gameOver || playScreen.classList.contains("hidden")) return;
     if (e.key === "Enter") {
       handleKey("ENTER");
     } else if (e.key === "Backspace") {
@@ -247,8 +381,50 @@
     resizeTimer = setTimeout(applyTileSize, 120);
   });
 
-  restartBtn.addEventListener("click", startGame);
-  hintBtn.addEventListener("click", useHint);
+  nextTeamBtn.addEventListener("click", () => {
+    if (matchOver) {
+      showEndScreen();
+      return;
+    }
+    teamIndex = (teamIndex + 1) % teams.length;
+    startRound();
+  });
 
-  startGame();
+  endMatchBtn.addEventListener("click", showEndScreen);
+
+  function showEndScreen() {
+    playScreen.classList.add("hidden");
+    endScreen.classList.remove("hidden");
+
+    const sorted = teams.slice().sort((a, b) => b.score - a.score);
+    const topScore = sorted[0].score;
+    const winners = sorted.filter((t) => t.score === topScore);
+
+    const winnerNameEl = document.getElementById("wordle-winner-name");
+    const winnerScoreEl = document.getElementById("wordle-winner-score");
+    if (winners.length > 1) {
+      winnerNameEl.textContent = "🏆 تعادل بين: " + winners.map((w) => w.name).join(" و ");
+    } else {
+      winnerNameEl.textContent = "🏆 الفريق الفائز: " + winners[0].name;
+    }
+    winnerScoreEl.textContent = "بمجموع " + toArabicDigits(topScore) + " نقطة";
+
+    const finalScoresEl = document.getElementById("wordle-final-scores");
+    finalScoresEl.innerHTML = "";
+    sorted.forEach((team, i) => {
+      const row = document.createElement("div");
+      row.className = "final-score-row" + (i === 0 ? " first" : "");
+      row.style.color = "#0c2036";
+      row.innerHTML =
+        "<span>" + (i + 1) + ". " + team.name + "</span><span>" + toArabicDigits(team.score) + " نقطة</span>";
+      finalScoresEl.appendChild(row);
+    });
+  }
+
+  document.getElementById("wordle-restart-btn").addEventListener("click", () => {
+    endScreen.classList.add("hidden");
+    setupScreen.classList.remove("hidden");
+    team1Input.value = "";
+    team2Input.value = "";
+  });
 })();

@@ -200,6 +200,45 @@ const WORDS = [
   { word: "بستان", category: "عام" },
   { word: "كنيسة", category: "عام" },
   { word: "دراجة", category: "عام" },
+
+  // ===================== أنميات =====================
+  { word: "ناروتو", category: "أنميات" },
+  { word: "بوكيمون", category: "أنميات" },
+  { word: "كونان", category: "أنميات" },
+  { word: "بليتش", category: "أنميات" },
+  { word: "دورايمون", category: "أنميات" },
+  { word: "غرندايزر", category: "أنميات" },
+  { word: "ساسكي", category: "أنميات" },
+  { word: "لوفي", category: "أنميات" },
+  { word: "غوكو", category: "أنميات" },
+  { word: "شينشان", category: "أنميات" },
+  { word: "إنوياشا", category: "أنميات" },
+
+  // ===================== مسلسلات =====================
+  { word: "الفريج", category: "مسلسلات" },
+  { word: "طاش", category: "مسلسلات" },
+  { word: "خواطر", category: "مسلسلات" },
+  { word: "غاشمر", category: "مسلسلات" },
+  { word: "نور", category: "مسلسلات" },
+  { word: "الهيبة", category: "مسلسلات" },
+  { word: "العراب", category: "مسلسلات" },
+  { word: "العاصوف", category: "مسلسلات" },
+  { word: "رشاش", category: "مسلسلات" },
+  { word: "مرايا", category: "مسلسلات" },
+
+  // ===================== كرتون قديم =====================
+  { word: "عدنان", category: "كرتون قديم" },
+  { word: "كبامارو", category: "كرتون قديم" },
+  { word: "ماروكو", category: "كرتون قديم" },
+  { word: "هايدي", category: "كرتون قديم" },
+  { word: "سالي", category: "كرتون قديم" },
+  { word: "ماجد", category: "كرتون قديم" },
+  { word: "غوليفر", category: "كرتون قديم" },
+  { word: "سندريلا", category: "كرتون قديم" },
+  { word: "بامبي", category: "كرتون قديم" },
+  { word: "بينوكيو", category: "كرتون قديم" },
+  { word: "بوباي", category: "كرتون قديم" },
+  { word: "بوجي", category: "كرتون قديم" },
 ];
 
 if (typeof module !== "undefined" && module.exports) {
