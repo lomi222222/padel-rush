@@ -312,10 +312,6 @@ input[type="text"]:focus {
   gap: 12px;
 }
 
-#wordle-scoreboard {
-  grid-template-columns: repeat(2, 1fr);
-}
-
 .team-chip {
   border-radius: 14px;
   padding: 12px 14px;
@@ -603,14 +599,6 @@ input[type="text"]:focus {
   font-weight: 800;
 }
 
-#wordle-category-list {
-  max-height: 220px;
-  overflow-y: auto;
-  padding: 6px;
-  border: 1px solid var(--blue-100);
-  border-radius: 12px;
-}
-
 .ability-btn {
   background: var(--white);
   border: 2px solid var(--blue-500);
@@ -748,9 +736,7 @@ input[type="text"]:focus {
 
 .wordle-grid-scroll {
   overflow-x: auto;
-  overflow-y: auto;
   max-width: 100%;
-  max-height: 46vh;
 }
 
 .wordle-grid {
@@ -928,23 +914,23 @@ input[type="text"]:focus {
   display: none !important;
 }
 
-/* ===== Compact layout on short screens (fit without page scroll) ===== */
-@media (max-height: 900px) {
+/* ===== Compact layout when the phone is rotated to landscape ===== */
+@media (orientation: landscape) and (max-height: 500px) {
   .page {
-    padding: 10px 10px 14px;
-    gap: 10px;
+    padding: 6px 10px 8px;
+    gap: 6px;
   }
 
   .card {
-    padding: 14px;
+    padding: 8px;
   }
 
   .stack {
-    gap: 8px;
+    gap: 4px;
   }
 
   .wordle-wrap {
-    gap: 10px;
+    gap: 5px;
   }
 
   .wordle-legend {
@@ -952,86 +938,95 @@ input[type="text"]:focus {
   }
 
   #wordle-category-list {
-    max-height: 130px;
+    max-height: 90px;
+    overflow-y: auto;
+    padding: 5px;
+    border: 1px solid var(--blue-100);
+    border-radius: 12px;
   }
 
   .wordle-grid-scroll {
-    max-height: 24vh;
+    overflow-y: auto;
+    max-height: 20vh;
   }
 
   .topbar {
-    padding: 8px 14px;
+    padding: 4px 10px;
   }
 
   .topbar h1 {
-    font-size: 16px;
+    font-size: 13px;
   }
 
   .topbar .home-link {
-    padding: 5px 10px;
-    font-size: 12px;
-  }
-
-  #wordle-subtitle {
-    font-size: 12px;
-  }
-
-  .abilities-row {
-    gap: 5px;
-  }
-
-  .ability-btn {
-    padding: 5px 10px;
-    font-size: 12px;
-  }
-
-  .hint-box {
-    padding: 6px 10px;
-    font-size: 13px;
-  }
-
-  .keyboard {
-    gap: 4px;
-  }
-
-  .keyboard-row {
-    gap: 4px;
-  }
-
-  .key {
-    padding: 7px 0;
-    font-size: 13px;
-  }
-
-  .key.wide {
-    padding: 7px 4px;
-    font-size: 12px;
-  }
-
-  .scoreboard {
-    gap: 8px;
-  }
-
-  .team-chip {
-    padding: 8px 10px;
-  }
-
-  .team-chip .score {
-    font-size: 18px;
-  }
-
-  .wordle-message {
-    min-height: 18px;
-    font-size: 16px;
-  }
-
-  .score-adjust-btn {
-    padding: 2px 0;
+    padding: 3px 8px;
     font-size: 11px;
   }
 
-  #wordle-end-match-btn {
-    padding: 8px 12px;
+  #wordle-subtitle {
+    font-size: 11px;
+  }
+
+  .abilities-row {
+    gap: 4px;
+  }
+
+  .ability-btn {
+    padding: 3px 8px;
+    font-size: 10px;
+  }
+
+  .hint-box {
+    padding: 4px 8px;
+    font-size: 11px;
+  }
+
+  .keyboard {
+    gap: 2px;
+  }
+
+  .keyboard-row {
+    gap: 2px;
+  }
+
+  .key {
+    padding: 3px 0;
+    font-size: 11px;
+  }
+
+  .key.wide {
+    padding: 3px 4px;
+    font-size: 10px;
+  }
+
+  .scoreboard {
+    gap: 5px;
+  }
+
+  .team-chip {
+    padding: 4px 8px;
+  }
+
+  .team-chip .name {
+    font-size: 12px;
+  }
+
+  .team-chip .score {
     font-size: 13px;
+  }
+
+  .wordle-message {
+    min-height: 12px;
+    font-size: 12px;
+  }
+
+  .score-adjust-btn {
+    padding: 1px 0;
+    font-size: 9px;
+  }
+
+  #wordle-end-match-btn {
+    padding: 4px 8px;
+    font-size: 11px;
   }
 }

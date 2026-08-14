@@ -196,9 +196,9 @@
 
     const rawWidth = (available - gapPx * (wordLength - 1) - spacerWidth * numSpaces) / numLetters;
 
-    // also bound tile size by the vertical space budgeted for the grid (.wordle-grid-scroll's
-    // own max-height), so short words with many rows don't get oversized tiles that then need
-    // to scroll vertically anyway
+    // .wordle-grid-scroll only gets a max-height in landscape mode (see CSS); outside of
+    // that it's "none", so maxHeightPx is 0 and rawHeight falls back to Infinity — meaning
+    // portrait/desktop sizing is purely width-based, unchanged from before.
     const maxHeightPx = parseFloat(cs.maxHeight);
     const rawHeight = maxHeightPx ? (maxHeightPx - gapPx * (maxAttempts - 1)) / maxAttempts : Infinity;
 
@@ -228,7 +228,7 @@
     category = entry.category;
     targetChars = Array.from(target);
     wordLength = targetChars.length;
-    maxAttempts = Math.min(wordLength + 1, 10);
+    maxAttempts = wordLength + 1;
 
     currentGuess = [];
     guesses = [];
