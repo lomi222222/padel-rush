@@ -110,6 +110,7 @@
       return;
     }
     catErrorEl.classList.add("hidden");
+    refillWordBag();
 
     teams = [
       { name: team1Input.value.trim() || defaultTeamName(0), color: TEAM_COLORS[0], score: 0 },
@@ -178,9 +179,35 @@
     }
   }
 
-  function pickWordEntry() {
+  // كيس عشوائي: نخلط كل كلمات الفئات المختارة، ونسحب منه بدون تكرار حتى ينفد
+  // كامل الكيس — بعدها نرجع نخلطه من جديد. هذا يمنع تكرار نفس الكلمة قبل ما تُستخدم
+  // كل الكلمات المتاحة مرة وحدة على الأقل.
+  let wordBag = [];
+
+  function shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+
+  function refillWordBag() {
     const pool = WORDS.filter((w) => selectedCategories.has(w.category));
-    return pool[Math.floor(Math.random() * pool.length)];
+    wordBag = shuffle(pool.slice());
+  }
+
+  function pickWordEntry() {
+    if (wordBag.length === 0) refillWordBag();
+    const entry = wordBag.pop();
+    // تحسّب احتياطي: لو أول كلمة بالكيس الجديد نفس آخر كلمة تكررت (ممكن يصير بس
+    // بفئات صغيرة جداً)، بدّلها مع كلمة ثانية بالكيس
+    if (entry.word === target && wordBag.length > 0) {
+      const swapIdx = Math.floor(Math.random() * wordBag.length);
+      wordBag.push(entry);
+      return wordBag.splice(swapIdx, 1)[0];
+    }
+    return entry;
   }
 
   function applyTileSize() {
