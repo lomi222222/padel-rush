@@ -734,10 +734,17 @@ input[type="text"]:focus {
   gap: 22px;
 }
 
+.wordle-grid-scroll {
+  overflow-x: auto;
+  max-width: 100%;
+}
+
 .wordle-grid {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  width: max-content;
+  margin: 0 auto;
 }
 
 .wordle-row {
@@ -754,6 +761,7 @@ input[type="text"]:focus {
 .wordle-tile {
   width: var(--tile-size, clamp(40px, 12vw, 52px));
   height: var(--tile-size, clamp(40px, 12vw, 52px));
+  flex-shrink: 0;
   border: 2px solid var(--blue-300);
   border-radius: 8px;
   display: flex;
