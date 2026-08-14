@@ -312,6 +312,10 @@ input[type="text"]:focus {
   gap: 12px;
 }
 
+#wordle-scoreboard {
+  grid-template-columns: repeat(2, 1fr);
+}
+
 .team-chip {
   border-radius: 14px;
   padding: 12px 14px;
@@ -599,6 +603,14 @@ input[type="text"]:focus {
   font-weight: 800;
 }
 
+#wordle-category-list {
+  max-height: 220px;
+  overflow-y: auto;
+  padding: 6px;
+  border: 1px solid var(--blue-100);
+  border-radius: 12px;
+}
+
 .ability-btn {
   background: var(--white);
   border: 2px solid var(--blue-500);
@@ -736,7 +748,9 @@ input[type="text"]:focus {
 
 .wordle-grid-scroll {
   overflow-x: auto;
+  overflow-y: auto;
   max-width: 100%;
+  max-height: 46vh;
 }
 
 .wordle-grid {
@@ -912,4 +926,112 @@ input[type="text"]:focus {
 
 .hidden {
   display: none !important;
+}
+
+/* ===== Compact layout on short screens (fit without page scroll) ===== */
+@media (max-height: 900px) {
+  .page {
+    padding: 10px 10px 14px;
+    gap: 10px;
+  }
+
+  .card {
+    padding: 14px;
+  }
+
+  .stack {
+    gap: 8px;
+  }
+
+  .wordle-wrap {
+    gap: 10px;
+  }
+
+  .wordle-legend {
+    display: none;
+  }
+
+  #wordle-category-list {
+    max-height: 130px;
+  }
+
+  .wordle-grid-scroll {
+    max-height: 24vh;
+  }
+
+  .topbar {
+    padding: 8px 14px;
+  }
+
+  .topbar h1 {
+    font-size: 16px;
+  }
+
+  .topbar .home-link {
+    padding: 5px 10px;
+    font-size: 12px;
+  }
+
+  #wordle-subtitle {
+    font-size: 12px;
+  }
+
+  .abilities-row {
+    gap: 5px;
+  }
+
+  .ability-btn {
+    padding: 5px 10px;
+    font-size: 12px;
+  }
+
+  .hint-box {
+    padding: 6px 10px;
+    font-size: 13px;
+  }
+
+  .keyboard {
+    gap: 4px;
+  }
+
+  .keyboard-row {
+    gap: 4px;
+  }
+
+  .key {
+    padding: 7px 0;
+    font-size: 13px;
+  }
+
+  .key.wide {
+    padding: 7px 4px;
+    font-size: 12px;
+  }
+
+  .scoreboard {
+    gap: 8px;
+  }
+
+  .team-chip {
+    padding: 8px 10px;
+  }
+
+  .team-chip .score {
+    font-size: 18px;
+  }
+
+  .wordle-message {
+    min-height: 18px;
+    font-size: 16px;
+  }
+
+  .score-adjust-btn {
+    padding: 2px 0;
+    font-size: 11px;
+  }
+
+  #wordle-end-match-btn {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
 }

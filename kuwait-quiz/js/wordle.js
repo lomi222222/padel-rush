@@ -194,8 +194,15 @@
     const numSpaces = targetChars.filter((c) => c === " ").length;
     const numLetters = wordLength - numSpaces;
 
-    const raw = (available - gapPx * (wordLength - 1) - spacerWidth * numSpaces) / numLetters;
-    const size = Math.max(30, Math.min(56, Math.floor(raw)));
+    const rawWidth = (available - gapPx * (wordLength - 1) - spacerWidth * numSpaces) / numLetters;
+
+    // also bound tile size by the vertical space budgeted for the grid (.wordle-grid-scroll's
+    // own max-height), so short words with many rows don't get oversized tiles that then need
+    // to scroll vertically anyway
+    const maxHeightPx = parseFloat(cs.maxHeight);
+    const rawHeight = maxHeightPx ? (maxHeightPx - gapPx * (maxAttempts - 1)) / maxAttempts : Infinity;
+
+    const size = Math.max(24, Math.min(56, Math.floor(Math.min(rawWidth, rawHeight))));
     gridEl.style.setProperty("--tile-size", size + "px");
     gridEl.style.setProperty("--tile-gap-width", spacerWidth + "px");
   }
@@ -221,7 +228,7 @@
     category = entry.category;
     targetChars = Array.from(target);
     wordLength = targetChars.length;
-    maxAttempts = wordLength + 1;
+    maxAttempts = Math.min(wordLength + 1, 10);
 
     currentGuess = [];
     guesses = [];
