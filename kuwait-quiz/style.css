@@ -364,6 +364,28 @@ input[type="text"]:focus {
   opacity: 0.6;
 }
 
+.score-adjust-row {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.score-adjust-btn {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  color: var(--white);
+  border-radius: 8px;
+  padding: 4px 0;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 12px;
+  cursor: pointer;
+}
+.score-adjust-btn:hover {
+  background: rgba(255, 255, 255, 0.28);
+}
+
 /* ===== Board ===== */
 .board-scroll {
   overflow-x: auto;

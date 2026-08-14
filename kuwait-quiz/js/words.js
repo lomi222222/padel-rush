@@ -15,7 +15,7 @@ const WORDS = [
   { word: "الصين", category: "دولة" },
   { word: "العراق", category: "دولة" },
   { word: "المغرب", category: "دولة" },
-  { word: "الأردن", category: "دولة" },
+  { word: "الاردن", category: "دولة" },
   { word: "السودان", category: "دولة" },
   { word: "الجزائر", category: "دولة" },
   { word: "البحرين", category: "دولة" },
@@ -42,7 +42,7 @@ const WORDS = [
   { word: "استعمار", category: "تاريخ" },
 
   // ===================== حيوان =====================
-  { word: "أسد", category: "حيوان" },
+  { word: "اسد", category: "حيوان" },
   { word: "نمر", category: "حيوان" },
   { word: "ذئب", category: "حيوان" },
   { word: "فيل", category: "حيوان" },
@@ -54,7 +54,7 @@ const WORDS = [
   { word: "قطة", category: "حيوان" },
   { word: "كلب", category: "حيوان" },
   { word: "حصان", category: "حيوان" },
-  { word: "أرنب", category: "حيوان" },
+  { word: "ارنب", category: "حيوان" },
   { word: "ثعلب", category: "حيوان" },
   { word: "خروف", category: "حيوان" },
   { word: "غزال", category: "حيوان" },
@@ -70,7 +70,7 @@ const WORDS = [
   // ===================== طعام =====================
   { word: "خبز", category: "طعام" },
   { word: "تمر", category: "طعام" },
-  { word: "أرز", category: "طعام" },
+  { word: "ارز", category: "طعام" },
   { word: "لحم", category: "طعام" },
   { word: "سمك", category: "طعام" },
   { word: "عسل", category: "طعام" },
@@ -144,7 +144,7 @@ const WORDS = [
   { word: "غرفة", category: "عام" },
   { word: "هاتف", category: "عام" },
   { word: "سرير", category: "عام" },
-  { word: "مرآة", category: "عام" },
+  { word: "مراة", category: "عام" },
   { word: "مصباح", category: "عام" },
   { word: "تلفاز", category: "عام" },
   { word: "مدرسة", category: "عام" },
@@ -212,19 +212,18 @@ const WORDS = [
   { word: "لوفي", category: "أنميات" },
   { word: "غوكو", category: "أنميات" },
   { word: "شينشان", category: "أنميات" },
-  { word: "إنوياشا", category: "أنميات" },
+  { word: "انوياشا", category: "أنميات" },
 
-  // ===================== مسلسلات =====================
+  // ===================== مسلسلات (مسلسلات كويتية) =====================
   { word: "الفريج", category: "مسلسلات" },
-  { word: "طاش", category: "مسلسلات" },
-  { word: "خواطر", category: "مسلسلات" },
-  { word: "غاشمر", category: "مسلسلات" },
-  { word: "نور", category: "مسلسلات" },
-  { word: "الهيبة", category: "مسلسلات" },
-  { word: "العراب", category: "مسلسلات" },
-  { word: "العاصوف", category: "مسلسلات" },
-  { word: "رشاش", category: "مسلسلات" },
-  { word: "مرايا", category: "مسلسلات" },
+  { word: "وحوش", category: "مسلسلات" },
+  { word: "ساق البامبو", category: "مسلسلات" },
+  { word: "دفعة القاهرة", category: "مسلسلات" },
+  { word: "امينة حاف", category: "مسلسلات" },
+  { word: "امر اخلاء", category: "مسلسلات" },
+  { word: "درب الزلق", category: "مسلسلات" },
+  { word: "خالتي قماشة", category: "مسلسلات" },
+  { word: "رقية وسبيكة", category: "مسلسلات" },
 
   // ===================== كرتون قديم =====================
   { word: "عدنان", category: "كرتون قديم" },
@@ -239,6 +238,28 @@ const WORDS = [
   { word: "بينوكيو", category: "كرتون قديم" },
   { word: "بوباي", category: "كرتون قديم" },
   { word: "بوجي", category: "كرتون قديم" },
+
+  // ===================== أسماء =====================
+  { word: "محمد", category: "أسماء" },
+  { word: "احمد", category: "أسماء" },
+  { word: "خالد", category: "أسماء" },
+  { word: "سالم", category: "أسماء" },
+  { word: "فهد", category: "أسماء" },
+  { word: "ناصر", category: "أسماء" },
+  { word: "يوسف", category: "أسماء" },
+  { word: "عبدالله", category: "أسماء" },
+  { word: "جابر", category: "أسماء" },
+  { word: "ابراهيم", category: "أسماء" },
+  { word: "مريم", category: "أسماء" },
+  { word: "نورة", category: "أسماء" },
+  { word: "سارة", category: "أسماء" },
+  { word: "هند", category: "أسماء" },
+  { word: "موزة", category: "أسماء" },
+  { word: "شيخة", category: "أسماء" },
+  { word: "خديجة", category: "أسماء" },
+  { word: "عائشة", category: "أسماء" },
+  { word: "امل", category: "أسماء" },
+  { word: "ريم", category: "أسماء" },
 ];
 
 if (typeof module !== "undefined" && module.exports) {

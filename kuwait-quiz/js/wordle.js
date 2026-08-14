@@ -10,7 +10,7 @@
     ["ض", "ص", "ث", "ق", "ف", "غ", "ع", "ه", "خ", "ح", "ج", "د"],
     ["ش", "س", "ي", "ب", "ل", "ا", "ت", "ن", "م", "ك", "ط"],
     ["ئ", "ء", "ؤ", "ر", "ى", "ة", "و", "ز", "ظ", "ذ"],
-    ["ENTER", "DEL"],
+    [" ", "ENTER", "DEL"],
   ];
 
   const ALL_CATEGORIES = [...new Set(WORDS.map((w) => w.category))];
@@ -140,10 +140,34 @@
       score.className = "score";
       score.textContent = toArabicDigits(team.score) + " نقطة";
 
+      const adjustRow = document.createElement("div");
+      adjustRow.className = "score-adjust-row";
+
+      const minusBtn = document.createElement("button");
+      minusBtn.type = "button";
+      minusBtn.className = "score-adjust-btn";
+      minusBtn.textContent = "−٢٥";
+      minusBtn.addEventListener("click", () => adjustScore(i, -25));
+
+      const plusBtn = document.createElement("button");
+      plusBtn.type = "button";
+      plusBtn.className = "score-adjust-btn";
+      plusBtn.textContent = "+٢٥";
+      plusBtn.addEventListener("click", () => adjustScore(i, 25));
+
+      adjustRow.appendChild(minusBtn);
+      adjustRow.appendChild(plusBtn);
+
       chip.appendChild(name);
       chip.appendChild(score);
+      chip.appendChild(adjustRow);
       scoreboardEl.appendChild(chip);
     });
+  }
+
+  function adjustScore(i, delta) {
+    teams[i].score = Math.max(0, teams[i].score + delta);
+    renderScoreboard();
   }
 
   function pickWordEntry() {
@@ -209,7 +233,8 @@
     hintCategoryBtn.disabled = gameOver || hints.categoryUsed;
     hintRepeatBtn.disabled = gameOver || hints.repeatUsed;
 
-    const allKnown = [...new Set(targetChars)].every((c) => keyStatus[c] === "green");
+    const relevantChars = [...new Set(targetChars)].filter((c) => c !== " ");
+    const allKnown = relevantChars.every((c) => keyStatus[c] === "green");
     hintLetterBtn.disabled = gameOver || allKnown;
   }
 
@@ -237,16 +262,18 @@
 
   hintLetterBtn.addEventListener("click", () => {
     if (hintLetterBtn.disabled) return;
-    hints.revealLetterUses++;
 
-    const yellowLetter = Object.keys(keyStatus).find((l) => keyStatus[l] === "yellow");
+    const yellowLetter = Object.keys(keyStatus).find((l) => keyStatus[l] === "yellow" && l !== " ");
     if (yellowLetter) {
+      hints.revealLetterUses++;
       const pos = targetChars.indexOf(yellowLetter);
       keyStatus[yellowLetter] = "green";
       logHint('🔤 الحرف "' + yellowLetter + '" في الموضع ' + toArabicDigits(pos + 1));
     } else {
       const revealed = new Set(Object.keys(keyStatus));
-      const candidates = [...new Set(targetChars)].filter((c) => !revealed.has(c));
+      const candidates = [...new Set(targetChars)].filter((c) => !revealed.has(c) && c !== " ");
+      if (candidates.length === 0) return;
+      hints.revealLetterUses++;
       const pick = candidates[Math.floor(Math.random() * candidates.length)];
       keyStatus[pick] = "yellow";
       logHint('🔤 الحرف "' + pick + '" موجود في الكلمة');
@@ -306,10 +333,10 @@
         tile.className = "wordle-tile";
 
         if (submitted) {
-          tile.textContent = submitted.chars[col];
+          tile.textContent = submitted.chars[col] === " " ? "␣" : submitted.chars[col];
           tile.classList.add(submitted.statuses[col]);
         } else if (isCurrentRow && currentGuess[col]) {
-          tile.textContent = currentGuess[col];
+          tile.textContent = currentGuess[col] === " " ? "␣" : currentGuess[col];
           tile.classList.add("filled");
         }
 
@@ -327,10 +354,10 @@
       row.forEach((key) => {
         const btn = document.createElement("button");
         btn.className = "key";
-        if (key === "ENTER" || key === "DEL") btn.classList.add("wide");
-        btn.textContent = key === "ENTER" ? "إدخال" : key === "DEL" ? "⌫" : key;
+        if (key === "ENTER" || key === "DEL" || key === " ") btn.classList.add("wide");
+        btn.textContent = key === "ENTER" ? "إدخال" : key === "DEL" ? "⌫" : key === " " ? "⎵ مسافة" : key;
 
-        if (key !== "ENTER" && key !== "DEL" && keyStatus[key]) {
+        if (key !== "ENTER" && key !== "DEL" && key !== " " && keyStatus[key]) {
           btn.classList.add(keyStatus[key]);
         }
 
@@ -358,7 +385,7 @@
       renderGrid();
       return;
     }
-    if (ARABIC_LETTER_RE.test(key) && currentGuess.length < wordLength) {
+    if ((ARABIC_LETTER_RE.test(key) || key === " ") && currentGuess.length < wordLength) {
       currentGuess.push(key);
       renderGrid();
     }
@@ -417,6 +444,9 @@
       handleKey("ENTER");
     } else if (e.key === "Backspace") {
       handleKey("DEL");
+    } else if (e.key === " ") {
+      e.preventDefault();
+      handleKey(" ");
     } else if (ARABIC_LETTER_RE.test(e.key)) {
       handleKey(e.key);
     }
