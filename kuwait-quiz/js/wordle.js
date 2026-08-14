@@ -10,7 +10,7 @@
     ["ض", "ص", "ث", "ق", "ف", "غ", "ع", "ه", "خ", "ح", "ج", "د"],
     ["ش", "س", "ي", "ب", "ل", "ا", "ت", "ن", "م", "ك", "ط"],
     ["ئ", "ء", "ؤ", "ر", "ى", "ة", "و", "ز", "ظ", "ذ"],
-    [" ", "ENTER", "DEL"],
+    ["ENTER", "DEL"],
   ];
 
   const ALL_CATEGORIES = [...new Set(WORDS.map((w) => w.category))];
@@ -170,6 +170,14 @@
     renderScoreboard();
   }
 
+  // الكلمات المكوّنة من كلمتين تحتوي على مسافة بينهما — نملأ خانة المسافة تلقائياً
+  // في مكانها الصحيح بدل ما نطلب من اللاعب يكتبها بنفسه
+  function autoFillSpaces() {
+    while (currentGuess.length < wordLength && targetChars[currentGuess.length] === " ") {
+      currentGuess.push(" ");
+    }
+  }
+
   function pickWordEntry() {
     const pool = WORDS.filter((w) => selectedCategories.has(w.category));
     return pool[Math.floor(Math.random() * pool.length)];
@@ -214,6 +222,7 @@
     gameOver = false;
     keyStatus = {};
     hints = { categoryUsed: false, repeatUsed: false, revealLetterUses: 0 };
+    autoFillSpaces();
 
     subtitleEl.textContent =
       "دور " + teams[teamIndex].name + " (الجولة " + toArabicDigits(roundsPlayed[teamIndex] + 1) + " من " + toArabicDigits(ROUNDS_PER_TEAM) + ") — كلمة من " + toArabicDigits(wordLength) + " أحرف خلال " + toArabicDigits(maxAttempts) + " محاولات";
@@ -354,10 +363,10 @@
       row.forEach((key) => {
         const btn = document.createElement("button");
         btn.className = "key";
-        if (key === "ENTER" || key === "DEL" || key === " ") btn.classList.add("wide");
-        btn.textContent = key === "ENTER" ? "إدخال" : key === "DEL" ? "⌫" : key === " " ? "⎵ مسافة" : key;
+        if (key === "ENTER" || key === "DEL") btn.classList.add("wide");
+        btn.textContent = key === "ENTER" ? "إدخال" : key === "DEL" ? "⌫" : key;
 
-        if (key !== "ENTER" && key !== "DEL" && key !== " " && keyStatus[key]) {
+        if (key !== "ENTER" && key !== "DEL" && keyStatus[key]) {
           btn.classList.add(keyStatus[key]);
         }
 
@@ -385,8 +394,9 @@
       renderGrid();
       return;
     }
-    if ((ARABIC_LETTER_RE.test(key) || key === " ") && currentGuess.length < wordLength) {
+    if (ARABIC_LETTER_RE.test(key) && currentGuess.length < wordLength) {
       currentGuess.push(key);
+      autoFillSpaces();
       renderGrid();
     }
   }
@@ -404,6 +414,7 @@
 
     const won = statuses.every((s) => s === "green");
     currentGuess = [];
+    autoFillSpaces();
     renderGrid();
     renderKeyboard();
     updateHintButtons();
@@ -446,7 +457,6 @@
       handleKey("DEL");
     } else if (e.key === " ") {
       e.preventDefault();
-      handleKey(" ");
     } else if (ARABIC_LETTER_RE.test(e.key)) {
       handleKey(e.key);
     }
