@@ -189,9 +189,15 @@
     const paddingX = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
     const available = Math.max(container.clientWidth - paddingX, 200);
     const gapPx = window.innerWidth <= 400 ? 6 : 8;
-    const raw = (available - gapPx * (wordLength - 1)) / wordLength;
+    const spacerWidth = window.innerWidth <= 400 ? 14 : 20;
+
+    const numSpaces = targetChars.filter((c) => c === " ").length;
+    const numLetters = wordLength - numSpaces;
+
+    const raw = (available - gapPx * (wordLength - 1) - spacerWidth * numSpaces) / numLetters;
     const size = Math.max(30, Math.min(56, Math.floor(raw)));
     gridEl.style.setProperty("--tile-size", size + "px");
+    gridEl.style.setProperty("--tile-gap-width", spacerWidth + "px");
   }
 
   // ===== نقاط الجولة =====
@@ -338,14 +344,21 @@
       const isCurrentRow = row === guesses.length;
 
       for (let col = 0; col < wordLength; col++) {
+        if (targetChars[col] === " ") {
+          const gap = document.createElement("div");
+          gap.className = "wordle-tile-gap";
+          rowEl.appendChild(gap);
+          continue;
+        }
+
         const tile = document.createElement("div");
         tile.className = "wordle-tile";
 
         if (submitted) {
-          tile.textContent = submitted.chars[col] === " " ? "␣" : submitted.chars[col];
+          tile.textContent = submitted.chars[col];
           tile.classList.add(submitted.statuses[col]);
         } else if (isCurrentRow && currentGuess[col]) {
-          tile.textContent = currentGuess[col] === " " ? "␣" : currentGuess[col];
+          tile.textContent = currentGuess[col];
           tile.classList.add("filled");
         }
 

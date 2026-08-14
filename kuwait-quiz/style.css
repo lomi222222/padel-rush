@@ -766,6 +766,12 @@ input[type="text"]:focus {
   text-transform: uppercase;
 }
 
+.wordle-tile-gap {
+  width: var(--tile-gap-width, 16px);
+  height: var(--tile-size, clamp(40px, 12vw, 52px));
+  flex-shrink: 0;
+}
+
 .wordle-tile.filled {
   border-color: var(--blue-600);
 }
