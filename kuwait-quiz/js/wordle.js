@@ -55,6 +55,7 @@
 
   const scoreboardEl = document.getElementById("wordle-scoreboard");
   const subtitleEl = document.getElementById("wordle-subtitle");
+  const activeCategoriesEl = document.getElementById("wordle-active-categories");
   const gridEl = document.getElementById("wordle-grid");
   const messageEl = document.getElementById("wordle-message");
   const keyboardEl = document.getElementById("keyboard");
@@ -266,6 +267,8 @@
 
     subtitleEl.textContent =
       "دور " + teams[teamIndex].name + " (الجولة " + toArabicDigits(roundsPlayed[teamIndex] + 1) + " من " + toArabicDigits(ROUNDS_PER_TEAM) + ") — كلمة من " + toArabicDigits(wordLength) + " أحرف خلال " + toArabicDigits(maxAttempts) + " محاولات";
+    activeCategoriesEl.textContent =
+      "الفئات: " + (selectedCategories.size === ALL_CATEGORIES.length ? "الكل" : [...selectedCategories].join("، "));
     messageEl.textContent = "";
     messageEl.className = "wordle-message";
     hintLogEl.innerHTML = "";
@@ -548,7 +551,6 @@
     sorted.forEach((team, i) => {
       const row = document.createElement("div");
       row.className = "final-score-row" + (i === 0 ? " first" : "");
-      row.style.color = "#0c2036";
       row.innerHTML =
         "<span>" + (i + 1) + ". " + team.name + "</span><span>" + toArabicDigits(team.score) + " نقطة</span>";
       finalScoresEl.appendChild(row);

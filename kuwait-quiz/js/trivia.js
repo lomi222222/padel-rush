@@ -306,7 +306,6 @@
 
       const nameRow = document.createElement("div");
       nameRow.className = "team-ability-name";
-      nameRow.style.color = team.color;
 
       const nameSpan = document.createElement("span");
       nameSpan.textContent = team.name;
@@ -427,7 +426,6 @@
     sorted.forEach((team, i) => {
       const row = document.createElement("div");
       row.className = "final-score-row" + (i === 0 ? " first" : "");
-      row.style.color = "#0c2036";
       row.innerHTML =
         '<span>' + (i + 1) + ". " + team.name + "</span><span>" + team.score + " نقطة</span>";
       finalScoresEl.appendChild(row);

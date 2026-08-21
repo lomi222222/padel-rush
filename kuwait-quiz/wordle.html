@@ -2,6 +2,15 @@
 <html lang="ar" dir="rtl">
   <head>
     <meta charset="UTF-8" />
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem("kw-theme");
+          if (!t) t = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+          document.documentElement.setAttribute("data-theme", t);
+        } catch (e) {}
+      })();
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
     <title>احزر الكلمة - الأذكى</title>
     <link rel="stylesheet" href="style.css" />
@@ -55,6 +64,7 @@
 
         <div class="card wordle-wrap">
           <p class="muted center" id="wordle-subtitle"></p>
+          <p class="muted center wordle-legend" id="wordle-active-categories"></p>
           <p class="muted center wordle-legend">
             أخضر = الحرف في مكانه الصحيح، أصفر = الحرف موجود لكن في مكان آخر،
             رمادي = الحرف غير موجود.
@@ -105,5 +115,6 @@
 
     <script src="js/words.js"></script>
     <script src="js/wordle.js"></script>
+    <script src="js/theme.js" defer></script>
   </body>
 </html>
