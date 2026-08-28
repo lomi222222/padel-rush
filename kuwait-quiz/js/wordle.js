@@ -256,7 +256,7 @@
     category = entry.category;
     targetChars = Array.from(target);
     wordLength = targetChars.length;
-    maxAttempts = wordLength + 1;
+    maxAttempts = 3 + Math.floor(wordLength / 3);
 
     currentGuess = [];
     guesses = [];
