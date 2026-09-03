@@ -195,6 +195,9 @@ a {
   padding: 12px 22px;
   cursor: pointer;
   transition: transform 0.08s ease, opacity 0.15s ease, box-shadow 0.15s ease;
+  /* بعض الأزرار روابط <a> — نشيل خط التسطير ونخلي النص بالنص */
+  text-decoration: none;
+  text-align: center;
 }
 
 .btn:active {
@@ -1111,4 +1114,145 @@ input[type="text"]:focus {
     padding: 4px 8px;
     font-size: 11px;
   }
+}
+
+/* ===== الوضع الأونلاين ===== */
+.online-status {
+  text-align: center;
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--muted);
+  margin: 0;
+}
+
+.online-status.error {
+  color: var(--red);
+}
+
+.online-error {
+  color: var(--red);
+  font-weight: 700;
+  text-align: center;
+  margin: 0;
+}
+
+.online-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.online-divider::before,
+.online-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--blue-300);
+  opacity: 0.6;
+}
+
+.online-code-input {
+  text-align: center;
+  letter-spacing: 8px;
+  font-weight: 800;
+  font-size: 22px;
+  text-transform: uppercase;
+}
+
+.online-room-box {
+  background: var(--blue-100);
+  border-radius: var(--radius);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.online-room-code {
+  text-align: center;
+  font-size: 38px;
+  font-weight: 800;
+  letter-spacing: 10px;
+  color: var(--blue-700);
+  direction: ltr;
+}
+
+.online-players {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.online-player-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: space-between;
+  background: var(--blue-100);
+  border-radius: 12px;
+  padding: 10px 12px;
+  border-right: 4px solid var(--gray-absent);
+}
+
+.online-player-row.clickable {
+  cursor: pointer;
+}
+
+.online-player-name {
+  font-weight: 700;
+  color: var(--ink);
+  flex: 1;
+}
+
+.online-team-badge {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--white-fixed);
+  background: var(--blue-700);
+  border-radius: 999px;
+  padding: 4px 10px;
+  white-space: nowrap;
+}
+
+.online-team-badge.none {
+  background: var(--gray-absent);
+}
+
+.online-offline-dot {
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.online-team-pick {
+  border-width: 3px;
+  font-weight: 800;
+}
+
+.online-team-pick.selected {
+  background: var(--blue-700);
+  color: var(--white-fixed);
+  border-color: var(--blue-700);
+}
+
+.online-turn-note {
+  text-align: center;
+  font-weight: 800;
+  font-size: 14px;
+  margin: 0;
+  padding: 6px 10px;
+  border-radius: 999px;
+}
+
+.online-turn-note.mine {
+  color: var(--white-fixed);
+  background: var(--green);
+}
+
+.online-turn-note.watching {
+  color: var(--muted);
+  background: var(--blue-100);
 }
