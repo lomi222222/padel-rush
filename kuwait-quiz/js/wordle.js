@@ -61,6 +61,8 @@
   const catListEl = document.getElementById("wordle-category-list");
   const catErrorEl = document.getElementById("wordle-category-error");
   const roundTimeSelect = document.getElementById("wordle-round-time");
+  const roundTimeCustom = document.getElementById("wordle-round-time-custom");
+  const roundTimeHint = document.getElementById("wordle-round-time-hint");
   const timerEl = document.getElementById("wordle-timer");
   const boqBtn = document.getElementById("wordle-boq-btn");
   const stealNoteEl = document.getElementById("wordle-steal-note");
@@ -95,6 +97,13 @@
     roundTimeSelect.appendChild(o);
   });
 
+  roundTimeSelect.addEventListener("change", () => {
+    const custom = Number(roundTimeSelect.value) === Core.CUSTOM_TIME;
+    roundTimeCustom.classList.toggle("hidden", !custom);
+    roundTimeHint.classList.toggle("hidden", !custom);
+    if (custom) roundTimeCustom.focus();
+  });
+
   // ===== إعداد الفريقين =====
   startBtn.addEventListener("click", () => {
     if (selectedCategories.size === 0) {
@@ -105,7 +114,7 @@
     catErrorEl.classList.add("hidden");
     wordBag = Core.makeWordBag(selectedCategories);
     wordBag.refill();
-    roundSeconds = Number(roundTimeSelect.value) || 0;
+    roundSeconds = Core.readRoundSeconds(roundTimeSelect, roundTimeCustom);
     boqLeft = [Core.BOQ_PER_TEAM, Core.BOQ_PER_TEAM];
 
     teams = [
@@ -169,9 +178,9 @@
       stealNoteEl.textContent =
         "📢 بوق! دور " +
         teams[steal.team].name +
-        " — باقي " +
-        Core.toArabicDigits(steal.attemptsLeft) +
-        " محاولة على " +
+        " — " +
+        Core.stealAttemptsLabel(steal.attemptsLeft) +
+        " على " +
         Core.toArabicDigits(steal.value) +
         " نقطة";
       return;

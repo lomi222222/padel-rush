@@ -50,6 +50,19 @@
 
         <p class="muted center">وقت الجولة</p>
         <select id="wordle-round-time" class="round-time-select"></select>
+        <input
+          type="number"
+          id="wordle-round-time-custom"
+          class="round-time-custom hidden"
+          min="1"
+          max="60"
+          step="1"
+          value="4"
+          placeholder="كم دقيقة؟"
+        />
+        <p id="wordle-round-time-hint" class="muted center round-time-hint hidden">
+          بالدقائق (من ١ إلى ٦٠)
+        </p>
 
         <button id="wordle-start-btn" class="btn btn-primary btn-block">
           ابدأ اللعبة

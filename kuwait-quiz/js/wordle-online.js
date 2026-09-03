@@ -107,6 +107,8 @@
   const nextTeamBtn = el("online-next-team-btn");
   const roundEndWaitEl = el("online-round-end-wait");
   const roundTimeSelect = el("online-round-time");
+  const roundTimeCustom = el("online-round-time-custom");
+  const roundTimeHint = el("online-round-time-hint");
   const timerEl = el("online-timer");
   const boqBtn = el("online-boq-btn");
   const stealNoteEl = el("online-steal-note");
@@ -120,6 +122,13 @@
     o.value = String(opt.value);
     o.textContent = opt.label;
     roundTimeSelect.appendChild(o);
+  });
+
+  roundTimeSelect.addEventListener("change", () => {
+    const custom = Number(roundTimeSelect.value) === Core.CUSTOM_TIME;
+    roundTimeCustom.classList.toggle("hidden", !custom);
+    roundTimeHint.classList.toggle("hidden", !custom);
+    if (custom) roundTimeCustom.focus();
   });
 
   // ===== أدوات عامة =====
@@ -594,7 +603,7 @@
     hostState.bag.refill();
     hostState.categoriesLabel = Core.categoriesLabel(selectedCategories);
     hostState.boqLeft = [Core.BOQ_PER_TEAM, Core.BOQ_PER_TEAM];
-    hostState.roundSeconds = Number(roundTimeSelect.value) || 0;
+    hostState.roundSeconds = Core.readRoundSeconds(roundTimeSelect, roundTimeCustom);
 
     roomRef("meta/status").set("playing");
     hostStartRound();
@@ -1054,9 +1063,9 @@
       stealNoteEl.textContent =
         "📢 بوق! دور " +
         (teams[r.steal.team] ? teams[r.steal.team].name : "") +
-        " — باقي " +
-        Core.toArabicDigits(r.steal.attemptsLeft) +
-        " محاولة على " +
+        " — " +
+        Core.stealAttemptsLabel(r.steal.attemptsLeft) +
+        " على " +
         Core.toArabicDigits(r.steal.value) +
         " نقطة";
     } else {

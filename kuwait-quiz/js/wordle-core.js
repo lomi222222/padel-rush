@@ -23,11 +23,12 @@
   const EXCLUSIVE_CATEGORIES = new Set(["سور القرآن الكريم"]);
   const SELECTABLE_CATEGORIES = ALL_CATEGORIES.filter((c) => !EXCLUSIVE_CATEGORIES.has(c));
 
-  // البوق: الفريق المنتظر يقاطع ويسرق الكلمة
-  const BOQ_PER_TEAM = 3;
-  const BOQ_ATTEMPTS = 2;
+  // البوق: الفريق المنتظر يقاطع ويسرق الكلمة — محاولة وحدة، ومرتين بالمباراة
+  const BOQ_PER_TEAM = 2;
+  const BOQ_ATTEMPTS = 1;
 
-  // مدة الجولة (بالثواني) — 0 يعني بدون وقت
+  // مدة الجولة (بالثواني) — 0 يعني بدون وقت، و CUSTOM_TIME يفتح حقل رقم بالدقائق
+  const CUSTOM_TIME = -1;
   const ROUND_TIME_OPTIONS = [
     { value: 0, label: "بدون وقت" },
     { value: 30, label: "٣٠ ثانية" },
@@ -35,7 +36,24 @@
     { value: 120, label: "دقيقتان" },
     { value: 180, label: "٣ دقائق" },
     { value: 300, label: "٥ دقائق" },
+    { value: CUSTOM_TIME, label: "⏱️ وقت مخصص" },
   ];
+
+  // يقرأ مدة الجولة من قائمة الاختيار + حقل الدقائق المخصص
+  function readRoundSeconds(selectEl, customInputEl) {
+    const picked = Number(selectEl.value);
+    if (picked !== CUSTOM_TIME) return picked > 0 ? picked : 0;
+    const minutes = Number(customInputEl.value);
+    if (!isFinite(minutes) || minutes <= 0) return 0;
+    return Math.round(Math.min(minutes, 60) * 60);
+  }
+
+  // نص عدد المحاولات المتبقية للسرقة بصيغة عربية سليمة
+  function stealAttemptsLabel(n) {
+    if (n === 1) return "محاولة وحدة";
+    if (n === 2) return "محاولتين";
+    return toArabicDigits(n) + " محاولات";
+  }
 
   // يطبّق اختيار/إلغاء فئة مع مراعاة الحصرية، ويرجّع المجموعة الجديدة
   function applyCategoryToggle(selected, category, checked) {
@@ -262,6 +280,9 @@
     BOQ_PER_TEAM,
     BOQ_ATTEMPTS,
     ROUND_TIME_OPTIONS,
+    CUSTOM_TIME,
+    readRoundSeconds,
+    stealAttemptsLabel,
     applyCategoryToggle,
     hasExclusive,
     formatClock,

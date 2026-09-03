@@ -101,6 +101,19 @@
 
           <p class="muted center">وقت الجولة</p>
           <select id="online-round-time" class="round-time-select"></select>
+          <input
+            type="number"
+            id="online-round-time-custom"
+            class="round-time-custom hidden"
+            min="1"
+            max="60"
+            step="1"
+            value="4"
+            placeholder="كم دقيقة؟"
+          />
+          <p id="online-round-time-hint" class="muted center round-time-hint hidden">
+            بالدقائق (من ١ إلى ٦٠)
+          </p>
 
           <p id="online-lobby-error" class="online-error hidden"></p>
           <button id="online-start-btn" class="btn btn-primary btn-block">ابدأ اللعبة</button>

@@ -1328,3 +1328,26 @@ input[type="text"]:focus {
 .wordle-row.steal .wordle-tile {
   border-color: var(--gold);
 }
+
+.round-time-custom {
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 2px solid var(--blue-300);
+  background: var(--white);
+  color: var(--ink);
+  width: 100%;
+  text-align: center;
+}
+
+.round-time-custom:focus {
+  outline: none;
+  border-color: var(--blue-600);
+}
+
+.round-time-hint {
+  font-size: 12px;
+  margin: -6px 0 0;
+}
