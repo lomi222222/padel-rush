@@ -176,7 +176,7 @@
       boqBtn.classList.add("hidden");
       stealNoteEl.classList.remove("hidden");
       stealNoteEl.textContent =
-        "📢 بوق! دور " +
+        "🥷 بوق! دور " +
         teams[steal.team].name +
         " — " +
         Core.stealAttemptsLabel(steal.attemptsLeft) +
@@ -190,7 +190,7 @@
     boqBtn.classList.remove("hidden");
     boqBtn.disabled = boqLeft[w] <= 0;
     boqBtn.textContent =
-      "📢 بوق — " + teams[w].name + " (باقي " + Core.toArabicDigits(boqLeft[w]) + ")";
+      "🥷 بوق — " + teams[w].name + " (باقي " + Core.toArabicDigits(boqLeft[w]) + ")";
   }
 
   // ===== المؤقّت =====
@@ -400,7 +400,7 @@
         const earned = steal.value;
         teams[stealingTeam].score += earned;
         showMessage(
-          "📢 سرقها " + teams[stealingTeam].name + "! ربحوا " + Core.toArabicDigits(earned) + " نقطة",
+          "🥷 سرقها " + teams[stealingTeam].name + "! ربحوا " + Core.toArabicDigits(earned) + " نقطة",
           "win"
         );
         steal = null;
@@ -414,7 +414,7 @@
 
       steal.attemptsLeft--;
       if (steal.attemptsLeft > 0) {
-        showMessage("📢 باقي محاولة وحدة للسرقة", "");
+        showMessage("🥷 باقي محاولة وحدة للسرقة", "");
         updateBoqUi();
         return;
       }
@@ -422,7 +422,7 @@
       // فشلت السرقة: ينحرق البوق ويكمل الفريق الأصلي محاولاته كاملة
       steal = null;
       resumeTimer();
-      showMessage("📢 راحت عليهم! يكمل " + teams[teamIndex].name, "");
+      showMessage("🥷 راحت عليهم! يكمل " + teams[teamIndex].name, "");
       updateHintButtons();
       updateBoqUi();
       // نعيد رسم الشبكة عشان الإطار الذهبي ما يظل على الصف الحالي بعد نهاية السرقة

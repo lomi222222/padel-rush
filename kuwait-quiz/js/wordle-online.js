@@ -795,7 +795,7 @@
         const earned = h.steal.value;
         h.teams[stealingTeam].score += earned;
         h.message = {
-          text: "📢 سرقها " + h.teams[stealingTeam].name + "! ربحوا " + Core.toArabicDigits(earned) + " نقطة",
+          text: "🥷 سرقها " + h.teams[stealingTeam].name + "! ربحوا " + Core.toArabicDigits(earned) + " نقطة",
           kind: "win",
         };
         h.steal = null;
@@ -808,7 +808,7 @@
 
       h.steal.attemptsLeft--;
       if (h.steal.attemptsLeft > 0) {
-        h.message = { text: "📢 باقي محاولة وحدة للسرقة", kind: "" };
+        h.message = { text: "🥷 باقي محاولة وحدة للسرقة", kind: "" };
         publishState();
         return;
       }
@@ -820,7 +820,7 @@
         h.pausedRemainingMs = null;
         hostStartClock();
       }
-      h.message = { text: "📢 راحت عليهم! يكمل " + h.teams[h.teamIndex].name, kind: "" };
+      h.message = { text: "🥷 راحت عليهم! يكمل " + h.teams[h.teamIndex].name, kind: "" };
       publishState();
       return;
     }
@@ -1049,7 +1049,7 @@
       turnNoteEl.textContent = "👀 أنت متفرّج — الهوست يقدر يحطك بفريق";
       turnNoteEl.className = "online-turn-note watching";
     } else if (myTurn) {
-      turnNoteEl.textContent = r.steal ? "📢 دوركم! سرقوا الكلمة" : "✍️ دوركم! اكتبوا الكلمة";
+      turnNoteEl.textContent = r.steal ? "🥷 دوركم! سرقوا الكلمة" : "✍️ دوركم! اكتبوا الكلمة";
       turnNoteEl.className = "online-turn-note mine";
     } else {
       turnNoteEl.textContent = "👀 دور " + activeTeamName + " — انتظر دورك";
@@ -1061,7 +1061,7 @@
       boqBtn.classList.add("hidden");
       stealNoteEl.classList.remove("hidden");
       stealNoteEl.textContent =
-        "📢 بوق! دور " +
+        "🥷 بوق! دور " +
         (teams[r.steal.team] ? teams[r.steal.team].name : "") +
         " — " +
         Core.stealAttemptsLabel(r.steal.attemptsLeft) +
@@ -1075,7 +1075,7 @@
       if (showBoq) {
         const left = (r.boqLeft || [0, 0])[mine];
         boqBtn.disabled = left <= 0;
-        boqBtn.textContent = "📢 بوق (باقي " + Core.toArabicDigits(left) + ")";
+        boqBtn.textContent = "🥷 بوق (باقي " + Core.toArabicDigits(left) + ")";
       }
     }
 
