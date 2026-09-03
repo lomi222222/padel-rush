@@ -9,13 +9,19 @@
     const { guesses, currentGuess, wordLength, maxAttempts } = opts;
     const spaces = opts.spaceIndexes instanceof Set ? opts.spaceIndexes : new Set(opts.spaceIndexes || []);
 
+    // صفوف السرقة (البوق) تنضاف فوق العدد الأصلي عشان الفريق الأصلي ما يخسر محاولاته
+    const stealRows = guesses.filter((g) => g && g.steal).length;
+    const totalRows = Math.max(maxAttempts + stealRows, guesses.length + 1);
+
     gridEl.innerHTML = "";
-    for (let row = 0; row < maxAttempts; row++) {
+    for (let row = 0; row < totalRows; row++) {
       const rowEl = document.createElement("div");
       rowEl.className = "wordle-row";
 
       const submitted = guesses[row];
       const isCurrentRow = row === guesses.length;
+      if (submitted && submitted.steal) rowEl.classList.add("steal");
+      if (isCurrentRow && opts.stealActive) rowEl.classList.add("steal");
 
       for (let col = 0; col < wordLength; col++) {
         if (spaces.has(col)) {
@@ -158,25 +164,38 @@
     });
   }
 
+  // onChange(nextSelectedSet) — منطق الحصرية كله في Core.applyCategoryToggle
   function renderCategoryChecklist(listEl, selectedCategories, onChange) {
     listEl.innerHTML = "";
     Core.ALL_CATEGORIES.forEach((cat) => {
       const label = document.createElement("label");
       label.className = "category-chip";
+      if (Core.EXCLUSIVE_CATEGORIES.has(cat)) label.classList.add("exclusive");
 
       const box = document.createElement("input");
       box.type = "checkbox";
       box.checked = selectedCategories.has(cat);
       box.addEventListener("change", () => {
-        if (box.checked) selectedCategories.add(cat);
-        else selectedCategories.delete(cat);
-        onChange();
+        onChange(Core.applyCategoryToggle(selectedCategories, cat, box.checked));
       });
 
       label.appendChild(box);
       label.appendChild(document.createTextNode(cat));
       listEl.appendChild(label);
     });
+  }
+
+  // deadline = ختم زمني مطلق بالميلي ثانية، أو null يعني بدون وقت
+  function renderTimer(timerEl, deadline, pausedRemainingMs) {
+    if (!deadline && !pausedRemainingMs) {
+      timerEl.classList.add("hidden");
+      return;
+    }
+    timerEl.classList.remove("hidden");
+    const ms = pausedRemainingMs != null ? pausedRemainingMs : deadline - Date.now();
+    const seconds = Math.max(0, ms / 1000);
+    timerEl.textContent = (pausedRemainingMs != null ? "⏸️ " : "⏳ ") + Core.formatClock(seconds);
+    timerEl.classList.toggle("low", pausedRemainingMs == null && seconds <= 10);
   }
 
   function renderFinalScores(els, teams) {
@@ -215,6 +234,7 @@
     showMessage,
     renderHintLog,
     renderCategoryChecklist,
+    renderTimer,
     renderFinalScores,
   };
 })();

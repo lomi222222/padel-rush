@@ -12,8 +12,10 @@
   let teamIndex = 0;
   let roundsPlayed = [0, 0];
   let matchOver = false;
-  let selectedCategories = new Set(Core.ALL_CATEGORIES);
+  let selectedCategories = new Set(Core.SELECTABLE_CATEGORIES);
   let wordBag = Core.makeWordBag(selectedCategories);
+  let boqLeft = [Core.BOQ_PER_TEAM, Core.BOQ_PER_TEAM];
+  let roundSeconds = 0;
 
   // ===== حالة الجولة الحالية =====
   let target = "";
@@ -28,6 +30,11 @@
   let keyStatus = {};
   let hints = Core.newHints();
   let hintLog = [];
+  // السرقة (البوق): null أو { team, attemptsLeft, value }
+  let steal = null;
+  let deadline = null; // ختم زمني مطلق لنهاية الجولة، أو null بدون وقت
+  let pausedRemainingMs = null; // المتبقي وقت إيقاف المؤقّت أثناء السرقة
+  let tickTimer = null;
 
   // ===== عناصر DOM =====
   const setupScreen = document.getElementById("wordle-setup-screen");
@@ -53,23 +60,40 @@
   const catAllCheckbox = document.getElementById("wordle-cat-all");
   const catListEl = document.getElementById("wordle-category-list");
   const catErrorEl = document.getElementById("wordle-category-error");
+  const roundTimeSelect = document.getElementById("wordle-round-time");
+  const timerEl = document.getElementById("wordle-timer");
+  const boqBtn = document.getElementById("wordle-boq-btn");
+  const stealNoteEl = document.getElementById("wordle-steal-note");
 
   // ===== اختيار الفئات =====
   function renderCategoryChecklist() {
-    View.renderCategoryChecklist(catListEl, selectedCategories, syncAllCheckbox);
+    View.renderCategoryChecklist(catListEl, selectedCategories, (next) => {
+      selectedCategories = next;
+      syncAllCheckbox();
+      renderCategoryChecklist();
+    });
   }
 
   function syncAllCheckbox() {
-    catAllCheckbox.checked = selectedCategories.size === Core.ALL_CATEGORIES.length;
+    catAllCheckbox.checked =
+      selectedCategories.size === Core.SELECTABLE_CATEGORIES.length && !Core.hasExclusive(selectedCategories);
   }
 
   catAllCheckbox.addEventListener("change", () => {
-    selectedCategories = new Set(catAllCheckbox.checked ? Core.ALL_CATEGORIES : []);
+    selectedCategories = new Set(catAllCheckbox.checked ? Core.SELECTABLE_CATEGORIES : []);
     wordBag = Core.makeWordBag(selectedCategories);
     renderCategoryChecklist();
   });
 
   renderCategoryChecklist();
+
+  // ===== مدة الجولة =====
+  Core.ROUND_TIME_OPTIONS.forEach((opt) => {
+    const o = document.createElement("option");
+    o.value = String(opt.value);
+    o.textContent = opt.label;
+    roundTimeSelect.appendChild(o);
+  });
 
   // ===== إعداد الفريقين =====
   startBtn.addEventListener("click", () => {
@@ -81,6 +105,8 @@
     catErrorEl.classList.add("hidden");
     wordBag = Core.makeWordBag(selectedCategories);
     wordBag.refill();
+    roundSeconds = Number(roundTimeSelect.value) || 0;
+    boqLeft = [Core.BOQ_PER_TEAM, Core.BOQ_PER_TEAM];
 
     teams = [
       { name: team1Input.value.trim() || Core.defaultTeamName(0), color: Core.TEAM_COLORS[0], score: 0 },
@@ -107,7 +133,97 @@
   }
 
   function renderGrid() {
-    View.renderGrid(gridEl, { guesses, currentGuess, wordLength, maxAttempts, spaceIndexes });
+    View.renderGrid(gridEl, {
+      guesses,
+      currentGuess,
+      wordLength,
+      maxAttempts,
+      spaceIndexes,
+      stealActive: !!steal,
+    });
+  }
+
+  // الفريق اللي ينتظر دوره — هو اللي يحق له البوق
+  function waitingTeam() {
+    return (teamIndex + 1) % 2;
+  }
+
+  // عدد محاولات الفريق الأصلي (بدون صفوف السرقة)
+  function ownAttemptCount() {
+    return guesses.filter((g) => !g.steal).length;
+  }
+
+  function totalRows() {
+    return maxAttempts + guesses.filter((g) => g.steal).length;
+  }
+
+  function updateBoqUi() {
+    if (gameOver || matchOver) {
+      boqBtn.classList.add("hidden");
+      stealNoteEl.classList.add("hidden");
+      return;
+    }
+    if (steal) {
+      boqBtn.classList.add("hidden");
+      stealNoteEl.classList.remove("hidden");
+      stealNoteEl.textContent =
+        "📢 بوق! دور " +
+        teams[steal.team].name +
+        " — باقي " +
+        Core.toArabicDigits(steal.attemptsLeft) +
+        " محاولة على " +
+        Core.toArabicDigits(steal.value) +
+        " نقطة";
+      return;
+    }
+    stealNoteEl.classList.add("hidden");
+    const w = waitingTeam();
+    boqBtn.classList.remove("hidden");
+    boqBtn.disabled = boqLeft[w] <= 0;
+    boqBtn.textContent =
+      "📢 بوق — " + teams[w].name + " (باقي " + Core.toArabicDigits(boqLeft[w]) + ")";
+  }
+
+  // ===== المؤقّت =====
+  function stopTicking() {
+    clearInterval(tickTimer);
+    tickTimer = null;
+  }
+
+  function startTicking() {
+    stopTicking();
+    if (!deadline) return;
+    tickTimer = setInterval(() => {
+      View.renderTimer(timerEl, deadline, pausedRemainingMs);
+      if (pausedRemainingMs == null && deadline && Date.now() >= deadline) {
+        stopTicking();
+        timeUp();
+      }
+    }, 250);
+  }
+
+  function pauseTimer() {
+    if (!deadline) return;
+    pausedRemainingMs = Math.max(0, deadline - Date.now());
+    View.renderTimer(timerEl, deadline, pausedRemainingMs);
+  }
+
+  function resumeTimer() {
+    if (!deadline || pausedRemainingMs == null) return;
+    deadline = Date.now() + pausedRemainingMs;
+    pausedRemainingMs = null;
+    View.renderTimer(timerEl, deadline, null);
+  }
+
+  function timeUp() {
+    if (gameOver) return;
+    gameOver = true;
+    steal = null;
+    showMessage("⏰ انتهى الوقت! الكلمة كانت: " + target + " (٠ نقطة)", "lose");
+    updateHintButtons();
+    updateBoqUi();
+    renderKeyboard();
+    resolveRoundEnd();
   }
 
   function renderKeyboard() {
@@ -115,8 +231,34 @@
   }
 
   function applyTileSize() {
-    View.applyTileSize(gridEl, { wordLength, maxAttempts, spaceCount: spaceIndexes.length });
+    View.applyTileSize(gridEl, {
+      wordLength,
+      maxAttempts: totalRows(),
+      spaceCount: spaceIndexes.length,
+    });
   }
+
+  boqBtn.addEventListener("click", () => {
+    if (gameOver || steal) return;
+    const w = waitingTeam();
+    if (boqLeft[w] <= 0) return;
+
+    boqLeft[w]--;
+    // القيمة تتثبّت الحين: نفس النقاط اللي كان بياخذها الفريق الأصلي لو حزر بهاللحظة
+    steal = {
+      team: w,
+      attemptsLeft: Core.BOQ_ATTEMPTS,
+      value: Core.finalScoreForAttempt(ownAttemptCount() + 1, maxAttempts, hints),
+    };
+    currentGuess = [];
+    Core.autoFillSpaces(currentGuess, wordLength, spaceIndexes);
+    pauseTimer();
+    showMessage("", "");
+    updateHintButtons();
+    updateBoqUi();
+    applyTileSize();
+    renderGrid();
+  });
 
   function showMessage(text, kind) {
     View.showMessage(messageEl, text, kind);
@@ -142,7 +284,13 @@
     keyStatus = {};
     hints = Core.newHints();
     hintLog = [];
+    steal = null;
+    pausedRemainingMs = null;
+    deadline = roundSeconds ? Date.now() + roundSeconds * 1000 : null;
     Core.autoFillSpaces(currentGuess, wordLength, spaceIndexes);
+    View.renderTimer(timerEl, deadline, null);
+    startTicking();
+    updateBoqUi();
 
     subtitleEl.textContent = Core.roundSubtitle(
       teams[teamIndex].name,
@@ -163,9 +311,10 @@
   }
 
   function updateHintButtons() {
-    hintCategoryBtn.disabled = gameOver || hints.categoryUsed;
-    hintRepeatBtn.disabled = gameOver || hints.repeatUsed;
-    hintLetterBtn.disabled = gameOver || Core.allLettersKnown(targetChars, keyStatus);
+    // أثناء السرقة ما فيه تلميحات — محاولتين وبس
+    hintCategoryBtn.disabled = gameOver || !!steal || hints.categoryUsed;
+    hintRepeatBtn.disabled = gameOver || !!steal || hints.repeatUsed;
+    hintLetterBtn.disabled = gameOver || !!steal || Core.allLettersKnown(targetChars, keyStatus);
   }
 
   hintCategoryBtn.addEventListener("click", () => {
@@ -222,16 +371,56 @@
     }
 
     const statuses = Core.evaluateGuess(currentGuess, targetChars);
-    const attemptNumber = guesses.length + 1;
-    guesses.push({ chars: currentGuess.slice(), statuses });
+    const attemptNumber = ownAttemptCount() + 1;
+    guesses.push({ chars: currentGuess.slice(), statuses, steal: !!steal });
     Core.mergeKeyStatus(keyStatus, currentGuess, statuses);
 
     const won = statuses.every((s) => s === "green");
     currentGuess = [];
     Core.autoFillSpaces(currentGuess, wordLength, spaceIndexes);
+    applyTileSize();
     renderGrid();
     renderKeyboard();
     updateHintButtons();
+
+    // ===== مسار السرقة (البوق) =====
+    if (steal) {
+      if (won) {
+        gameOver = true;
+        const stealingTeam = steal.team;
+        const earned = steal.value;
+        teams[stealingTeam].score += earned;
+        showMessage(
+          "📢 سرقها " + teams[stealingTeam].name + "! ربحوا " + Core.toArabicDigits(earned) + " نقطة",
+          "win"
+        );
+        steal = null;
+        stopTicking();
+        renderScoreboard();
+        updateHintButtons();
+        updateBoqUi();
+        resolveRoundEnd();
+        return;
+      }
+
+      steal.attemptsLeft--;
+      if (steal.attemptsLeft > 0) {
+        showMessage("📢 باقي محاولة وحدة للسرقة", "");
+        updateBoqUi();
+        return;
+      }
+
+      // فشلت السرقة: ينحرق البوق ويكمل الفريق الأصلي محاولاته كاملة
+      steal = null;
+      resumeTimer();
+      showMessage("📢 راحت عليهم! يكمل " + teams[teamIndex].name, "");
+      updateHintButtons();
+      updateBoqUi();
+      // نعيد رسم الشبكة عشان الإطار الذهبي ما يظل على الصف الحالي بعد نهاية السرقة
+      renderGrid();
+      renderKeyboard();
+      return;
+    }
 
     if (won) {
       gameOver = true;
@@ -241,16 +430,20 @@
         "🎉 أحسنت يا " + teams[teamIndex].name + "! ربحتوا " + Core.toArabicDigits(earned) + " نقطة",
         "win"
       );
+      stopTicking();
       renderScoreboard();
       updateHintButtons();
+      updateBoqUi();
       resolveRoundEnd();
       return;
     }
 
-    if (guesses.length >= maxAttempts) {
+    if (ownAttemptCount() >= maxAttempts) {
       gameOver = true;
       showMessage("😔 انتهت المحاولات! الكلمة كانت: " + target + " (٠ نقطة)", "lose");
+      stopTicking();
       updateHintButtons();
+      updateBoqUi();
       resolveRoundEnd();
       return;
     }
@@ -260,6 +453,8 @@
 
   // تحسب نهاية الجولة، وتقرر هل انتهت المباراة (كل فريق لعب 5 جولات) أو لسه في دور تالي
   function resolveRoundEnd() {
+    stopTicking();
+    View.renderTimer(timerEl, null, null);
     roundsPlayed[teamIndex]++;
     matchOver = roundsPlayed.every((r) => r >= Core.ROUNDS_PER_TEAM);
     nextTeamBtn.textContent = matchOver ? "عرض النتيجة النهائية 🏆" : "دور الفريق التالي 👉";
@@ -297,6 +492,7 @@
   endMatchBtn.addEventListener("click", showEndScreen);
 
   function showEndScreen() {
+    stopTicking();
     playScreen.classList.add("hidden");
     endScreen.classList.remove("hidden");
 

@@ -106,8 +106,21 @@
   const roundEndEl = el("online-round-end");
   const nextTeamBtn = el("online-next-team-btn");
   const roundEndWaitEl = el("online-round-end-wait");
+  const roundTimeSelect = el("online-round-time");
+  const timerEl = el("online-timer");
+  const boqBtn = el("online-boq-btn");
+  const stealNoteEl = el("online-steal-note");
 
-  let selectedCategories = new Set(Core.ALL_CATEGORIES);
+  let selectedCategories = new Set(Core.SELECTABLE_CATEGORIES);
+  let tickTimer = null; // عدّاد العرض عند الجميع
+  let hostClockTimer = null; // عدّاد الهوست اللي يحسم انتهاء الوقت
+
+  Core.ROUND_TIME_OPTIONS.forEach((opt) => {
+    const o = document.createElement("option");
+    o.value = String(opt.value);
+    o.textContent = opt.label;
+    roundTimeSelect.appendChild(o);
+  });
 
   // ===== أدوات عامة =====
   function showScreen(which) {
@@ -277,7 +290,7 @@
     endMatchBtn.classList.toggle("hidden", !isHost);
 
     if (isHost) {
-      View.renderCategoryChecklist(catListEl, selectedCategories, syncAllCheckbox);
+      renderCategoryChecklist();
     }
 
     unsubscribers.push(
@@ -435,13 +448,22 @@
     updateTeamPickLabels(cfg);
   }
 
+  function renderCategoryChecklist() {
+    View.renderCategoryChecklist(catListEl, selectedCategories, (next) => {
+      selectedCategories = next;
+      syncAllCheckbox();
+      renderCategoryChecklist();
+    });
+  }
+
   function syncAllCheckbox() {
-    catAllCheckbox.checked = selectedCategories.size === Core.ALL_CATEGORIES.length;
+    catAllCheckbox.checked =
+      selectedCategories.size === Core.SELECTABLE_CATEGORIES.length && !Core.hasExclusive(selectedCategories);
   }
 
   catAllCheckbox.addEventListener("change", () => {
-    selectedCategories = new Set(catAllCheckbox.checked ? Core.ALL_CATEGORIES : []);
-    View.renderCategoryChecklist(catListEl, selectedCategories, syncAllCheckbox);
+    selectedCategories = new Set(catAllCheckbox.checked ? Core.SELECTABLE_CATEGORIES : []);
+    renderCategoryChecklist();
   });
 
   [team1Input, team2Input].forEach((input) => {
@@ -504,8 +526,50 @@
       ack: null,
       roundNumber: 1,
       players: {},
+      boqLeft: [Core.BOQ_PER_TEAM, Core.BOQ_PER_TEAM],
+      steal: null,
+      roundSeconds: 0,
+      deadline: null,
+      pausedRemainingMs: null,
     };
     lastSeqByPlayer = {};
+  }
+
+  function hostWaitingTeam() {
+    return (hostState.teamIndex + 1) % 2;
+  }
+
+  function hostOwnAttemptCount() {
+    return hostState.guesses.filter((g) => !g.steal).length;
+  }
+
+  // ===== ساعة الهوست =====
+  function hostStopClock() {
+    clearInterval(hostClockTimer);
+    hostClockTimer = null;
+  }
+
+  function hostStartClock() {
+    hostStopClock();
+    if (!hostState.deadline) return;
+    hostClockTimer = setInterval(() => {
+      const h = hostState;
+      if (h.pausedRemainingMs != null || !h.deadline) return;
+      if (Date.now() >= h.deadline) {
+        hostStopClock();
+        hostTimeUp();
+      }
+    }, 500);
+  }
+
+  function hostTimeUp() {
+    const h = hostState;
+    if (h.gameOver || h.phase !== "playing") return;
+    h.gameOver = true;
+    h.steal = null;
+    h.deadline = null;
+    h.message = { text: "⏰ انتهى الوقت! الكلمة كانت: " + h.target + " (٠ نقطة)", kind: "lose" };
+    hostResolveRoundEnd();
   }
 
   function hostStartMatch() {
@@ -529,6 +593,8 @@
     hostState.bag = Core.makeWordBag(selectedCategories);
     hostState.bag.refill();
     hostState.categoriesLabel = Core.categoriesLabel(selectedCategories);
+    hostState.boqLeft = [Core.BOQ_PER_TEAM, Core.BOQ_PER_TEAM];
+    hostState.roundSeconds = Number(roundTimeSelect.value) || 0;
 
     roomRef("meta/status").set("playing");
     hostStartRound();
@@ -553,6 +619,10 @@
     hostState.message = { text: "", kind: "" };
     hostState.ack = null;
     hostState.roundNumber = hostState.roundsPlayed[hostState.teamIndex] + 1;
+    hostState.steal = null;
+    hostState.pausedRemainingMs = null;
+    hostState.deadline = hostState.roundSeconds ? Date.now() + hostState.roundSeconds * 1000 : null;
+    hostStartClock();
 
     publishState();
   }
@@ -584,6 +654,12 @@
         // الكلمة ما تنكشف إلا بعد نهاية الجولة
         revealedWord: h.gameOver ? h.target : null,
         ack: h.ack,
+        // السرقة والمؤقّت — deadline ختم زمني مطلق فاللاعبون يعدّون محلياً بدون
+        // كتابة كل ثانية على الشبكة
+        steal: h.steal,
+        boqLeft: h.boqLeft,
+        deadline: h.deadline,
+        pausedRemainingMs: h.pausedRemainingMs,
       },
     };
     roomRef("state").set(state);
@@ -612,7 +688,21 @@
 
     if (hostState.phase !== "playing" || hostState.gameOver) return;
     const player = players[pid];
-    if (!player || player.team !== hostState.teamIndex) return;
+    if (!player) return;
+
+    // البوق: يطلبه لاعب من الفريق المنتظر فقط، ولمّا ما فيه سرقة جارية
+    if (input.action === "boq") {
+      if (hostState.steal) return;
+      const w = hostWaitingTeam();
+      if (player.team !== w) return;
+      if (hostState.boqLeft[w] <= 0) return;
+      hostStartSteal(w);
+      return;
+    }
+
+    // اللي يكتب لازم يكون: صاحب الدور، أو الفريق السارق لو فيه سرقة جارية
+    const allowedTeam = hostState.steal ? hostState.steal.team : hostState.teamIndex;
+    if (player.team !== allowedTeam) return;
 
     if (input.action === "buffer" || input.action === "submit") {
       hostState.currentGuess = sanitizeBuffer(input.buffer);
@@ -624,9 +714,29 @@
       return;
     }
     if (input.action === "hint") {
+      // ما فيه تلميحات أثناء السرقة
+      if (hostState.steal) return publishState();
       hostApplyHint(input.hint);
       return;
     }
+    publishState();
+  }
+
+  function hostStartSteal(teamIdx) {
+    const h = hostState;
+    h.boqLeft[teamIdx]--;
+    // القيمة تتثبّت الحين: نفس النقاط اللي كان بياخذها الفريق الأصلي لو حزر بهاللحظة
+    h.steal = {
+      team: teamIdx,
+      attemptsLeft: Core.BOQ_ATTEMPTS,
+      value: Core.finalScoreForAttempt(hostOwnAttemptCount() + 1, h.maxAttempts, h.hints),
+    };
+    h.currentGuess = [];
+    Core.autoFillSpaces(h.currentGuess, h.wordLength, h.spaceIndexes);
+    h.ack = null;
+    h.message = { text: "", kind: "" };
+    // نوقف المؤقّت طول السرقة
+    if (h.deadline) h.pausedRemainingMs = Math.max(0, h.deadline - Date.now());
     publishState();
   }
 
@@ -660,13 +770,51 @@
     }
 
     const statuses = Core.evaluateGuess(h.currentGuess, h.targetChars);
-    const attemptNumber = h.guesses.length + 1;
-    h.guesses.push({ chars: h.currentGuess.slice(), statuses });
+    const attemptNumber = hostOwnAttemptCount() + 1;
+    h.guesses.push({ chars: h.currentGuess.slice(), statuses, steal: !!h.steal });
     Core.mergeKeyStatus(h.keyStatus, h.currentGuess, statuses);
 
     const won = statuses.every((s) => s === "green");
     h.currentGuess = [];
     Core.autoFillSpaces(h.currentGuess, h.wordLength, h.spaceIndexes);
+
+    // ===== مسار السرقة =====
+    if (h.steal) {
+      if (won) {
+        h.gameOver = true;
+        const stealingTeam = h.steal.team;
+        const earned = h.steal.value;
+        h.teams[stealingTeam].score += earned;
+        h.message = {
+          text: "📢 سرقها " + h.teams[stealingTeam].name + "! ربحوا " + Core.toArabicDigits(earned) + " نقطة",
+          kind: "win",
+        };
+        h.steal = null;
+        h.deadline = null;
+        h.pausedRemainingMs = null;
+        hostStopClock();
+        hostResolveRoundEnd();
+        return;
+      }
+
+      h.steal.attemptsLeft--;
+      if (h.steal.attemptsLeft > 0) {
+        h.message = { text: "📢 باقي محاولة وحدة للسرقة", kind: "" };
+        publishState();
+        return;
+      }
+
+      // فشلت السرقة: يرجع الدور للفريق الأصلي بمحاولاته كاملة والمؤقّت يكمل
+      h.steal = null;
+      if (h.pausedRemainingMs != null) {
+        h.deadline = Date.now() + h.pausedRemainingMs;
+        h.pausedRemainingMs = null;
+        hostStartClock();
+      }
+      h.message = { text: "📢 راحت عليهم! يكمل " + h.teams[h.teamIndex].name, kind: "" };
+      publishState();
+      return;
+    }
 
     if (won) {
       h.gameOver = true;
@@ -677,13 +825,17 @@
           "🎉 أحسنت يا " + h.teams[h.teamIndex].name + "! ربحتوا " + Core.toArabicDigits(earned) + " نقطة",
         kind: "win",
       };
+      hostStopClock();
+      h.deadline = null;
       hostResolveRoundEnd();
       return;
     }
 
-    if (h.guesses.length >= h.maxAttempts) {
+    if (hostOwnAttemptCount() >= h.maxAttempts) {
       h.gameOver = true;
       h.message = { text: "😔 انتهت المحاولات! الكلمة كانت: " + h.target + " (٠ نقطة)", kind: "lose" };
+      hostStopClock();
+      h.deadline = null;
       hostResolveRoundEnd();
       return;
     }
@@ -694,6 +846,9 @@
 
   function hostResolveRoundEnd() {
     const h = hostState;
+    hostStopClock();
+    h.deadline = null;
+    h.pausedRemainingMs = null;
     h.roundsPlayed[h.teamIndex]++;
     h.matchOver = h.roundsPlayed.every((r) => r >= Core.ROUNDS_PER_TEAM);
     publishState();
@@ -733,12 +888,30 @@
     return me && typeof me.team === "number" ? me.team : null;
   }
 
+  // أثناء السرقة اللي يكتب هو الفريق السارق، وغير كذا صاحب الدور
   function isMyTurn() {
     if (!pub || pub.phase !== "playing") return false;
     const r = pub.round || {};
     if (r.gameOver) return false;
-    return myTeam() === pub.teamIndex;
+    const allowedTeam = r.steal ? r.steal.team : pub.teamIndex;
+    return myTeam() === allowedTeam;
   }
+
+  // البوق متاح للفريق المنتظر لما ما فيه سرقة جارية وباقي له بوقات
+  function canBoq() {
+    if (!pub || pub.phase !== "playing") return false;
+    const r = pub.round || {};
+    if (r.gameOver || r.steal) return false;
+    const mine = myTeam();
+    if (mine === null || mine === pub.teamIndex) return false;
+    const left = (r.boqLeft || [0, 0])[mine];
+    return left > 0;
+  }
+
+  boqBtn.addEventListener("click", () => {
+    if (!canBoq()) return;
+    sendInput("boq");
+  });
 
   function adoptServerBuffer() {
     if (!pub || !pub.round) return;
@@ -804,6 +977,27 @@
     else if (Core.ARABIC_LETTER_RE.test(e.key)) handleKey(e.key);
   });
 
+  // عدّاد العرض عند الجميع — يقرأ من deadline المنشور فما فيه أي كتابة على الشبكة
+  function startTicking() {
+    const r = (pub && pub.round) || {};
+    const paused = r.pausedRemainingMs != null;
+    if (!r.deadline || paused || r.gameOver) {
+      clearInterval(tickTimer);
+      tickTimer = null;
+      return;
+    }
+    if (tickTimer) return;
+    tickTimer = setInterval(() => {
+      const rr = (pub && pub.round) || {};
+      if (!rr.deadline || rr.pausedRemainingMs != null || rr.gameOver) {
+        clearInterval(tickTimer);
+        tickTimer = null;
+        return;
+      }
+      View.renderTimer(timerEl, rr.deadline, null);
+    }, 250);
+  }
+
   // ===== الرسم =====
   function renderCurrent() {
     if (!roomCode) return;
@@ -846,16 +1040,44 @@
       turnNoteEl.textContent = "👀 أنت متفرّج — الهوست يقدر يحطك بفريق";
       turnNoteEl.className = "online-turn-note watching";
     } else if (myTurn) {
-      turnNoteEl.textContent = "✍️ دوركم! اكتبوا الكلمة";
+      turnNoteEl.textContent = r.steal ? "📢 دوركم! سرقوا الكلمة" : "✍️ دوركم! اكتبوا الكلمة";
       turnNoteEl.className = "online-turn-note mine";
     } else {
       turnNoteEl.textContent = "👀 دور " + activeTeamName + " — انتظر دورك";
       turnNoteEl.className = "online-turn-note watching";
     }
 
+    // ===== البوق =====
+    if (r.steal) {
+      boqBtn.classList.add("hidden");
+      stealNoteEl.classList.remove("hidden");
+      stealNoteEl.textContent =
+        "📢 بوق! دور " +
+        (teams[r.steal.team] ? teams[r.steal.team].name : "") +
+        " — باقي " +
+        Core.toArabicDigits(r.steal.attemptsLeft) +
+        " محاولة على " +
+        Core.toArabicDigits(r.steal.value) +
+        " نقطة";
+    } else {
+      stealNoteEl.classList.add("hidden");
+      const showBoq = mine !== null && mine !== pub.teamIndex && !r.gameOver;
+      boqBtn.classList.toggle("hidden", !showBoq);
+      if (showBoq) {
+        const left = (r.boqLeft || [0, 0])[mine];
+        boqBtn.disabled = left <= 0;
+        boqBtn.textContent = "📢 بوق (باقي " + Core.toArabicDigits(left) + ")";
+      }
+    }
+
+    // ===== المؤقّت =====
+    View.renderTimer(timerEl, r.deadline || null, r.pausedRemainingMs != null ? r.pausedRemainingMs : null);
+    startTicking();
+
+    const stealRows = (r.guesses || []).filter((g) => g && g.steal).length;
     View.applyTileSize(gridEl, {
       wordLength: r.wordLength,
-      maxAttempts: r.maxAttempts,
+      maxAttempts: r.maxAttempts + stealRows,
       spaceCount: (r.spaceIndexes || []).length,
     });
     View.renderGrid(gridEl, {
@@ -864,6 +1086,7 @@
       wordLength: r.wordLength,
       maxAttempts: r.maxAttempts,
       spaceIndexes: r.spaceIndexes || [],
+      stealActive: !!r.steal,
     });
     // ما نعيد بناء الكيبورد إلا لو تغيّر تلوينه أو صلاحية الكتابة — إعادة البناء
     // وسط ضغطة اللاعب تضيّع الضغطة
@@ -879,10 +1102,12 @@
     View.renderHintLog(hintLogEl, r.hintLog || []);
     View.showMessage(messageEl, (r.message && r.message.text) || "", (r.message && r.message.kind) || "");
 
+    // ما فيه تلميحات أثناء السرقة — محاولتين وبس
     const hints = r.hints || Core.newHints();
-    hintCategoryBtn.disabled = !myTurn || hints.categoryUsed;
-    hintRepeatBtn.disabled = !myTurn || hints.repeatUsed;
-    hintLetterBtn.disabled = !myTurn;
+    const hintsAllowed = myTurn && !r.steal;
+    hintCategoryBtn.disabled = !hintsAllowed || hints.categoryUsed;
+    hintRepeatBtn.disabled = !hintsAllowed || hints.repeatUsed;
+    hintLetterBtn.disabled = !hintsAllowed;
 
     roundEndEl.classList.toggle("hidden", !r.gameOver);
     nextTeamBtn.classList.toggle("hidden", !isHost);

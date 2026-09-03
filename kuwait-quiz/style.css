@@ -1256,3 +1256,75 @@ input[type="text"]:focus {
   color: var(--muted);
   background: var(--blue-100);
 }
+
+/* ===== فئة حصرية (ذهبية) + البوق + مؤقّت الجولة ===== */
+:root {
+  --gold: #b8862b;
+  --gold-soft: #fdf3dc;
+}
+
+:root[data-theme="dark"] {
+  --gold: #e0b354;
+  --gold-soft: #3a2f16;
+}
+
+.category-chip.exclusive {
+  border-color: var(--gold);
+  color: var(--gold);
+  font-weight: 800;
+  background: var(--gold-soft);
+}
+
+.category-chip.exclusive:has(input:checked) {
+  background: var(--gold);
+  color: var(--white-fixed);
+}
+
+.round-time-select {
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 2px solid var(--blue-300);
+  background: var(--white);
+  color: var(--ink);
+  width: 100%;
+}
+
+.round-timer {
+  text-align: center;
+  font-weight: 800;
+  font-size: 20px;
+  color: var(--blue-700);
+  letter-spacing: 1px;
+  direction: ltr;
+  margin: 0;
+}
+
+.round-timer.low {
+  color: var(--red);
+}
+
+.boq-btn {
+  background: var(--gold);
+  color: var(--white-fixed);
+  font-size: 14px;
+  padding: 8px 14px;
+  align-self: center;
+}
+
+.steal-note {
+  text-align: center;
+  font-weight: 800;
+  font-size: 14px;
+  margin: 0;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: var(--gold);
+  color: var(--white-fixed);
+}
+
+.wordle-row.steal .wordle-tile {
+  border-color: var(--gold);
+}

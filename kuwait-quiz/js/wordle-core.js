@@ -18,6 +18,44 @@
 
   const ALL_CATEGORIES = [...new Set(WORDS.map((w) => w.category))];
 
+  // فئات تُلعب لحالها: أسماؤها تحتوي أسماء وحيوانات وأماكن... فلو انخلطت مع فئة ثانية
+  // صار التلميح بالفئة بلا معنى. اختيارها يلغي الباقي والعكس، وزر "الكل" ما يشملها.
+  const EXCLUSIVE_CATEGORIES = new Set(["سور القرآن الكريم"]);
+  const SELECTABLE_CATEGORIES = ALL_CATEGORIES.filter((c) => !EXCLUSIVE_CATEGORIES.has(c));
+
+  // البوق: الفريق المنتظر يقاطع ويسرق الكلمة
+  const BOQ_PER_TEAM = 3;
+  const BOQ_ATTEMPTS = 2;
+
+  // مدة الجولة (بالثواني) — 0 يعني بدون وقت
+  const ROUND_TIME_OPTIONS = [
+    { value: 0, label: "بدون وقت" },
+    { value: 30, label: "٣٠ ثانية" },
+    { value: 60, label: "دقيقة" },
+    { value: 120, label: "دقيقتان" },
+    { value: 180, label: "٣ دقائق" },
+    { value: 300, label: "٥ دقائق" },
+  ];
+
+  // يطبّق اختيار/إلغاء فئة مع مراعاة الحصرية، ويرجّع المجموعة الجديدة
+  function applyCategoryToggle(selected, category, checked) {
+    const next = new Set(selected);
+    if (!checked) {
+      next.delete(category);
+      return next;
+    }
+    if (EXCLUSIVE_CATEGORIES.has(category)) return new Set([category]);
+    [...next].forEach((c) => {
+      if (EXCLUSIVE_CATEGORIES.has(c)) next.delete(c);
+    });
+    next.add(category);
+    return next;
+  }
+
+  function hasExclusive(selected) {
+    return [...selected].some((c) => EXCLUSIVE_CATEGORIES.has(c));
+  }
+
   function toArabicDigits(n) {
     return String(n)
       .split("")
@@ -73,8 +111,9 @@
     };
   }
 
+  // كل حرفين زيادة = محاولة زيادة: ٣←٤، ٤و٥←٥، ٦و٧←٦، ٨و٩←٧ ...
   function attemptsForLength(wordLength) {
-    return 3 + Math.floor(wordLength / 3);
+    return 3 + Math.ceil((Math.max(wordLength, 1) - 1) / 2);
   }
 
   function spaceIndexesOf(targetChars) {
@@ -155,8 +194,16 @@
 
   function categoriesLabel(selectedCategories) {
     const size = selectedCategories instanceof Set ? selectedCategories.size : selectedCategories.length;
-    if (size === ALL_CATEGORIES.length) return "الفئات: الكل";
+    if (size === SELECTABLE_CATEGORIES.length && !hasExclusive(selectedCategories)) {
+      return "الفئات: الكل";
+    }
     return "الفئات: " + [...selectedCategories].join("، ");
+  }
+
+  function formatClock(seconds) {
+    const s = Math.max(0, Math.ceil(seconds));
+    const m = Math.floor(s / 60);
+    return toArabicDigits(m) + ":" + toArabicDigits(String(s % 60).padStart(2, "0"));
   }
 
   function roundSubtitle(teamName, roundNumber, wordLength, maxAttempts) {
@@ -210,6 +257,14 @@
     ROUNDS_PER_TEAM,
     KEYBOARD_ROWS,
     ALL_CATEGORIES,
+    EXCLUSIVE_CATEGORIES,
+    SELECTABLE_CATEGORIES,
+    BOQ_PER_TEAM,
+    BOQ_ATTEMPTS,
+    ROUND_TIME_OPTIONS,
+    applyCategoryToggle,
+    hasExclusive,
+    formatClock,
     toArabicDigits,
     defaultTeamName,
     shuffle,
