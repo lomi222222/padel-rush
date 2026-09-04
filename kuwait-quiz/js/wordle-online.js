@@ -8,7 +8,6 @@
 
   const Core = window.WordleCore;
   const View = window.WordleView;
-  const sfx = (n) => window.Sound && window.Sound.play(n);
 
   const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // بدون الحروف الملتبسة
   const HEARTBEAT_MS = 10000;
@@ -56,8 +55,6 @@
   let lastPlayersSignature = "";
   let lastKeyboardSignature = "";
   let lastScoreboardSignature = "";
-  // نتتبّع الحالة السابقة عشان نشغّل الصوت عند التغيّر فقط (كل جهاز يشغّل عنده)
-  let sfxPrev = { guesses: 0, kind: "", steal: false, round: "", phase: "", players: 0 };
 
   // حالة الهوست الخاصة (ما تُنشر أبداً كاملة)
   let hostState = null;
@@ -315,9 +312,6 @@
         const sig = playersSignature();
         if (sig === lastPlayersSignature) return;
         lastPlayersSignature = sig;
-        const count = Object.keys(players).length;
-        if (count > sfxPrev.players && sfxPrev.players > 0) sfx("playerJoin");
-        sfxPrev.players = count;
         renderCurrent();
       })
     );
@@ -960,7 +954,6 @@
       return;
     }
     if (key === "DEL") {
-      if (localBuffer.length) sfx("key");
       localBuffer.pop();
       renderPlay();
       sendInput("buffer");
@@ -969,7 +962,6 @@
     if (Core.ARABIC_LETTER_RE.test(key) && localBuffer.length < r.wordLength) {
       localBuffer.push(key);
       Core.autoFillSpaces(localBuffer, r.wordLength, r.spaceIndexes || []);
-      sfx("key");
       renderPlay();
       sendInput("buffer");
     }
@@ -1032,32 +1024,9 @@
     showScreen(playScreen);
   }
 
-  // يقارن الحالة الجديدة بالسابقة ويشغّل صوت كل حدث مرة وحدة بس
-  function playStateSounds() {
-    const r = (pub && pub.round) || {};
-    const guesses = (r.guesses || []).length;
-    const kind = (r.message && r.message.kind) || "";
-    const stealOn = !!r.steal;
-    const roundKey = pub.teamIndex + ":" + (r.roundNumber || 0);
-
-    if (pub.phase === "playing" && roundKey !== sfxPrev.round && sfxPrev.round !== "") sfx("roundStart");
-    if (guesses > sfxPrev.guesses) sfx("submit");
-    if (stealOn && !sfxPrev.steal) sfx("steal");
-    if (kind === "win" && sfxPrev.kind !== "win") sfx(sfxPrev.steal ? "stealWin" : "win");
-    if (kind === "lose" && sfxPrev.kind !== "lose") sfx("lose");
-    if (pub.phase === "ended" && sfxPrev.phase !== "ended") sfx("matchEnd");
-    if (!stealOn && r.deadline && !r.gameOver) {
-      const left = r.deadline - Date.now();
-      if (left > 0 && left <= 5000) sfx("timeLow");
-    }
-
-    sfxPrev = { guesses, kind, steal: stealOn, round: roundKey, phase: pub.phase, players: sfxPrev.players };
-  }
-
   function renderPlay() {
     if (!pub || !pub.round) return;
     const r = pub.round;
-    playStateSounds();
     const teams = pub.teams || [];
     const mine = myTeam();
     const myTurn = isMyTurn();

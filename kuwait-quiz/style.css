@@ -1080,13 +1080,3 @@ input[type="text"]:focus {
   margin: -6px 0 0;
 }
 
-/* زر الصوت بالصفحات اللي ما فيها شريط عنوان — جنب زر الثيم */
-.sound-toggle-floating {
-  left: 66px;
-}
-
-@media (max-width: 400px) {
-  .sound-toggle-floating {
-    left: 54px;
-  }
-}
