@@ -6,6 +6,7 @@
 
   const Core = window.WordleCore;
   const View = window.WordleView;
+  const sfx = (n) => window.Sound && window.Sound.play(n);
 
   // ===== حالة الفريقين =====
   let teams = [];
@@ -204,6 +205,10 @@
     if (!deadline) return;
     tickTimer = setInterval(() => {
       View.renderTimer(timerEl, deadline, pausedRemainingMs);
+      if (pausedRemainingMs == null && deadline) {
+        const left = deadline - Date.now();
+        if (left > 0 && left <= 5000) sfx("timeLow"); // آخر ٥ ثواني بس
+      }
       if (pausedRemainingMs == null && deadline && Date.now() >= deadline) {
         stopTicking();
         timeUp();
@@ -229,6 +234,7 @@
     gameOver = true;
     steal = null;
     showMessage("⏰ انتهى الوقت! الكلمة كانت: " + target + " (٠ نقطة)", "lose");
+    sfx("lose");
     updateHintButtons();
     updateBoqUi();
     renderKeyboard();
@@ -262,6 +268,7 @@
     currentGuess = [];
     Core.autoFillSpaces(currentGuess, wordLength, spaceIndexes);
     pauseTimer();
+    sfx("steal");
     showMessage("", "");
     updateHintButtons();
     updateBoqUi();
@@ -317,6 +324,7 @@
     renderGrid();
     renderKeyboard();
     renderScoreboard();
+    sfx("roundStart");
   }
 
   function updateHintButtons() {
@@ -362,6 +370,7 @@
       return;
     }
     if (key === "DEL") {
+      if (currentGuess.length) sfx("key");
       currentGuess.pop();
       renderGrid();
       return;
@@ -369,6 +378,7 @@
     if (Core.ARABIC_LETTER_RE.test(key) && currentGuess.length < wordLength) {
       currentGuess.push(key);
       Core.autoFillSpaces(currentGuess, wordLength, spaceIndexes);
+      sfx("key");
       renderGrid();
     }
   }
@@ -379,6 +389,7 @@
       return;
     }
 
+    sfx("submit");
     const statuses = Core.evaluateGuess(currentGuess, targetChars);
     const attemptNumber = ownAttemptCount() + 1;
     guesses.push({ chars: currentGuess.slice(), statuses, steal: !!steal });
@@ -403,6 +414,7 @@
           "🥷 سرقها " + teams[stealingTeam].name + "! ربحوا " + Core.toArabicDigits(earned) + " نقطة",
           "win"
         );
+        sfx("stealWin");
         steal = null;
         stopTicking();
         renderScoreboard();
@@ -439,6 +451,7 @@
         "🎉 أحسنت يا " + teams[teamIndex].name + "! ربحتوا " + Core.toArabicDigits(earned) + " نقطة",
         "win"
       );
+      sfx("win");
       stopTicking();
       renderScoreboard();
       updateHintButtons();
@@ -450,6 +463,7 @@
     if (ownAttemptCount() >= maxAttempts) {
       gameOver = true;
       showMessage("😔 انتهت المحاولات! الكلمة كانت: " + target + " (٠ نقطة)", "lose");
+      sfx("lose");
       stopTicking();
       updateHintButtons();
       updateBoqUi();
@@ -502,6 +516,7 @@
 
   function showEndScreen() {
     stopTicking();
+    sfx("matchEnd");
     playScreen.classList.add("hidden");
     endScreen.classList.remove("hidden");
 

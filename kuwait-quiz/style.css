@@ -357,31 +357,6 @@ input[type="text"]:focus {
   flex-shrink: 0;
 }
 
-.team-setup-controls {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 6px;
-}
-
-.stepper {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.stepper button {
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  border: 2px solid var(--blue-700);
-  background: var(--white);
-  color: var(--blue-700);
-  font-size: 18px;
-  font-weight: 800;
-  cursor: pointer;
-}
-
 /* ===== Scoreboard ===== */
 .scoreboard {
   display: grid;
@@ -424,23 +399,6 @@ input[type="text"]:focus {
   margin-top: 4px;
 }
 
-.team-chip .ability-dot {
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.25);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 11px;
-}
-
-.team-chip .ability-dot.used {
-  background: rgba(0, 0, 0, 0.25);
-  text-decoration: line-through;
-  opacity: 0.6;
-}
-
 .score-adjust-row {
   display: flex;
   gap: 6px;
@@ -463,153 +421,6 @@ input[type="text"]:focus {
   background: rgba(255, 255, 255, 0.28);
 }
 
-/* ===== Board ===== */
-.board-scroll {
-  overflow-x: auto;
-  padding-bottom: 8px;
-}
-
-.board {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(120px, 1fr));
-  gap: 8px;
-  min-width: 760px;
-}
-
-.board .cat-header {
-  background: var(--navy-fixed);
-  color: var(--white-fixed);
-  border-radius: 10px;
-  padding: 10px 6px;
-  text-align: center;
-  font-weight: 800;
-  font-size: 13px;
-  line-height: 1.4;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-}
-
-.board .cat-header .icon {
-  font-size: 20px;
-}
-
-.cell-btn {
-  background: var(--blue-700);
-  color: var(--white-fixed);
-  border: none;
-  border-radius: 10px;
-  padding: 18px 6px;
-  font-size: 18px;
-  font-weight: 800;
-  cursor: pointer;
-  transition: background 0.15s ease, transform 0.1s ease;
-}
-
-.cell-btn:hover:not(:disabled) {
-  background: var(--blue-600);
-  transform: translateY(-2px);
-}
-
-.cell-btn:disabled {
-  background: var(--blue-100);
-  color: var(--blue-300);
-  cursor: default;
-}
-
-@media (max-width: 480px) {
-  .board {
-    grid-template-columns: repeat(6, minmax(78px, 1fr));
-    min-width: 540px;
-    gap: 6px;
-  }
-
-  .board .cat-header {
-    padding: 8px 4px;
-    font-size: 11px;
-    gap: 2px;
-  }
-
-  .board .cat-header .icon {
-    font-size: 16px;
-  }
-
-  .cell-btn {
-    padding: 12px 4px;
-    font-size: 15px;
-  }
-}
-
-/* ===== Question overlay ===== */
-.overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(6, 38, 74, 0.65);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 16px;
-  z-index: 50;
-}
-
-.overlay.hidden {
-  display: none;
-}
-
-.question-card {
-  background: var(--white);
-  border-radius: 20px;
-  padding: 28px;
-  max-width: 640px;
-  width: 100%;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-  max-height: 90vh;
-  overflow-y: auto;
-}
-
-@media (max-width: 400px) {
-  .question-card {
-    padding: 16px;
-    gap: 14px;
-    border-radius: 16px;
-  }
-}
-
-.question-meta {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.question-meta .badge {
-  background: var(--blue-100);
-  color: var(--blue-700);
-  border-radius: 999px;
-  padding: 6px 14px;
-  font-weight: 700;
-  font-size: 14px;
-}
-
-.question-meta .points {
-  font-size: 22px;
-  font-weight: 800;
-  color: var(--navy);
-}
-
-.question-text {
-  font-size: clamp(20px, 3.4vw, 26px);
-  font-weight: 700;
-  color: var(--ink);
-  line-height: 1.6;
-  text-align: center;
-}
-
 .hint-box {
   background: var(--blue-100);
   border-radius: 10px;
@@ -617,27 +428,6 @@ input[type="text"]:focus {
   text-align: center;
   font-weight: 700;
   color: var(--blue-700);
-}
-
-.choices-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-}
-
-@media (max-width: 480px) {
-  .choices-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-.choice-item {
-  background: var(--blue-100);
-  border-radius: 10px;
-  padding: 12px;
-  text-align: center;
-  font-weight: 700;
-  color: var(--navy);
 }
 
 .abilities-row {
@@ -698,74 +488,12 @@ input[type="text"]:focus {
   cursor: not-allowed;
 }
 
-.resolve-row {
-  display: flex;
-  gap: 12px;
-}
-
-.resolve-row .btn {
-  flex: 1;
-}
-
-/* ===== Per-team abilities ===== */
-.team-abilities-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.team-ability-block {
-  border: 2px solid var(--blue-100);
-  border-radius: 12px;
-  padding: 10px 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.team-ability-name {
-  font-weight: 800;
-  font-size: 14px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.ability-active-badge {
-  font-size: 11px;
-  font-weight: 700;
-  background: var(--yellow);
-  color: var(--navy);
-  border-radius: 999px;
-  padding: 2px 10px;
-}
-
 @media (max-width: 400px) {
-  .team-ability-block {
-    padding: 8px 10px;
-  }
-
-  .team-ability-name {
-    font-size: 13px;
-  }
 
   .ability-btn {
     font-size: 12px;
     padding: 6px 12px;
   }
-}
-
-/* ===== Winner picker ===== */
-.winner-buttons {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  justify-content: center;
-}
-
-.winner-team-btn {
-  flex: 1 1 140px;
 }
 
 /* ===== End screen ===== */
@@ -1350,4 +1078,15 @@ input[type="text"]:focus {
 .round-time-hint {
   font-size: 12px;
   margin: -6px 0 0;
+}
+
+/* زر الصوت بالصفحات اللي ما فيها شريط عنوان — جنب زر الثيم */
+.sound-toggle-floating {
+  left: 66px;
+}
+
+@media (max-width: 400px) {
+  .sound-toggle-floating {
+    left: 54px;
+  }
 }
