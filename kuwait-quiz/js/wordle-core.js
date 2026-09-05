@@ -49,10 +49,17 @@
   }
 
   // نص عدد المحاولات المتبقية للسرقة بصيغة عربية سليمة
+  // تمييز العدد بالعربي: ٢ مثنى، ٣-١٠ جمع، ١١ فما فوق مفرد منصوب
+  function countLabel(n, forms) {
+    if (n === 1) return forms.one;
+    if (n === 2) return forms.two;
+    return toArabicDigits(n) + " " + (n <= 10 ? forms.few : forms.many);
+  }
+
+  const ATTEMPT_FORMS = { one: "محاولة وحدة", two: "محاولتين", few: "محاولات", many: "محاولة" };
+
   function stealAttemptsLabel(n) {
-    if (n === 1) return "محاولة وحدة";
-    if (n === 2) return "محاولتين";
-    return toArabicDigits(n) + " محاولات";
+    return countLabel(n, ATTEMPT_FORMS);
   }
 
   // يطبّق اختيار/إلغاء فئة مع مراعاة الحصرية، ويرجّع المجموعة الجديدة
@@ -224,7 +231,11 @@
     return toArabicDigits(m) + ":" + toArabicDigits(String(s % 60).padStart(2, "0"));
   }
 
-  function roundSubtitle(teamName, roundNumber, wordLength, maxAttempts) {
+  function roundSubtitle(teamName, roundNumber, wordLength, maxAttempts, spaceIndexes) {
+    // المسافات في العناوين متعددة الكلمات تنعبّي تلقائياً، فما تنعدّ حروفاً
+    const spaces = spaceIndexes instanceof Set ? spaceIndexes.size : (spaceIndexes || []).length;
+    const letters = Math.max(1, wordLength - spaces);
+
     return (
       "دور " +
       teamName +
@@ -232,11 +243,12 @@
       toArabicDigits(roundNumber) +
       " من " +
       toArabicDigits(ROUNDS_PER_TEAM) +
-      ") — كلمة من " +
-      toArabicDigits(wordLength) +
-      " أحرف خلال " +
-      toArabicDigits(maxAttempts) +
-      " محاولات"
+      ") — " +
+      (spaces ? countLabel(spaces + 1, { one: "كلمة", two: "كلمتين", few: "كلمات", many: "كلمة" }) : "كلمة") +
+      " من " +
+      countLabel(letters, { one: "حرف واحد", two: "حرفين", few: "أحرف", many: "حرفاً" }) +
+      " خلال " +
+      countLabel(maxAttempts, ATTEMPT_FORMS)
     );
   }
 

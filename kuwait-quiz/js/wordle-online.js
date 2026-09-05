@@ -658,7 +658,7 @@
         message: h.message,
         roundNumber: h.roundNumber,
         subtitle: h.teams.length
-          ? Core.roundSubtitle(h.teams[h.teamIndex].name, h.roundNumber, h.wordLength, h.maxAttempts)
+          ? Core.roundSubtitle(h.teams[h.teamIndex].name, h.roundNumber, h.wordLength, h.maxAttempts, h.spaceIndexes)
           : "",
         // الكلمة ما تنكشف إلا بعد نهاية الجولة
         revealedWord: h.gameOver ? h.target : null,

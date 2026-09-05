@@ -305,7 +305,8 @@
       teams[teamIndex].name,
       roundsPlayed[teamIndex] + 1,
       wordLength,
-      maxAttempts
+      maxAttempts,
+      spaceIndexes
     );
     activeCategoriesEl.textContent = Core.categoriesLabel(selectedCategories);
     showMessage("", "");
