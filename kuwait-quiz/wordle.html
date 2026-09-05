@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem("kw-theme");
+          if (!t) t = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+          document.documentElement.setAttribute("data-theme", t);
+        } catch (e) {}
+      })();
+    </script>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+    <title>احزر الكلمة - الأذكى</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="page">
+      <div class="topbar">
+        <h1>🔤 احزر الكلمة</h1>
+        <a class="home-link" href="index.html">القائمة الرئيسية</a>
+      </div>
+
+      <!-- شاشة إعداد الفريقين -->
+      <section id="wordle-setup-screen" class="card stack">
+        <h2 class="center">إعداد الفريقين</h2>
+        <p class="muted center">فريقان، كل فريق ياخذ دوره كامل بكلمته الخاصة</p>
+
+        <div class="team-setup-list">
+          <div class="team-setup-row">
+            <div class="team-swatch" style="background: #12539f"></div>
+            <input type="text" id="wordle-team1-input" maxlength="20" placeholder="الفريق الأول" />
+          </div>
+          <div class="team-setup-row">
+            <div class="team-swatch" style="background: #06264a"></div>
+            <input type="text" id="wordle-team2-input" maxlength="20" placeholder="الفريق الثاني" />
+          </div>
+        </div>
+
+        <p class="muted center">اختر الفئات (كلها مفعّلة افتراضياً)</p>
+        <div class="abilities-row">
+          <label class="category-chip all">
+            <input type="checkbox" id="wordle-cat-all" checked />
+            الكل
+          </label>
+        </div>
+        <div id="wordle-category-list" class="abilities-row"></div>
+        <p id="wordle-category-error" class="hidden" style="color: var(--red); font-weight: 700; text-align: center"></p>
+
+        <p class="muted center">وقت الجولة</p>
+        <select id="wordle-round-time" class="round-time-select"></select>
+        <input
+          type="number"
+          id="wordle-round-time-custom"
+          class="round-time-custom hidden"
+          min="1"
+          max="60"
+          step="1"
+          value="4"
+          placeholder="كم دقيقة؟"
+        />
+        <p id="wordle-round-time-hint" class="muted center round-time-hint hidden">
+          بالدقائق (من ١ إلى ٦٠)
+        </p>
+
+        <button id="wordle-start-btn" class="btn btn-primary btn-block">
+          ابدأ اللعبة
+        </button>
+
+        <div class="online-divider"><span>أو</span></div>
+        <a class="btn btn-outline btn-block" href="wordle-online.html">
+          العب أونلاين مع ربعك 🌐
+        </a>
+      </section>
+
+      <!-- شاشة اللعب -->
+      <section id="wordle-play-screen" class="stack hidden">
+        <div class="row" style="justify-content: space-between; align-items: center">
+          <div id="wordle-scoreboard" class="scoreboard" style="flex: 1"></div>
+          <button id="wordle-end-match-btn" class="btn btn-outline">
+            إنهاء اللعبة 🏁
+          </button>
+        </div>
+
+        <div class="card wordle-wrap">
+          <p class="muted center wordle-legend" id="wordle-active-categories"></p>
+          <p class="muted center" id="wordle-subtitle"></p>
+          <div id="wordle-timer" class="round-timer hidden"></div>
+          <button id="wordle-boq-btn" class="btn boq-btn hidden"></button>
+          <p id="wordle-steal-note" class="steal-note hidden"></p>
+          <p class="muted center wordle-legend">
+            أخضر = الحرف في مكانه الصحيح، أصفر = الحرف موجود لكن في مكان آخر،
+            رمادي = الحرف غير موجود.
+          </p>
+
+          <div class="wordle-grid-scroll">
+            <div id="wordle-grid" class="wordle-grid"></div>
+          </div>
+
+          <div class="abilities-row">
+            <button id="wordle-hint-category-btn" class="ability-btn">
+              💡 الفئة (-٪٥٠)
+            </button>
+            <button id="wordle-hint-repeat-btn" class="ability-btn">
+              🔁 فيه حرف متكرر؟ (-٥٠)
+            </button>
+            <button id="wordle-hint-letter-btn" class="ability-btn">
+              🔤 حرف موجود (-١٠٠)
+            </button>
+          </div>
+
+          <div id="wordle-hint-log" class="stack"></div>
+
+          <div id="wordle-message" class="wordle-message"></div>
+
+          <div id="keyboard" class="keyboard"></div>
+
+          <div id="wordle-round-end" class="row hidden" style="justify-content: center">
+            <button id="wordle-next-team-btn" class="btn btn-primary">
+              دور الفريق التالي 👉
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- شاشة النهاية -->
+      <section id="wordle-end-screen" class="card stack hidden">
+        <div class="winner-banner">
+          <h2 id="wordle-winner-name">🏆 الفريق الفائز</h2>
+          <p id="wordle-winner-score"></p>
+        </div>
+        <div id="wordle-final-scores" class="final-scores"></div>
+        <button id="wordle-restart-btn" class="btn btn-primary btn-block">
+          لعبة جديدة
+        </button>
+      </section>
+    </div>
+
+    <script src="js/words.js"></script>
+    <script src="js/wordle-core.js"></script>
+    <script src="js/wordle-view.js"></script>
+    <script src="js/wordle.js"></script>
+    <script src="js/theme.js" defer></script>
+  </body>
+</html>
