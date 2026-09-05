@@ -46,6 +46,10 @@
   let myName = "";
   let players = {};
   let pub = null;
+  // العقدة السريعة (rooms/<code>/live): فيها currentGuess و ack بس. منفصلة عن state
+  // لأن مستمع value على عقدة أب ينزّل العقدة كاملة مع أي تغيير جواها — فلو خليناهم
+  // مع بعض، كل ضغطة حرف تنزّل ~١.٥ كيلو على كل جهاز بدال ~٤٥ بايت
+  let live = null;
   // نبدأ من الوقت الحالي عشان الترقيم يظل تصاعدي حتى لو اللاعب حدّث الصفحة، وإلا
   // الهوست بيتجاهل إدخالاته لأن رقمها أصغر من آخر رقم عالجه له
   let mySeq = Date.now();
@@ -322,6 +326,14 @@
         renderCurrent();
       })
     );
+    // العقدة السريعة: توصل مع كل ضغطة حرف، فما نعيد رسم الصفحة كاملة — الشبكة بس
+    unsubscribers.push(
+      roomRef("live").on((val) => {
+        live = val;
+        adoptServerBuffer();
+        redrawGridOnly();
+      })
+    );
     unsubscribers.push(
       roomRef("config").on((val) => {
         const cfg = val || {};
@@ -514,6 +526,9 @@
   function initHostEngine() {
     hostState = {
       phase: "lobby",
+      // رقم الجولة الداخلي: يزيد مع كل جولة يديدة، وينكتب بالعقدتين عشان الجهاز
+      // يعرف إن الـlive اللي وصله يخص نفس الجولة اللي عنده وإلا يتجاهله
+      rev: 0,
       teams: [],
       teamIndex: 0,
       roundsPlayed: [0, 0],
@@ -610,6 +625,7 @@
   }
 
   function hostStartRound() {
+    hostState.rev++;
     const entry = hostState.bag.pick(hostState.target);
     hostState.target = entry.word;
     hostState.category = entry.category;
@@ -636,9 +652,12 @@
     publishState();
   }
 
-  function publishState() {
+  // ===== النشر =====
+  // العقدة البطيئة: كل شي يتغيّر مرة بالتخمين أو بالجولة، مو مع كل ضغطة حرف
+  function buildState() {
     const h = hostState;
-    const state = {
+    return {
+      rev: h.rev,
       phase: h.phase,
       teams: h.teams,
       teamIndex: h.teamIndex,
@@ -650,7 +669,6 @@
         maxAttempts: h.maxAttempts,
         spaceIndexes: h.spaceIndexes,
         guesses: h.guesses,
-        currentGuess: h.currentGuess,
         keyStatus: h.keyStatus,
         hintLog: h.hintLog,
         hints: h.hints,
@@ -662,7 +680,6 @@
           : "",
         // الكلمة ما تنكشف إلا بعد نهاية الجولة
         revealedWord: h.gameOver ? h.target : null,
-        ack: h.ack,
         // السرقة والمؤقّت — deadline ختم زمني مطلق فاللاعبون يعدّون محلياً بدون
         // كتابة كل ثانية على الشبكة
         steal: h.steal,
@@ -671,7 +688,22 @@
         pausedRemainingMs: h.pausedRemainingMs,
       },
     };
-    roomRef("state").set(state);
+  }
+
+  // العقدة السريعة: هذي اللي تنكتب مع كل ضغطة حرف — ولا شي فيها غير الحروف والإيصال
+  function buildLive() {
+    const h = hostState;
+    return { rev: h.rev, currentGuess: h.currentGuess, ack: h.ack };
+  }
+
+  // تغيّر بطيء: نكتب العقدتين بكتابة ذرّية وحدة عشان ما تنفصل الحالة عن الحروف
+  function publishState() {
+    roomRef().update({ state: buildState(), live: buildLive() });
+  }
+
+  // تغيّر سريع (ضغطة حرف): العقدة الصغيرة بس
+  function publishLive() {
+    roomRef("live").set(buildLive());
   }
 
   // يعيد بناء المخزن المؤقت من الحروف اللي وصلت، ويتجاهل أي شي غير صالح، ويحط
@@ -728,7 +760,8 @@
       hostApplyHint(input.hint);
       return;
     }
-    publishState();
+    // ضغطة حرف: ما تغيّر غير currentGuess و ack، فنكتفي بالعقدة الصغيرة
+    publishLive();
   }
 
   function hostStartSteal(teamIdx) {
@@ -923,13 +956,14 @@
   });
 
   function adoptServerBuffer() {
-    if (!pub || !pub.round) return;
-    const r = pub.round;
-    const ack = r.ack || null;
+    if (!pub || !pub.round || !live) return;
+    // العقدتين توصل كل وحدة بحدها، فلو الـlive من جولة سابقة نتجاهله لين يوصل اللي بعده
+    if (live.rev !== pub.rev) return;
+    const ack = live.ack || null;
     // لو آخر إدخال عالجه الهوست هو إدخالي وأنا كتبت بعده، نخلي المحلي عشان ما ترجع
     // الحروف اللي كتبتها للحين ما وصلت
     if (ack && ack.pid === playerId && ack.seq < mySeq) return;
-    localBuffer = (r.currentGuess || []).slice();
+    localBuffer = (live.currentGuess || []).slice();
   }
 
   function sendInput(action, extra) {
@@ -1024,6 +1058,25 @@
     showScreen(playScreen);
   }
 
+  function drawGrid(r) {
+    View.renderGrid(gridEl, {
+      guesses: r.guesses || [],
+      currentGuess: localBuffer,
+      wordLength: r.wordLength,
+      maxAttempts: r.maxAttempts,
+      spaceIndexes: r.spaceIndexes || [],
+      stealActive: !!r.steal,
+    });
+  }
+
+  // مسار الضغطة: حجم الخلايا ولوحة النتائج والكيبورد كلهم ما يتغيّرون مع الحرف،
+  // فما نلمس غير الشبكة
+  function redrawGridOnly() {
+    if (!pub || !pub.round || pub.phase !== "playing") return;
+    if (playScreen.classList.contains("hidden")) return;
+    drawGrid(pub.round);
+  }
+
   function renderPlay() {
     if (!pub || !pub.round) return;
     const r = pub.round;
@@ -1089,14 +1142,7 @@
       maxAttempts: r.maxAttempts + stealRows,
       spaceCount: (r.spaceIndexes || []).length,
     });
-    View.renderGrid(gridEl, {
-      guesses: r.guesses || [],
-      currentGuess: localBuffer,
-      wordLength: r.wordLength,
-      maxAttempts: r.maxAttempts,
-      spaceIndexes: r.spaceIndexes || [],
-      stealActive: !!r.steal,
-    });
+    drawGrid(r);
     // ما نعيد بناء الكيبورد إلا لو تغيّر تلوينه أو صلاحية الكتابة — إعادة البناء
     // وسط ضغطة اللاعب تضيّع الضغطة
     const keyboardSig = JSON.stringify(r.keyStatus || {}) + "|" + myTurn;
