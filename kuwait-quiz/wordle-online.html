@@ -127,26 +127,20 @@
 
       <!-- شاشة اللعب -->
       <section id="online-play" class="stack hidden">
-        <!-- ثلاث مناطق: النتائج، اللوح (المعلومات + الشبكة)، الأدوات (التلميحات +
-             الكيبورد). بالطول فوق بعض، وبالعرض اللوح بعمود كامل والباقي بالعمود
-             الثاني عشان الشبكة تاخذ الارتفاع كله — شوف .wordle-wrap بالـCSS -->
+        <!-- أربع مناطق: النتائج، الشبكة، المعلومات (الفئات/الجولة/البوق/الدليل/
+             المساعدات/السجل)، الكيبورد. بالطول تترتب فوق بعض بهالتسلسل، وبالعرض
+             تصير ثلاث أعمدة (كيبورد | معلومات | شبكة) — شوف .wordle-wrap بالـCSS -->
         <div class="card wordle-wrap">
           <div class="score-row">
             <div id="online-scoreboard" class="scoreboard"></div>
             <button id="online-end-match-btn" class="btn btn-outline hidden">إنهاء اللعبة 🏁</button>
           </div>
 
-          <div class="wordle-board">
+          <div class="wordle-info">
             <div id="online-active-categories" class="cat-pills"></div>
             <p class="round-line" id="online-subtitle"></p>
             <p id="online-turn-note" class="online-turn-note"></p>
             <div id="online-timer" class="round-timer hidden"></div>
-            <div class="wordle-grid-scroll">
-              <div id="online-grid" class="wordle-grid"></div>
-            </div>
-          </div>
-
-          <div class="wordle-controls">
             <div class="boq-slot">
               <button id="online-boq-btn" class="btn boq-btn hidden"></button>
               <p id="online-steal-note" class="steal-note hidden"></p>
@@ -164,7 +158,13 @@
             </div>
 
             <div id="online-hint-log" class="stack"></div>
+          </div>
 
+          <div class="wordle-grid-scroll">
+            <div id="online-grid" class="wordle-grid"></div>
+          </div>
+
+          <div class="wordle-controls">
             <div id="online-message" class="wordle-message"></div>
 
             <div id="online-keyboard" class="keyboard"></div>

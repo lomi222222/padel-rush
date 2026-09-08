@@ -79,9 +79,9 @@
 
       <!-- شاشة اللعب -->
       <section id="wordle-play-screen" class="stack hidden">
-        <!-- ثلاث مناطق: النتائج، اللوح (المعلومات + الشبكة)، الأدوات (التلميحات +
-             الكيبورد). بالطول فوق بعض، وبالعرض اللوح بعمود كامل والباقي بالعمود
-             الثاني عشان الشبكة تاخذ الارتفاع كله — شوف .wordle-wrap بالـCSS -->
+        <!-- أربع مناطق: النتائج، الشبكة، المعلومات (الفئات/الجولة/البوق/الدليل/
+             المساعدات/السجل)، الكيبورد. بالطول تترتب فوق بعض بهالتسلسل، وبالعرض
+             تصير ثلاث أعمدة (كيبورد | معلومات | شبكة) — شوف .wordle-wrap بالـCSS -->
         <div class="card wordle-wrap">
           <div class="score-row">
             <div id="wordle-scoreboard" class="scoreboard"></div>
@@ -90,16 +90,10 @@
             </button>
           </div>
 
-          <div class="wordle-board">
+          <div class="wordle-info">
             <div id="wordle-active-categories" class="cat-pills"></div>
             <p class="round-line" id="wordle-subtitle"></p>
             <div id="wordle-timer" class="round-timer hidden"></div>
-            <div class="wordle-grid-scroll">
-              <div id="wordle-grid" class="wordle-grid"></div>
-            </div>
-          </div>
-
-          <div class="wordle-controls">
             <div class="boq-slot">
               <button id="wordle-boq-btn" class="btn boq-btn hidden"></button>
               <p id="wordle-steal-note" class="steal-note hidden"></p>
@@ -123,7 +117,13 @@
             </div>
 
             <div id="wordle-hint-log" class="stack"></div>
+          </div>
 
+          <div class="wordle-grid-scroll">
+            <div id="wordle-grid" class="wordle-grid"></div>
+          </div>
+
+          <div class="wordle-controls">
             <div id="wordle-message" class="wordle-message"></div>
 
             <div id="keyboard" class="keyboard"></div>
