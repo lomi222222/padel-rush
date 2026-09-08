@@ -581,7 +581,7 @@ input[type="text"]:focus {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: 3px;
   width: 100%;
   flex-shrink: 0;
   overflow-y: auto;
@@ -635,8 +635,8 @@ input[type="text"]:focus {
 
 .wordle-info #wordle-subtitle,
 .wordle-info #online-subtitle {
-  font-size: 13px;
-  line-height: 1.4;
+  font-size: 12.5px;
+  line-height: 1.3;
 }
 
 .wordle-info .boq-btn {
@@ -1141,6 +1141,13 @@ input[type="text"]:focus {
     text-overflow: clip;
   }
 
+  /* بلوك (max-height:700px) يخفي الدليل لأي شاشة قصيرة — وهالشرط ينطبق على كل
+     شاشات العرض تقريباً. عمود المعلومات هنا مستقل بعرضه الخاص فيتحمّله بدون ما
+     ياكل من ارتفاع الشبكة، فنرجّعه */
+  .wordle-info .wordle-legend {
+    display: flex;
+  }
+
   .wordle-grid-scroll {
     grid-area: grid;
   }
@@ -1263,6 +1270,16 @@ input[type="text"]:focus {
     flex-wrap: wrap;
     gap: 4px 8px;
     padding: 4px 9px;
+  }
+
+  /* بالعرض الضيق (زي آيفون SE) عمود الأدوات يصير رفيع وما يكفي اسم الفريق —
+     نخلي الاسم يلف سطرين بدال ما ينقص بـ"..." ويضيع جزء منه */
+  #wordle-play-screen .team-chip .name,
+  #online-play .team-chip .name {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    line-height: 1.2;
   }
 
   #wordle-play-screen .score-adjust-row,

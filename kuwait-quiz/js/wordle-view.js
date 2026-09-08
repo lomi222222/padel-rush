@@ -9,9 +9,12 @@
     const { guesses, currentGuess, wordLength, maxAttempts } = opts;
     const spaces = opts.spaceIndexes instanceof Set ? opts.spaceIndexes : new Set(opts.spaceIndexes || []);
 
-    // صفوف السرقة (البوق) تنضاف فوق العدد الأصلي عشان الفريق الأصلي ما يخسر محاولاته
+    // صفوف السرقة (البوق) تنضاف فوق العدد الأصلي عشان الفريق الأصلي ما يخسر محاولاته.
+    // ملاحظة: guesses.length ما يتجاوز maxAttempts+stealRows أبداً بالتصميم الحالي
+    // (الجولة تنتهي بمجرد الوصول للحد، وزر البوق ينقفل بمجرد gameOver) — فما نحتاج
+    // أي هامش زيادة، وأي هامش كان يطلع صف فاضي زيادة بعد آخر محاولة
     const stealRows = guesses.filter((g) => g && g.steal).length;
-    const totalRows = Math.max(maxAttempts + stealRows, guesses.length + 1);
+    const totalRows = maxAttempts + stealRows;
 
     gridEl.innerHTML = "";
     for (let row = 0; row < totalRows; row++) {

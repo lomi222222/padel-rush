@@ -30,6 +30,8 @@
   let keyStatus = {};
   let hints = Core.newHints();
   let hintLog = [];
+  // خريطة {موضع: حرف} من تلميح "حرف موجود" بعد ما يتأكد موضعه — تتصفّر كل جولة
+  let hintedLetters = {};
   // السرقة (البوق): null أو { team, attemptsLeft, value }
   let steal = null;
   let deadline = null; // ختم زمني مطلق لنهاية الجولة، أو null بدون وقت
@@ -259,7 +261,7 @@
       value: Core.finalScoreForAttempt(ownAttemptCount() + 1, maxAttempts, hints),
     };
     currentGuess = [];
-    Core.autoFillSpaces(currentGuess, wordLength, spaceIndexes);
+    Core.autoFillKnown(currentGuess, wordLength, spaceIndexes, hintedLetters);
     pauseTimer();
     showMessage("", "");
     updateHintButtons();
@@ -292,10 +294,11 @@
     keyStatus = {};
     hints = Core.newHints();
     hintLog = [];
+    hintedLetters = {};
     steal = null;
     pausedRemainingMs = null;
     deadline = roundSeconds ? Date.now() + roundSeconds * 1000 : null;
-    Core.autoFillSpaces(currentGuess, wordLength, spaceIndexes);
+    Core.autoFillKnown(currentGuess, wordLength, spaceIndexes, hintedLetters);
     View.renderTimer(timerEl, deadline, null);
     startTicking();
     updateBoqUi();
@@ -350,6 +353,13 @@
     keyStatus[hint.letter] = hint.status;
     logHint(hint.text);
 
+    // "حرف موجود" الأخضر معناه موضعه معروف — نحطه بمربعه مباشرة بدل ما نكتفي بوصفه
+    if (hint.status === "green" && typeof hint.pos === "number") {
+      hintedLetters[hint.pos] = hint.letter;
+      Core.autoFillKnown(currentGuess, wordLength, spaceIndexes, hintedLetters);
+      renderGrid();
+    }
+
     renderKeyboard();
     updateHintButtons();
   });
@@ -368,7 +378,7 @@
     }
     if (Core.ARABIC_LETTER_RE.test(key) && currentGuess.length < wordLength) {
       currentGuess.push(key);
-      Core.autoFillSpaces(currentGuess, wordLength, spaceIndexes);
+      Core.autoFillKnown(currentGuess, wordLength, spaceIndexes, hintedLetters);
       renderGrid();
     }
   }
@@ -386,7 +396,7 @@
 
     const won = statuses.every((s) => s === "green");
     currentGuess = [];
-    Core.autoFillSpaces(currentGuess, wordLength, spaceIndexes);
+    Core.autoFillKnown(currentGuess, wordLength, spaceIndexes, hintedLetters);
     renderGrid();
     renderKeyboard();
     updateHintButtons();

@@ -546,6 +546,8 @@
       keyStatus: {},
       hints: Core.newHints(),
       hintLog: [],
+      // خريطة {موضع: حرف} من تلميح "حرف موجود" بعد ما يتأكد موضعه — تتصفّر كل جولة
+      hintedLetters: {},
       gameOver: false,
       message: { text: "", kind: "" },
       ack: null,
@@ -635,8 +637,9 @@
     hostState.wordLength = hostState.targetChars.length;
     hostState.maxAttempts = Core.attemptsForLength(hostState.wordLength);
 
+    hostState.hintedLetters = {};
     hostState.currentGuess = [];
-    Core.autoFillSpaces(hostState.currentGuess, hostState.wordLength, hostState.spaceIndexes);
+    Core.autoFillKnown(hostState.currentGuess, hostState.wordLength, hostState.spaceIndexes, hostState.hintedLetters);
     hostState.guesses = [];
     hostState.keyStatus = {};
     hostState.hints = Core.newHints();
@@ -714,11 +717,11 @@
       (c) => typeof c === "string" && Core.ARABIC_LETTER_RE.test(c)
     );
     const out = [];
-    Core.autoFillSpaces(out, hostState.wordLength, hostState.spaceIndexes);
+    Core.autoFillKnown(out, hostState.wordLength, hostState.spaceIndexes, hostState.hintedLetters);
     for (const ch of letters) {
       if (out.length >= hostState.wordLength) break;
       out.push(ch);
-      Core.autoFillSpaces(out, hostState.wordLength, hostState.spaceIndexes);
+      Core.autoFillKnown(out, hostState.wordLength, hostState.spaceIndexes, hostState.hintedLetters);
     }
     return out;
   }
@@ -775,7 +778,7 @@
       value: Core.finalScoreForAttempt(hostOwnAttemptCount() + 1, h.maxAttempts, h.hints),
     };
     h.currentGuess = [];
-    Core.autoFillSpaces(h.currentGuess, h.wordLength, h.spaceIndexes);
+    Core.autoFillKnown(h.currentGuess, h.wordLength, h.spaceIndexes, h.hintedLetters);
     h.ack = null;
     h.message = { text: "", kind: "" };
     // نوقف المؤقّت طول السرقة
@@ -800,6 +803,11 @@
       h.hints.revealLetterUses++;
       h.keyStatus[hint.letter] = hint.status;
       h.hintLog.push(hint.text);
+      // "حرف موجود" الأخضر معناه موضعه معروف — نصحّح الخانة مباشرة لو already مكتوبة
+      if (hint.status === "green" && typeof hint.pos === "number") {
+        h.hintedLetters[hint.pos] = hint.letter;
+        Core.autoFillKnown(h.currentGuess, h.wordLength, h.spaceIndexes, h.hintedLetters);
+      }
     }
     publishState();
   }
@@ -819,7 +827,7 @@
 
     const won = statuses.every((s) => s === "green");
     h.currentGuess = [];
-    Core.autoFillSpaces(h.currentGuess, h.wordLength, h.spaceIndexes);
+    Core.autoFillKnown(h.currentGuess, h.wordLength, h.spaceIndexes, h.hintedLetters);
 
     // ===== مسار السرقة =====
     if (h.steal) {

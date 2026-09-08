@@ -152,12 +152,28 @@
   // الكلمات المكوّنة من كلمتين تحتوي على مسافة بينهما — نملأ خانة المسافة تلقائياً في
   // مكانها الصحيح بدل ما نطلب من اللاعب يكتبها بنفسه. نمرر مواضع المسافات (مو الكلمة
   // نفسها) عشان جهاز اللاعب بالأونلاين يقدر يسوي نفس الشي بدون ما يعرف الكلمة.
-  function autoFillSpaces(currentGuess, wordLength, spaceIndexes) {
+  //
+  // hintedLetters (اختياري): خريطة {موضع: حرف} من تلميح "حرف موجود" بعد ما يتأكد
+  // موضعه (أخضر). عمداً ما نحجز له مكان قبل ما توصله الكتابة (خلاف المسافات) — لأن
+  // الأونلاين يعيد بناء المخزن من عدد الحروف الخام اللي وصلت من جهاز اللاعب
+  // (sanitizeBuffer)، وحجز مكان مسبق يزيح باقي حروفه خانة وحده ويخرب الترتيب. بدالها
+  // نصحّح محتوى الخانة بعد ما توصلها الكتابة فعلياً — ينطبق فوراً لو already مكتوبة.
+  function autoFillKnown(currentGuess, wordLength, spaceIndexes, hintedLetters) {
     const spaces = spaceIndexes instanceof Set ? spaceIndexes : new Set(spaceIndexes || []);
     while (currentGuess.length < wordLength && spaces.has(currentGuess.length)) {
       currentGuess.push(" ");
     }
+    const hinted = hintedLetters || {};
+    for (const posStr in hinted) {
+      const pos = Number(posStr);
+      if (pos < currentGuess.length) currentGuess[pos] = hinted[pos];
+    }
     return currentGuess;
+  }
+
+  // إبقاء الاسم القديم يشتغل بنفس الاستخدامات اللي ما تحتاج حروف ملمّحة
+  function autoFillSpaces(currentGuess, wordLength, spaceIndexes) {
+    return autoFillKnown(currentGuess, wordLength, spaceIndexes, null);
   }
 
   function evaluateGuess(guessChars, targetChars) {
@@ -266,6 +282,7 @@
       return {
         letter: yellowLetter,
         status: "green",
+        pos,
         text: '🔤 الحرف "' + yellowLetter + '" في الموضع ' + toArabicDigits(pos + 1),
       };
     }
@@ -305,6 +322,7 @@
     attemptsForLength,
     spaceIndexesOf,
     autoFillSpaces,
+    autoFillKnown,
     evaluateGuess,
     statusRank,
     mergeKeyStatus,
