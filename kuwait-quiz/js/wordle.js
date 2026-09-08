@@ -308,7 +308,7 @@
       maxAttempts,
       spaceIndexes
     );
-    activeCategoriesEl.textContent = Core.categoriesLabel(selectedCategories);
+    View.renderCategoryPills(activeCategoriesEl, selectedCategories);
     showMessage("", "");
     View.renderHintLog(hintLogEl, hintLog);
     roundEndEl.classList.add("hidden");

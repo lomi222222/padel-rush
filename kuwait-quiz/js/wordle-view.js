@@ -98,8 +98,11 @@
     const cs = getComputedStyle(container);
     const paddingX = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
     const available = Math.max(container.clientWidth - paddingX, 200);
-    const gapPx = window.innerWidth <= 400 ? 6 : 8;
-    const spacerWidth = window.innerWidth <= 400 ? 14 : 20;
+    // الكلمات الطويلة يحدّها العرض مو الطول: ١٢ خانة بشاشة ٣٩٠ تعني الفراغات وحدها
+    // تاكل خُمس السطر. فنضيّق الفراغ كل ما طالت الكلمة عشان الحرف نفسه يكبر
+    const narrow = window.innerWidth <= 400;
+    const gapPx = wordLength >= 10 ? 3 : wordLength >= 7 ? 5 : narrow ? 6 : 8;
+    const spacerWidth = wordLength >= 10 ? 9 : narrow ? 14 : 20;
 
     const numLetters = Math.max(1, wordLength - spaceCount);
 
@@ -115,7 +118,7 @@
 
     // ١٣ أصغر مقاس يظل الحرف مقروء فيه. تحته نفضّل التمرير داخل صندوق الشبكة على
     // إننا نصغّر لدرجة ما تنقرا — ويصير بـ٣٪ من البنك بس (العناوين الطويلة جداً)
-    const size = Math.max(13, Math.min(56, Math.floor(Math.min(rawWidth, rawHeight))));
+    const size = Math.max(13, Math.min(72, Math.floor(Math.min(rawWidth, rawHeight))));
     // ما نكتب إلا لو تغيّر فعلاً — يقطع أي دورة بين المراقب وتغيّر المقاس
     if (gridEl._tileSize === size) return;
     gridEl._tileSize = size;
@@ -170,6 +173,38 @@
 
       scoreboardEl.appendChild(chip);
     });
+  }
+
+  // الفئات المختارة كحبّات بدال سطر نص طويل. لو كلها مختارة نكتفي بحبّة وحدة،
+  // ولو كثيرة نبيّن أول أربع و"+باقي" عشان ما تاكل ارتفاع الشبكة
+  function renderCategoryPills(el, selectedCategories) {
+    const list = [...selectedCategories];
+    const all =
+      list.length === Core.SELECTABLE_CATEGORIES.length && !Core.hasExclusive(selectedCategories);
+
+    el.innerHTML = "";
+    const add = (text, cls) => {
+      const pill = document.createElement("span");
+      pill.className = "cat-pill" + (cls ? " " + cls : "");
+      pill.textContent = text;
+      el.appendChild(pill);
+    };
+
+    if (all) {
+      add("🎯 كل الفئات", "all");
+      return;
+    }
+
+    const MAX_SHOWN = 4;
+    list.slice(0, MAX_SHOWN).forEach((cat) => {
+      add(cat, Core.EXCLUSIVE_CATEGORIES.has(cat) ? "gold" : "");
+    });
+    if (list.length > MAX_SHOWN) {
+      add("+" + Core.toArabicDigits(list.length - MAX_SHOWN), "more");
+      el.title = list.join("، ");
+    } else {
+      el.removeAttribute("title");
+    }
   }
 
   function showMessage(messageEl, text, kind) {
@@ -254,6 +289,7 @@
     renderKeyboard,
     applyTileSize,
     renderScoreboard,
+    renderCategoryPills,
     showMessage,
     renderHintLog,
     renderCategoryChecklist,

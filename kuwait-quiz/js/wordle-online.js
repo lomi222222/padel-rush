@@ -616,7 +616,7 @@
     hostState.target = "";
     hostState.bag = Core.makeWordBag(selectedCategories);
     hostState.bag.refill();
-    hostState.categoriesLabel = Core.categoriesLabel(selectedCategories);
+    hostState.categories = [...selectedCategories];
     hostState.boqLeft = [Core.BOQ_PER_TEAM, Core.BOQ_PER_TEAM];
     hostState.roundSeconds = Core.readRoundSeconds(roundTimeSelect, roundTimeCustom);
 
@@ -663,7 +663,7 @@
       teamIndex: h.teamIndex,
       roundsPlayed: h.roundsPlayed,
       matchOver: h.matchOver,
-      categoriesLabel: h.categoriesLabel || "",
+      categories: h.categories || [],
       round: {
         wordLength: h.wordLength,
         maxAttempts: h.maxAttempts,
@@ -1094,7 +1094,7 @@
       });
     }
 
-    activeCategoriesEl.textContent = pub.categoriesLabel || "";
+    View.renderCategoryPills(activeCategoriesEl, pub.categories || []);
     subtitleEl.textContent = r.subtitle || "";
 
     const activeTeamName = teams[pub.teamIndex] ? teams[pub.teamIndex].name : "";

@@ -127,37 +127,38 @@
 
       <!-- شاشة اللعب -->
       <section id="online-play" class="stack hidden">
-        <div class="row" style="justify-content: space-between; align-items: center">
-          <div id="online-scoreboard" class="scoreboard" style="flex: 1"></div>
-          <button id="online-end-match-btn" class="btn btn-outline hidden">إنهاء اللعبة 🏁</button>
-        </div>
-
-        <!-- عمودان: اللوح (المعلومات + الشبكة) و الأدوات (التلميحات + الكيبورد).
-             بالطول يتراصّون فوق بعض، وبالعرض جنب بعض — شوف .wordle-wrap بالـCSS -->
+        <!-- ثلاث مناطق: النتائج، اللوح (المعلومات + الشبكة)، الأدوات (التلميحات +
+             الكيبورد). بالطول فوق بعض، وبالعرض اللوح بعمود كامل والباقي بالعمود
+             الثاني عشان الشبكة تاخذ الارتفاع كله — شوف .wordle-wrap بالـCSS -->
         <div class="card wordle-wrap">
+          <div class="score-row">
+            <div id="online-scoreboard" class="scoreboard"></div>
+            <button id="online-end-match-btn" class="btn btn-outline hidden">إنهاء اللعبة 🏁</button>
+          </div>
+
           <div class="wordle-board">
-            <p class="muted center wordle-legend" id="online-active-categories"></p>
-            <p class="muted center" id="online-subtitle"></p>
+            <div id="online-active-categories" class="cat-pills"></div>
+            <p class="round-line" id="online-subtitle"></p>
             <p id="online-turn-note" class="online-turn-note"></p>
             <div id="online-timer" class="round-timer hidden"></div>
             <button id="online-boq-btn" class="btn boq-btn hidden"></button>
             <p id="online-steal-note" class="steal-note hidden"></p>
-            <p class="muted center wordle-legend">
-              <span><i class="lg green"></i> مكانه صحيح</span>
-              <span><i class="lg yellow"></i> بمكان آخر</span>
-              <span><i class="lg gray"></i> غير موجود</span>
-            </p>
-
             <div class="wordle-grid-scroll">
               <div id="online-grid" class="wordle-grid"></div>
             </div>
           </div>
 
           <div class="wordle-controls">
+            <p class="wordle-legend">
+              <span><i class="lg green"></i> مكانه صحيح</span>
+              <span><i class="lg yellow"></i> بمكان آخر</span>
+              <span><i class="lg gray"></i> غير موجود</span>
+            </p>
+
             <div class="abilities-row">
-              <button id="online-hint-category-btn" class="ability-btn">💡 الفئة (-٪٥٠)</button>
-              <button id="online-hint-repeat-btn" class="ability-btn">🔁 فيه حرف متكرر؟ (-٥٠)</button>
-              <button id="online-hint-letter-btn" class="ability-btn">🔤 حرف موجود (-١٠٠)</button>
+              <button id="online-hint-category-btn" class="ability-btn">💡 الفئة ٥٠٪−</button>
+              <button id="online-hint-repeat-btn" class="ability-btn">🔁 حرف مكرر؟ ٥٠−</button>
+              <button id="online-hint-letter-btn" class="ability-btn">🔤 اكشف حرف ١٠٠−</button>
             </div>
 
             <div id="online-hint-log" class="stack"></div>
