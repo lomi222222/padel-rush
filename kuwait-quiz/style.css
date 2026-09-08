@@ -41,7 +41,9 @@ html,
 body {
   margin: 0;
   padding: 0;
-  min-height: 100%;
+  height: 100%;
+  /* الصفحة نفسها ما تنزل وتصعد أبداً — كل شاشة تترتب داخل حدود الجهاز */
+  overflow: hidden;
 }
 
 body {
@@ -49,9 +51,14 @@ body {
   background: linear-gradient(180deg, var(--blue-100) 0%, var(--body-bg-end) 55%);
   color: var(--ink);
   direction: rtl;
-  min-height: 100vh;
+  /* dvh يحسب شريط المتصفح المتحرك بالجوال، و100vh لو المتصفح قديم */
+  height: 100vh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
+  /* يمنع تكبير الضغطتين بسفاري — user-scalable=no لحاله ما يكفي هناك */
+  touch-action: manipulation;
+  -webkit-text-size-adjust: 100%;
 }
 
 a {
@@ -60,20 +67,41 @@ a {
 
 .page {
   flex: 1;
+  min-height: 0;
   width: 100%;
   max-width: 1100px;
   margin: 0 auto;
-  padding: 20px 16px 40px;
+  padding: 14px 16px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 14px;
+  overflow: hidden;
 }
 
 @media (max-width: 400px) {
   .page {
-    padding: 14px 10px 28px;
-    gap: 16px;
+    padding: 10px;
+    gap: 10px;
   }
+}
+
+/* الشاشات اللي محتواها ممكن يطول (قوائم الفئات، النتائج) تنزل داخل نفسها،
+   عشان الصفحة كلها تبقى ثابتة */
+#wordle-setup-screen,
+#wordle-end-screen,
+#online-home,
+#online-lobby,
+#online-end {
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* شاشة اللعب ثابتة تماماً: كل شي فيها لازم يلقى مكانه بدون تمرير */
+#wordle-play-screen,
+#online-play {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
 /* ===== Top bar ===== */
@@ -358,10 +386,12 @@ input[type="text"]:focus {
 }
 
 /* ===== Scoreboard ===== */
+/* دايماً فريقان جنب بعض. auto-fit كان يرصّهم فوق بعض بالجوال ويوكل ربع الشاشة
+   ويخلي الشبكة بلا مكان */
 .scoreboard {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
 }
 
 .team-chip {
@@ -534,35 +564,150 @@ input[type="text"]:focus {
 }
 
 /* ===== Wordle ===== */
+/* اللوح والأدوات: فوق بعض بالوضع الطولي، وجنب بعض بالعرضي (شوف بلوك landscape).
+   flex:1 + min-height:0 هي اللي تخلي الشبكة تاخذ الباقي بالضبط بدون ما تفيض */
 .wordle-wrap {
   display: flex;
   flex-direction: column;
+  gap: 10px;
+  flex: 1;
+  min-height: 0;
+  padding: 12px;
+}
+
+.wordle-board {
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 22px;
+  gap: 6px;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+}
+
+.wordle-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  flex-shrink: 0;
+}
+
+/* شاشة اللعب ارتفاعها ثابت، فكل بكسل يوفّره الإطار يروح للشبكة.
+   هذي القيم أصغر من العامة قصداً وتنطبق داخل شاشة اللعب بس */
+.wordle-board .ability-btn,
+.wordle-controls .ability-btn {
+  padding: 5px 11px;
+  font-size: 12px;
+  border-width: 1px;
+}
+
+.wordle-board #wordle-subtitle,
+.wordle-board #online-subtitle {
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.wordle-board .boq-btn {
+  padding: 5px 12px;
+  font-size: 13px;
+}
+
+.wordle-board .round-timer {
+  font-size: 17px;
+}
+
+.wordle-controls .wordle-message {
+  min-height: 0;
+  font-size: 17px;
+}
+
+/* لوحة النتائج فوق شاشة اللعب: مضغوطة عشان ما تاكل ربع الشاشة */
+#wordle-play-screen .team-chip,
+#online-play .team-chip {
+  padding: 7px 10px;
+  border-radius: 11px;
+  gap: 2px;
+}
+
+#wordle-play-screen .team-chip .name,
+#online-play .team-chip .name {
+  font-size: 13px;
+}
+
+#wordle-play-screen .team-chip .score,
+#online-play .team-chip .score {
+  font-size: 17px;
 }
 
 .wordle-grid-scroll {
-  overflow-x: auto;
-  max-width: 100%;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+  /* safe: لو فاض المحتوى بحالة نادرة (كلمة طويلة جداً بشاشة قصيرة) ما يتقص من فوق
+     ويصير أول صف غير قابل للوصول — يرجع للبداية بدال ما ينتصف */
+  align-items: safe center;
+  justify-content: safe center;
+  overflow: auto;
 }
 
+/* الهوامش الافتراضية للفقرات كانت تاكل ~١٠٠ بكسل من ارتفاع شاشة اللعب —
+   الترتيب هنا بالـgap مو بالهوامش */
+.wordle-board p,
+.wordle-controls p {
+  margin: 0;
+}
+
+/* دليل الألوان بسطر واحد بمربعات ملوّنة بدال ثلاث أسطر نص */
+.wordle-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 14px;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.wordle-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.wordle-legend .lg {
+  width: 11px;
+  height: 11px;
+  border-radius: 3px;
+  display: inline-block;
+}
+
+.wordle-legend .lg.green {
+  background: var(--green);
+}
+
+.wordle-legend .lg.yellow {
+  background: var(--yellow);
+}
+
+.wordle-legend .lg.gray {
+  background: var(--gray-absent);
+}
+
+/* --tile-gap تجي من applyTileSize عشان الحساب والرسم يستخدمون نفس الرقم */
 .wordle-grid {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--tile-gap, 8px);
   width: max-content;
   margin: 0 auto;
 }
 
 .wordle-row {
   display: flex;
-  gap: 8px;
-}
-
-@media (max-width: 400px) {
-  .wordle-row {
-    gap: 6px;
-  }
+  gap: var(--tile-gap, 8px);
 }
 
 .wordle-tile {
@@ -574,7 +719,8 @@ input[type="text"]:focus {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: calc(var(--tile-size, clamp(40px, 12vw, 52px)) * 0.5);
+  /* max() يرفع نسبة الخط بالخلايا الصغيرة عشان الحرف يظل مقروء */
+  font-size: max(10px, calc(var(--tile-size, clamp(40px, 12vw, 52px)) * 0.5));
   font-weight: 800;
   color: var(--navy);
   background: var(--white);
@@ -609,16 +755,34 @@ input[type="text"]:focus {
   color: var(--white-fixed);
 }
 
+/* ===== الكيبورد — بشكل كيبورد iOS العربي ===== */
 .keyboard {
+  --key-bg: #fcfcfe;
+  --key-ink: #1c1c1e;
+  --key-shadow: 0 1px 0 rgba(0, 0, 0, 0.28);
   display: flex;
   flex-direction: column;
   gap: 8px;
   width: 100%;
   max-width: 560px;
+  padding: 8px 5px;
+  border-radius: 12px;
+  background: #d1d4db;
 }
 
+:root[data-theme="dark"] .keyboard {
+  --key-bg: #4a4a4c;
+  --key-ink: #ffffff;
+  --key-shadow: 0 1px 0 rgba(0, 0, 0, 0.6);
+  background: #1c1c1e;
+}
+
+/* الصفحة كلها rtl، واللي يقلب ترتيب الأزرار بصرياً. الحروف مرتّبة بالمصفوفة
+   بترتيب كيبورد iOS (ض أول → ج آخر) فنخلي الصف نفسه ltr عشان يطلع مطابق للصورة:
+   ض على اليسار و ج على اليمين، و⌫ بآخر الصف الثالث */
 .keyboard-row {
   display: flex;
+  direction: ltr;
   gap: 6px;
   justify-content: center;
 }
@@ -626,12 +790,14 @@ input[type="text"]:focus {
 .key {
   font-family: inherit;
   border: none;
-  border-radius: 8px;
-  background: var(--blue-100);
-  color: var(--navy);
-  font-weight: 700;
-  font-size: 15px;
-  padding: 12px 0;
+  border-radius: 7px;
+  background: var(--key-bg);
+  color: var(--key-ink);
+  box-shadow: var(--key-shadow);
+  font-weight: 500;
+  font-size: 19px;
+  line-height: 1;
+  padding: 11px 0;
   min-width: 0;
   flex: 1 1 0;
   cursor: pointer;
@@ -641,23 +807,29 @@ input[type="text"]:focus {
 .key.wide {
   max-width: 260px;
   flex: 1 1 0;
-  font-size: 14px;
-  padding: 12px 4px;
+  font-size: 15px;
+  font-weight: 600;
+  padding: 11px 4px;
 }
 
 @media (max-width: 480px) {
+  .keyboard {
+    gap: 6px;
+    padding: 6px 3px;
+  }
+
   .keyboard-row {
     gap: 4px;
   }
 
   .key {
-    font-size: 13px;
-    padding: 10px 0;
+    font-size: 17px;
+    padding: 9px 0;
   }
 
   .key.wide {
-    font-size: 12px;
-    padding: 10px 4px;
+    font-size: 13px;
+    padding: 9px 4px;
   }
 }
 
@@ -721,10 +893,101 @@ input[type="text"]:focus {
   display: none !important;
 }
 
-/* ===== Compact layout when the phone is rotated to landscape ===== */
-@media (orientation: landscape) and (max-height: 500px) {
+/* ===== شاشات قصيرة: نضغط الإطار عشان الشبكة تاخذ نصيبها =====
+   الشبكة هي اللعبة، فالإطار (الكيبورد، اللوحة، الأزرار) هو اللي ينضغط مو هي */
+@media (max-height: 700px) {
+  .topbar {
+    padding: 8px 14px;
+  }
+
+  .topbar h1 {
+    font-size: 15px;
+  }
+
+  .topbar .home-link {
+    padding: 5px 10px;
+    font-size: 12px;
+  }
+
+  #wordle-play-screen .team-chip,
+  #online-play .team-chip {
+    padding: 5px 8px;
+  }
+
+  #wordle-play-screen .team-chip .score,
+  #online-play .team-chip .score {
+    font-size: 15px;
+  }
+
+  .score-adjust-btn {
+    padding: 2px 0;
+    font-size: 10px;
+  }
+
+  .keyboard {
+    gap: 5px;
+    padding: 5px 3px;
+  }
+
+  .keyboard-row {
+    gap: 4px;
+  }
+
+  .key {
+    padding: 7px 0;
+    font-size: 15px;
+  }
+
+  .key.wide {
+    padding: 7px 4px;
+    font-size: 12px;
+  }
+
+  .wordle-board .ability-btn,
+  .wordle-controls .ability-btn {
+    padding: 4px 9px;
+    font-size: 11px;
+  }
+
+  .wordle-controls .wordle-message {
+    font-size: 14px;
+  }
+
+  .wordle-wrap {
+    gap: 8px;
+    padding: 8px;
+  }
+
+  /* على شاشة قصيرة، دليل الألوان أقل شي يستاهل مساحة — الشبكة أهم */
+  .wordle-board .wordle-legend {
+    display: none;
+  }
+
+  /* سطر واحد بدال سطرين */
+  .wordle-board #wordle-subtitle,
+  .wordle-board #online-subtitle {
+    font-size: 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
+
+  .key {
+    padding: 5px 0;
+  }
+
+  .key.wide {
+    padding: 5px 4px;
+  }
+}
+
+/* ===== الجهاز بالعرض: عمودان — الشبكة بجهة والأدوات بالجهة الثانية =====
+   بدال ما نضغط كل شي فوق بعض بعمود واحد ونخلي الصفحة تنزل، نستغل عرض الشاشة:
+   اللوح (المعلومات + الشبكة) بجهة، والأدوات (التلميحات + الكيبورد) بالجهة الثانية */
+@media (orientation: landscape) and (max-height: 600px) {
   .page {
-    padding: 6px 10px 8px;
+    padding: 6px 10px;
     gap: 6px;
   }
 
@@ -733,28 +996,40 @@ input[type="text"]:focus {
   }
 
   .stack {
-    gap: 4px;
+    gap: 6px;
   }
 
   .wordle-wrap {
-    gap: 5px;
+    flex-direction: row;
+    align-items: stretch;
+    gap: 10px;
+    padding: 8px;
   }
 
+  .wordle-board,
+  .wordle-controls {
+    flex: 1 1 50%;
+    min-width: 0;
+    width: auto;
+  }
+
+  .wordle-controls {
+    justify-content: center;
+    flex-shrink: 1;
+  }
+
+  /* الشرح الطويل ما يستاهل مساحة عمودية هنا */
   .wordle-legend {
     display: none;
   }
 
-  #wordle-category-list {
+  #wordle-category-list,
+  #online-category-list {
     max-height: 90px;
     overflow-y: auto;
     padding: 5px;
     border: 1px solid var(--blue-100);
     border-radius: 12px;
-  }
-
-  .wordle-grid-scroll {
-    overflow-y: auto;
-    max-height: 20vh;
   }
 
   .topbar {
@@ -776,8 +1051,10 @@ input[type="text"]:focus {
     font-size: 13px;
   }
 
-  #wordle-subtitle {
+  #wordle-subtitle,
+  #online-subtitle {
     font-size: 11px;
+    margin: 0;
   }
 
   .abilities-row {
@@ -785,7 +1062,7 @@ input[type="text"]:focus {
   }
 
   .ability-btn {
-    padding: 3px 8px;
+    padding: 4px 8px;
     font-size: 10px;
   }
 
@@ -795,29 +1072,45 @@ input[type="text"]:focus {
   }
 
   .keyboard {
-    gap: 2px;
+    gap: 4px;
+    padding: 5px 3px;
   }
 
   .keyboard-row {
-    gap: 2px;
+    gap: 3px;
   }
 
   .key {
-    padding: 3px 0;
-    font-size: 11px;
+    padding: 6px 0;
+    font-size: 14px;
+    border-radius: 6px;
   }
 
   .key.wide {
-    padding: 3px 4px;
-    font-size: 10px;
+    padding: 6px 4px;
+    font-size: 11px;
   }
 
   .scoreboard {
     gap: 5px;
   }
 
-  .team-chip {
-    padding: 4px 8px;
+  /* بالعرضي الارتفاع هو النادر: نخلي بطاقة الفريق سطر واحد (اسم + نقاط + أزرار)
+     بدال ثلاثة أسطر فوق بعض — يوفّر ~٢٥ بكسل تروح كلها للشبكة */
+  #wordle-play-screen .team-chip,
+  #online-play .team-chip {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 4px 8px;
+    padding: 4px 9px;
+  }
+
+  #wordle-play-screen .score-adjust-row,
+  #online-play .score-adjust-row {
+    margin-top: 0;
+    gap: 4px;
   }
 
   .team-chip .name {
@@ -838,8 +1131,23 @@ input[type="text"]:focus {
     font-size: 9px;
   }
 
-  #wordle-end-match-btn {
+  #wordle-end-match-btn,
+  #online-end-match-btn {
     padding: 4px 8px;
+    font-size: 11px;
+  }
+
+  .online-turn-note {
+    font-size: 11px;
+    padding: 3px 8px;
+  }
+
+  .round-timer {
+    font-size: 14px;
+  }
+
+  .boq-btn {
+    padding: 4px 10px;
     font-size: 11px;
   }
 }

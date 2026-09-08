@@ -76,7 +76,21 @@
     });
   }
 
+  // نحفظ آخر مقاسات ونراقب حجم الحاوية: ترتيب الرسم (الكيبورد ينرسم بعد الشبكة)
+  // وقلب الجهاز وتغيّر حجم النافذة كلهم يغيّرون المساحة المتاحة بعد أول حساب،
+  // فبدال ما نعتمد على ترتيب النداءات نعيد الحساب كل ما تغيّر مقاس الحاوية
   function applyTileSize(gridEl, opts) {
+    gridEl._tileOpts = opts;
+    if (!gridEl._tileObserver && typeof ResizeObserver !== "undefined") {
+      gridEl._tileObserver = new ResizeObserver(() => sizeTiles(gridEl));
+      gridEl._tileObserver.observe(gridEl.parentElement);
+    }
+    sizeTiles(gridEl);
+  }
+
+  function sizeTiles(gridEl) {
+    const opts = gridEl._tileOpts;
+    if (!opts) return;
     const { wordLength, maxAttempts } = opts;
     const spaceCount = opts.spaceCount || 0;
 
@@ -91,14 +105,23 @@
 
     const rawWidth = (available - gapPx * (wordLength - 1) - spacerWidth * spaceCount) / numLetters;
 
-    // .wordle-grid-scroll only gets a max-height in landscape mode (see CSS); outside of
-    // that it's "none", so maxHeightPx is 0 and rawHeight falls back to Infinity — meaning
-    // portrait/desktop sizing is purely width-based.
-    const maxHeightPx = parseFloat(cs.maxHeight);
-    const rawHeight = maxHeightPx ? (maxHeightPx - gapPx * (maxAttempts - 1)) / maxAttempts : Infinity;
+    // الشبكة تقعد داخل حاوية محدودة الارتفاع بالوضعين (flex:1 + min-height:0)، فنقيس
+    // ارتفاعها الفعلي ونختار الأصغر بين ما يسمح به العرض وما يسمح به الطول — جذي
+    // الشبكة تلقى مكانها كاملة بدون تمرير سواء الجهاز بالطول أو بالعرض
+    const paddingY = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
+    const availableY = container.clientHeight - paddingY;
+    const rawHeight =
+      availableY > 0 ? (availableY - gapPx * (maxAttempts - 1)) / maxAttempts : Infinity;
 
-    const size = Math.max(24, Math.min(56, Math.floor(Math.min(rawWidth, rawHeight))));
+    // ١٣ أصغر مقاس يظل الحرف مقروء فيه. تحته نفضّل التمرير داخل صندوق الشبكة على
+    // إننا نصغّر لدرجة ما تنقرا — ويصير بـ٣٪ من البنك بس (العناوين الطويلة جداً)
+    const size = Math.max(13, Math.min(56, Math.floor(Math.min(rawWidth, rawHeight))));
+    // ما نكتب إلا لو تغيّر فعلاً — يقطع أي دورة بين المراقب وتغيّر المقاس
+    if (gridEl._tileSize === size) return;
+    gridEl._tileSize = size;
     gridEl.style.setProperty("--tile-size", size + "px");
+    // الفراغ يجي من هنا بس — لو تركناه بالـCSS هم، الحساب فوق يختلف عن الرسم الفعلي
+    gridEl.style.setProperty("--tile-gap", gapPx + "px");
     gridEl.style.setProperty("--tile-gap-width", spacerWidth + "px");
   }
 

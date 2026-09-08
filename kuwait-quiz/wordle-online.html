@@ -11,7 +11,10 @@
         } catch (e) {}
       })();
     </script>
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
+    />
     <title>احزر الكلمة أونلاين - الأذكى</title>
     <link rel="stylesheet" href="style.css" />
   </head>
@@ -129,37 +132,44 @@
           <button id="online-end-match-btn" class="btn btn-outline hidden">إنهاء اللعبة 🏁</button>
         </div>
 
+        <!-- عمودان: اللوح (المعلومات + الشبكة) و الأدوات (التلميحات + الكيبورد).
+             بالطول يتراصّون فوق بعض، وبالعرض جنب بعض — شوف .wordle-wrap بالـCSS -->
         <div class="card wordle-wrap">
-          <p class="muted center wordle-legend" id="online-active-categories"></p>
-          <p class="muted center" id="online-subtitle"></p>
-          <p id="online-turn-note" class="online-turn-note"></p>
-          <div id="online-timer" class="round-timer hidden"></div>
-          <button id="online-boq-btn" class="btn boq-btn hidden"></button>
-          <p id="online-steal-note" class="steal-note hidden"></p>
-          <p class="muted center wordle-legend">
-            أخضر = الحرف في مكانه الصحيح، أصفر = الحرف موجود لكن في مكان آخر، رمادي =
-            الحرف غير موجود.
-          </p>
+          <div class="wordle-board">
+            <p class="muted center wordle-legend" id="online-active-categories"></p>
+            <p class="muted center" id="online-subtitle"></p>
+            <p id="online-turn-note" class="online-turn-note"></p>
+            <div id="online-timer" class="round-timer hidden"></div>
+            <button id="online-boq-btn" class="btn boq-btn hidden"></button>
+            <p id="online-steal-note" class="steal-note hidden"></p>
+            <p class="muted center wordle-legend">
+              <span><i class="lg green"></i> مكانه صحيح</span>
+              <span><i class="lg yellow"></i> بمكان آخر</span>
+              <span><i class="lg gray"></i> غير موجود</span>
+            </p>
 
-          <div class="wordle-grid-scroll">
-            <div id="online-grid" class="wordle-grid"></div>
+            <div class="wordle-grid-scroll">
+              <div id="online-grid" class="wordle-grid"></div>
+            </div>
           </div>
 
-          <div class="abilities-row">
-            <button id="online-hint-category-btn" class="ability-btn">💡 الفئة (-٪٥٠)</button>
-            <button id="online-hint-repeat-btn" class="ability-btn">🔁 فيه حرف متكرر؟ (-٥٠)</button>
-            <button id="online-hint-letter-btn" class="ability-btn">🔤 حرف موجود (-١٠٠)</button>
-          </div>
+          <div class="wordle-controls">
+            <div class="abilities-row">
+              <button id="online-hint-category-btn" class="ability-btn">💡 الفئة (-٪٥٠)</button>
+              <button id="online-hint-repeat-btn" class="ability-btn">🔁 فيه حرف متكرر؟ (-٥٠)</button>
+              <button id="online-hint-letter-btn" class="ability-btn">🔤 حرف موجود (-١٠٠)</button>
+            </div>
 
-          <div id="online-hint-log" class="stack"></div>
+            <div id="online-hint-log" class="stack"></div>
 
-          <div id="online-message" class="wordle-message"></div>
+            <div id="online-message" class="wordle-message"></div>
 
-          <div id="online-keyboard" class="keyboard"></div>
+            <div id="online-keyboard" class="keyboard"></div>
 
-          <div id="online-round-end" class="row hidden" style="justify-content: center">
-            <button id="online-next-team-btn" class="btn btn-primary">دور الفريق التالي 👉</button>
-            <p id="online-round-end-wait" class="muted center hidden">بانتظار الهوست…</p>
+            <div id="online-round-end" class="row hidden" style="justify-content: center">
+              <button id="online-next-team-btn" class="btn btn-primary">دور الفريق التالي 👉</button>
+              <p id="online-round-end-wait" class="muted center hidden">بانتظار الهوست…</p>
+            </div>
           </div>
         </div>
       </section>
