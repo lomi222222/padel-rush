@@ -76,21 +76,33 @@
     });
   }
 
-  // نحفظ آخر مقاسات ونراقب حجم الحاوية: ترتيب الرسم (الكيبورد ينرسم بعد الشبكة)
-  // وقلب الجهاز وتغيّر حجم النافذة كلهم يغيّرون المساحة المتاحة بعد أول حساب،
-  // فبدال ما نعتمد على ترتيب النداءات نعيد الحساب كل ما تغيّر مقاس الحاوية
+  // المقاس ينحسب مرة وحدة بأول الجولة ويثبت لين نهايتها.
+  //
+  // ليش: ارتفاع الشبكة هو الباقي بعد عمود الأدوات، وعمود الأدوات يكبر أثناء اللعب
+  // (سجل التلميحات مع كل وسيلة مساعدة، ولافتة السرقة، ورسالة النتيجة). لو أعدنا
+  // الحساب مع كل تغيير، تصغر الخلايا فجأة وسط الجولة. فنثبّت المقاس، ولو ما كفى
+  // الارتفاع تنمرّر الصفوف داخل صندوق الشبكة.
+  //
+  // نعيد الحساب بحالتين بس: جولة يديدة (opts تتغيّر)، وتغيّر مقاس النافذة نفسها
+  // (قلب الجهاز). و requestAnimationFrame عشان أول حساب يصير بعد ما يخلص الرسم
+  // كامل — الكيبورد ينرسم بعد الشبكة ويغيّر المساحة المتاحة.
   function applyTileSize(gridEl, opts) {
     gridEl._tileOpts = opts;
-    if (!gridEl._tileObserver && typeof ResizeObserver !== "undefined") {
-      gridEl._tileObserver = new ResizeObserver(() => sizeTiles(gridEl));
-      gridEl._tileObserver.observe(gridEl.parentElement);
+
+    if (!gridEl._tileWatching) {
+      gridEl._tileWatching = true;
+      const onViewportChange = () => sizeTiles(gridEl, true);
+      window.addEventListener("resize", onViewportChange);
+      window.addEventListener("orientationchange", onViewportChange);
     }
-    sizeTiles(gridEl);
+
+    sizeTiles(gridEl, true);
+    requestAnimationFrame(() => sizeTiles(gridEl, true));
   }
 
-  function sizeTiles(gridEl) {
+  function sizeTiles(gridEl, allowed) {
     const opts = gridEl._tileOpts;
-    if (!opts) return;
+    if (!opts || !allowed) return;
     const { wordLength, maxAttempts } = opts;
     const spaceCount = opts.spaceCount || 0;
 

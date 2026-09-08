@@ -596,6 +596,35 @@ input[type="text"]:focus {
 
 /* شاشة اللعب ارتفاعها ثابت، فكل بكسل يوفّره الإطار يروح للشبكة.
    هذي القيم أصغر من العامة قصداً وتنطبق داخل شاشة اللعب بس */
+/* ===== ثبات حجم الشبكة أثناء الجولة =====
+   حجم الخلية محسوب من الارتفاع المتبقي للّوح. فأي شي بعمود الأدوات يكبر أثناء
+   اللعب يسرق من اللوح وتصغر الخلايا فجأة. الاثنين اللي يكبرون: سجل التلميحات
+   (مع كل وسيلة مساعدة) وتبديل زر البوق بلافتة السرقة — فنثبّت ارتفاعهم. */
+#wordle-hint-log,
+#online-hint-log {
+  width: 100%;
+  gap: 5px;
+  /* يتّسع لثلاث تلميحات (وهي أقصى عدد بالجولة) وبعدها يمرّر داخل نفسه */
+  max-height: 92px;
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+
+.boq-slot {
+  width: 100%;
+  min-height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.wordle-controls .steal-note {
+  font-size: 11.5px;
+  line-height: 1.3;
+  margin: 0;
+}
+
 /* الثلاثة لازم يقعدون بسطر واحد: السطر الثاني ياكل ~٣٥ بكسل من ارتفاع الشبكة */
 .wordle-board .ability-btn,
 .wordle-controls .ability-btn {
@@ -1105,7 +1134,37 @@ input[type="text"]:focus {
     justify-content: center;
     width: auto;
     min-height: 0;
+    overflow: hidden;
   }
+
+  /* بدال ما نضبط ارتفاع الكيبورد بنقاط توقّف ثابتة (وهي تنكسر مع كل عرض عمود
+     مختلف لأن صف التلميحات ينزل سطرين أو ما ينزل)، نخلي الكيبورد ياخذ الباقي
+     بالضبط: الصفوف تتقاسم ارتفاعه والأزرار تمتد لملء صفّها. جذي ما يفيض أبداً */
+  .wordle-controls .keyboard {
+    flex: 1 1 0;
+    min-height: 0;
+    max-height: 190px;
+  }
+
+  .wordle-controls .keyboard-row {
+    flex: 1 1 0;
+    min-height: 0;
+  }
+
+  .wordle-controls .key {
+    padding: 0;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* بالعرضي المساحة العمودية أضيق — سجل التلميحات يتّسع لواحد ويمرّر */
+  #wordle-hint-log,
+  #online-hint-log {
+    max-height: 30px;
+  }
+
 
   /* بالعرضي الدليل يقعد بعمود الأدوات اللي عنده فسحة، فما ياكل من ارتفاع الشبكة */
   .wordle-controls .wordle-legend {
@@ -1238,6 +1297,62 @@ input[type="text"]:focus {
   .boq-btn {
     padding: 4px 10px;
     font-size: 11px;
+  }
+}
+
+/* ===== عرضي قصير: الكيبورد يتمدّد لملء عموده (شوف بلوك landscape فوق)، فهنا
+   نضبط أحجام الخطوط بس ===== */
+@media (orientation: landscape) and (max-height: 400px) {
+  .keyboard {
+    gap: 4px;
+    padding: 5px 3px;
+  }
+
+  .keyboard-row {
+    gap: 3px;
+  }
+
+  .key {
+    font-size: 13px;
+  }
+
+  .key.wide {
+    font-size: 11px;
+  }
+
+  #wordle-play-screen .team-chip,
+  #online-play .team-chip {
+    padding: 3px 8px;
+  }
+
+  #wordle-play-screen .team-chip .name,
+  #online-play .team-chip .name {
+    font-size: 11px;
+  }
+
+  #wordle-play-screen .team-chip .score,
+  #online-play .team-chip .score {
+    font-size: 12px;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 340px) {
+  .keyboard {
+    gap: 3px;
+    padding: 4px 3px;
+  }
+
+  .key {
+    font-size: 12px;
+  }
+
+  .key.wide {
+    font-size: 10px;
+  }
+
+  /* آخر شي ينحذف قبل ما نقص الكيبورد */
+  .wordle-controls .wordle-legend {
+    display: none;
   }
 }
 

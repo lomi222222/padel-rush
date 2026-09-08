@@ -59,6 +59,7 @@
   let lastPlayersSignature = "";
   let lastKeyboardSignature = "";
   let lastScoreboardSignature = "";
+  let lastTileRev = null;
 
   // حالة الهوست الخاصة (ما تُنشر أبداً كاملة)
   let hostState = null;
@@ -1136,12 +1137,16 @@
     View.renderTimer(timerEl, r.deadline || null, r.pausedRemainingMs != null ? r.pausedRemainingMs : null);
     startTicking();
 
-    const stealRows = (r.guesses || []).filter((g) => g && g.steal).length;
-    View.applyTileSize(gridEl, {
-      wordLength: r.wordLength,
-      maxAttempts: r.maxAttempts + stealRows,
-      spaceCount: (r.spaceIndexes || []).length,
-    });
+    // renderPlay ينشغل مع كل تحديث حالة، بس المقاس ينحسب مرة بالجولة بس: rev
+    // يتغيّر مع كل جولة يديدة. وبدون صفوف السرقة عشان المقاس ما يصغر وسط الجولة
+    if (lastTileRev !== pub.rev) {
+      lastTileRev = pub.rev;
+      View.applyTileSize(gridEl, {
+        wordLength: r.wordLength,
+        maxAttempts: r.maxAttempts,
+        spaceCount: (r.spaceIndexes || []).length,
+      });
+    }
     drawGrid(r);
     // ما نعيد بناء الكيبورد إلا لو تغيّر تلوينه أو صلاحية الكتابة — إعادة البناء
     // وسط ضغطة اللاعب تضيّع الضغطة

@@ -162,10 +162,6 @@
     return guesses.filter((g) => !g.steal).length;
   }
 
-  function totalRows() {
-    return maxAttempts + guesses.filter((g) => g.steal).length;
-  }
-
   function updateBoqUi() {
     if (gameOver || matchOver) {
       boqBtn.classList.add("hidden");
@@ -241,8 +237,11 @@
 
   function applyTileSize() {
     View.applyTileSize(gridEl, {
+      // maxAttempts مو totalRows(): صفوف السرقة تنضاف فوق العدد الأصلي، ولو حسبنا
+      // المقاس عليها تصغر الخلايا فجأة وسط الجولة. المقاس يثبت والصفوف الزايدة
+      // تنمرّر داخل صندوق الشبكة
       wordLength,
-      maxAttempts: totalRows(),
+      maxAttempts,
       spaceCount: spaceIndexes.length,
     });
   }
@@ -265,7 +264,7 @@
     showMessage("", "");
     updateHintButtons();
     updateBoqUi();
-    applyTileSize();
+    // بدون applyTileSize: المقاس يثبت طول الجولة (شوف wordle-view.js)
     renderGrid();
   });
 
@@ -388,7 +387,6 @@
     const won = statuses.every((s) => s === "green");
     currentGuess = [];
     Core.autoFillSpaces(currentGuess, wordLength, spaceIndexes);
-    applyTileSize();
     renderGrid();
     renderKeyboard();
     updateHintButtons();
