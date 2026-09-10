@@ -1142,7 +1142,7 @@
       if (showBoq) {
         const left = (r.boqLeft || [0, 0])[mine];
         boqBtn.disabled = left <= 0;
-        View.setIconLabel(boqBtn, "horn", "بوق (باقي " + Core.toArabicDigits(left) + ")");
+        View.setIconLabel(boqBtn, "thief", "بوق (باقي " + Core.toArabicDigits(left) + ")");
       }
     }
 

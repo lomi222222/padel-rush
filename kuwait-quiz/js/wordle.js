@@ -190,7 +190,7 @@
     boqBtn.disabled = boqLeft[w] <= 0;
     View.setIconLabel(
       boqBtn,
-      "horn",
+      "thief",
       "بوق — " + teams[w].name + " (باقي " + Core.toArabicDigits(boqLeft[w]) + ")"
     );
   }
