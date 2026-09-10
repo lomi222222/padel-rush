@@ -281,19 +281,19 @@
         letter: yellowLetter,
         status: "green",
         pos,
-        text: '🔤 الحرف "' + yellowLetter + '" في الموضع ' + toArabicDigits(pos + 1),
+        text: 'الحرف "' + yellowLetter + '" في الموضع ' + toArabicDigits(pos + 1),
       };
     }
     const revealed = new Set(Object.keys(keyStatus));
     const candidates = [...new Set(targetChars)].filter((c) => !revealed.has(c) && c !== " ");
     if (candidates.length === 0) return null;
     const pick = candidates[Math.floor(Math.random() * candidates.length)];
-    return { letter: pick, status: "yellow", text: '🔤 الحرف "' + pick + '" موجود في الكلمة' };
+    return { letter: pick, status: "yellow", text: 'الحرف "' + pick + '" موجود في الكلمة' };
   }
 
   function repeatHintText(targetChars) {
     const hasDup = new Set(targetChars).size !== targetChars.length;
-    return hasDup ? "🔁 نعم، يوجد حرف متكرر في الكلمة" : "🔁 لا، لا يوجد حرف متكرر في الكلمة";
+    return hasDup ? "نعم، يوجد حرف متكرر في الكلمة" : "لا، لا يوجد حرف متكرر في الكلمة";
   }
 
   window.WordleCore = {

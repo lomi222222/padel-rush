@@ -45,7 +45,7 @@
         <input type="text" id="online-name-input" maxlength="16" placeholder="اسمك" />
 
         <button id="online-create-btn" class="btn btn-primary btn-block">
-          إنشاء غرفة جديدة 🎮
+          <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 8.5v7M8.5 12h7"/></svg> إنشاء غرفة جديدة
         </button>
 
         <div class="online-divider"><span>أو</span></div>
@@ -69,8 +69,8 @@
           <p class="muted center">رمز الغرفة</p>
           <div id="online-room-code" class="online-room-code"></div>
           <div class="row" style="justify-content: center">
-            <button id="online-copy-btn" class="btn btn-outline">نسخ الرابط 🔗</button>
-            <a id="online-wa-btn" class="btn btn-outline" target="_blank" rel="noopener">مشاركة 💬</a>
+            <button id="online-copy-btn" class="btn btn-outline"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13.5a3.5 3.5 0 0 0 5 0l3-3a3.5 3.5 0 0 0-5-5l-1.2 1.2"/><path d="M14 10.5a3.5 3.5 0 0 0-5 0l-3 3a3.5 3.5 0 0 0 5 5l1.2-1.2"/></svg> نسخ الرابط</button>
+            <a id="online-wa-btn" class="btn btn-outline" target="_blank" rel="noopener"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11.5v7A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5v-7"/><path d="M12 15V4"/><path d="M8 7.5L12 3.5l4 4"/></svg> مشاركة</a>
           </div>
         </div>
 
@@ -90,7 +90,7 @@
         <div id="online-host-controls" class="stack hidden">
           <div class="setup-col">
             <button id="online-auto-assign-btn" class="btn btn-outline btn-block">
-              توزيع تلقائي ⚡
+              <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h4l10 10h4"/><path d="M3 17h4l10-10h4"/><path d="M18 4l3 3-3 3"/><path d="M18 14l3 3-3 3"/></svg> توزيع تلقائي
             </button>
 
             <div class="team-setup-list">
@@ -147,9 +147,13 @@
              المساعدات/السجل)، الكيبورد. بالطول تترتب فوق بعض بهالتسلسل، وبالعرض
              تصير ثلاث أعمدة (كيبورد | معلومات | شبكة) — شوف .wordle-wrap بالـCSS -->
         <div class="card wordle-wrap">
+          <svg class="wrap-motif" viewBox="0 0 200 60" preserveAspectRatio="none" aria-hidden="true">
+            <path d="M0,58 L18,4 L36,58 L54,4 L72,58 L90,4 L108,58 L126,4 L144,58 L162,4 L180,58 L198,4"
+              fill="none" stroke="currentColor" stroke-width="3" />
+          </svg>
           <div class="score-row">
             <div id="online-scoreboard" class="scoreboard"></div>
-            <button id="online-end-match-btn" class="btn btn-outline hidden">إنهاء اللعبة 🏁</button>
+            <button id="online-end-match-btn" class="btn btn-outline hidden"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 21V4"/><path d="M6 4.5h11l-2.5 4 2.5 4H6"/></svg> إنهاء اللعبة</button>
           </div>
 
           <div class="wordle-info">
@@ -168,9 +172,9 @@
             </p>
 
             <div class="abilities-row">
-              <button id="online-hint-category-btn" class="ability-btn">💡 الفئة ٥٠٪−</button>
-              <button id="online-hint-repeat-btn" class="ability-btn">🔁 حرف مكرر؟ ٥٠−</button>
-              <button id="online-hint-letter-btn" class="ability-btn">🔤 اكشف حرف ١٠٠−</button>
+              <button id="online-hint-category-btn" class="ability-btn"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.5.4.5 1 .5 1.6v.5h6v-.5c0-.6 0-1.2.5-1.6A6 6 0 0 0 12 3z"/></svg> الفئة ٥٠٪−</button>
+              <button id="online-hint-repeat-btn" class="ability-btn"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6.5" width="8.5" height="11" rx="2.5"/><rect x="13" y="6.5" width="8.5" height="11" rx="2.5"/></svg> حرف مكرر؟ ٥٠−</button>
+              <button id="online-hint-letter-btn" class="ability-btn"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="4.5" width="8" height="15" rx="2.5"/><path d="M13.5 4.5h8v15h-8"/><path d="M16 12h4"/></svg> اكشف حرف ١٠٠−</button>
             </div>
 
             <div id="online-hint-log" class="stack"></div>
@@ -186,7 +190,7 @@
             <div id="online-keyboard" class="keyboard"></div>
 
             <div id="online-round-end" class="row hidden" style="justify-content: center">
-              <button id="online-next-team-btn" class="btn btn-primary">دور الفريق التالي 👉</button>
+              <button id="online-next-team-btn" class="btn btn-primary"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12H5"/><path d="M11 6l-6 6 6 6"/></svg> دور الفريق التالي</button>
               <p id="online-round-end-wait" class="muted center hidden">بانتظار الهوست…</p>
             </div>
           </div>
@@ -196,7 +200,7 @@
       <!-- شاشة النهاية -->
       <section id="online-end" class="card stack hidden">
         <div class="winner-banner">
-          <h2 id="online-winner-name">🏆 الفريق الفائز</h2>
+          <h2 id="online-winner-name"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M7 6H4.5v1.5A3.5 3.5 0 0 0 8 11"/><path d="M17 6h2.5v1.5A3.5 3.5 0 0 1 16 11"/><path d="M12 14v3"/><path d="M8.5 20h7"/></svg> الفريق الفائز</h2>
           <p id="online-winner-score"></p>
         </div>
         <div id="online-final-scores" class="final-scores"></div>

@@ -91,7 +91,7 @@
 
           <div class="online-divider"><span>أو</span></div>
           <a class="btn btn-outline btn-block" href="wordle-online.html">
-            العب أونلاين مع ربعك 🌐
+            <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8.5" cy="8" r="3.2"/><path d="M2.5 19v-1.5c0-2.5 2.7-4 6-4s6 1.5 6 4V19"/><circle cx="17.5" cy="9" r="2.6"/><path d="M16 13.6c3 .2 5.5 1.6 5.5 3.9V19"/></svg> العب أونلاين مع ربعك
           </a>
         </div>
       </section>
@@ -102,10 +102,14 @@
              المساعدات/السجل)، الكيبورد. بالطول تترتب فوق بعض بهالتسلسل، وبالعرض
              تصير ثلاث أعمدة (كيبورد | معلومات | شبكة) — شوف .wordle-wrap بالـCSS -->
         <div class="card wordle-wrap">
+          <svg class="wrap-motif" viewBox="0 0 200 60" preserveAspectRatio="none" aria-hidden="true">
+            <path d="M0,58 L18,4 L36,58 L54,4 L72,58 L90,4 L108,58 L126,4 L144,58 L162,4 L180,58 L198,4"
+              fill="none" stroke="currentColor" stroke-width="3" />
+          </svg>
           <div class="score-row">
             <div id="wordle-scoreboard" class="scoreboard"></div>
             <button id="wordle-end-match-btn" class="btn btn-outline">
-              إنهاء اللعبة 🏁
+              <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 21V4"/><path d="M6 4.5h11l-2.5 4 2.5 4H6"/></svg> إنهاء اللعبة
             </button>
           </div>
 
@@ -125,13 +129,13 @@
 
             <div class="abilities-row">
               <button id="wordle-hint-category-btn" class="ability-btn">
-                💡 الفئة ٥٠٪−
+                <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.5.4.5 1 .5 1.6v.5h6v-.5c0-.6 0-1.2.5-1.6A6 6 0 0 0 12 3z"/></svg> الفئة ٥٠٪−
               </button>
               <button id="wordle-hint-repeat-btn" class="ability-btn">
-                🔁 حرف مكرر؟ ٥٠−
+                <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6.5" width="8.5" height="11" rx="2.5"/><rect x="13" y="6.5" width="8.5" height="11" rx="2.5"/></svg> حرف مكرر؟ ٥٠−
               </button>
               <button id="wordle-hint-letter-btn" class="ability-btn">
-                🔤 اكشف حرف ١٠٠−
+                <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="4.5" width="8" height="15" rx="2.5"/><path d="M13.5 4.5h8v15h-8"/><path d="M16 12h4"/></svg> اكشف حرف ١٠٠−
               </button>
             </div>
 
@@ -149,7 +153,7 @@
 
             <div id="wordle-round-end" class="row hidden" style="justify-content: center">
               <button id="wordle-next-team-btn" class="btn btn-primary">
-                دور الفريق التالي 👉
+                <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12H5"/><path d="M11 6l-6 6 6 6"/></svg> دور الفريق التالي
               </button>
             </div>
           </div>
@@ -159,7 +163,7 @@
       <!-- شاشة النهاية -->
       <section id="wordle-end-screen" class="card stack hidden">
         <div class="winner-banner">
-          <h2 id="wordle-winner-name">🏆 الفريق الفائز</h2>
+          <h2 id="wordle-winner-name"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M7 6H4.5v1.5A3.5 3.5 0 0 0 8 11"/><path d="M17 6h2.5v1.5A3.5 3.5 0 0 1 16 11"/><path d="M12 14v3"/><path d="M8.5 20h7"/></svg> الفريق الفائز</h2>
           <p id="wordle-winner-score"></p>
         </div>
         <div id="wordle-final-scores" class="final-scores"></div>

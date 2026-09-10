@@ -795,7 +795,7 @@
     if (kind === "category") {
       if (h.hints.categoryUsed) return publishState();
       h.hints.categoryUsed = true;
-      h.hintLog.push("💡 الفئة: " + h.category);
+      h.hintLog.push("الفئة: " + h.category);
     } else if (kind === "repeat") {
       if (h.hints.repeatUsed) return publishState();
       h.hints.repeatUsed = true;
@@ -1142,7 +1142,7 @@
       if (showBoq) {
         const left = (r.boqLeft || [0, 0])[mine];
         boqBtn.disabled = left <= 0;
-        boqBtn.textContent = "🥷 بوق (باقي " + Core.toArabicDigits(left) + ")";
+        View.setIconLabel(boqBtn, "horn", "بوق (باقي " + Core.toArabicDigits(left) + ")");
       }
     }
 
@@ -1185,7 +1185,11 @@
     roundEndEl.classList.toggle("hidden", !r.gameOver);
     nextTeamBtn.classList.toggle("hidden", !isHost);
     roundEndWaitEl.classList.toggle("hidden", isHost);
-    nextTeamBtn.textContent = pub.matchOver ? "عرض النتيجة النهائية 🏆" : "دور الفريق التالي 👉";
+    View.setIconLabel(
+      nextTeamBtn,
+      pub.matchOver ? "trophy" : "next",
+      pub.matchOver ? "عرض النتيجة النهائية" : "دور الفريق التالي"
+    );
   }
 
   function renderEnd() {

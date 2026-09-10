@@ -188,8 +188,11 @@
     const w = waitingTeam();
     boqBtn.classList.remove("hidden");
     boqBtn.disabled = boqLeft[w] <= 0;
-    boqBtn.textContent =
-      "🥷 بوق — " + teams[w].name + " (باقي " + Core.toArabicDigits(boqLeft[w]) + ")";
+    View.setIconLabel(
+      boqBtn,
+      "horn",
+      "بوق — " + teams[w].name + " (باقي " + Core.toArabicDigits(boqLeft[w]) + ")"
+    );
   }
 
   // ===== المؤقّت =====
@@ -333,7 +336,7 @@
   hintCategoryBtn.addEventListener("click", () => {
     if (hintCategoryBtn.disabled) return;
     hints.categoryUsed = true;
-    logHint("💡 الفئة: " + category);
+    logHint("الفئة: " + category);
     updateHintButtons();
   });
 
@@ -476,7 +479,11 @@
     View.renderTimer(timerEl, null, null);
     roundsPlayed[teamIndex]++;
     matchOver = roundsPlayed.every((r) => r >= Core.ROUNDS_PER_TEAM);
-    nextTeamBtn.textContent = matchOver ? "عرض النتيجة النهائية 🏆" : "دور الفريق التالي 👉";
+    View.setIconLabel(
+      nextTeamBtn,
+      matchOver ? "trophy" : "next",
+      matchOver ? "عرض النتيجة النهائية" : "دور الفريق التالي"
+    );
     roundEndEl.classList.remove("hidden");
   }
 

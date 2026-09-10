@@ -179,6 +179,24 @@ a {
   margin-inline-end: 5px;
 }
 
+/* ===== أيقونات الواجهة =====
+   بديل الإيموجي بأدوات التحكم. المقاس بالـem وvertical-align بدل flex عشان تقعد
+   داخل صندوق السطر الموجود بالضبط — أي flex/gap هني كان بيغيّر ارتفاعات مضبوطة
+   بشاشة اللعب. نفس أسلوب .topbar-mark المُثبت إنه ما غيّر ولا بكسل */
+.ui-icon {
+  height: 1.05em;
+  width: 1.05em;
+  vertical-align: -0.2em;
+  flex-shrink: 0;
+}
+
+/* الأزرار اللي محتواها flex أصلاً (زر الثيم) ما تحتاج المحاذاة */
+.theme-toggle-btn .ui-icon {
+  vertical-align: 0;
+  height: 55%;
+  width: 55%;
+}
+
 /* ===== Theme toggle ===== */
 .theme-toggle-btn {
   position: fixed;
@@ -640,7 +658,9 @@ body.home-page .page {
 }
 
 .team-chip.current {
-  outline: 3px solid var(--yellow);
+  /* ذهبي مو أصفر: الأصفر معناه محجوز داخل اللعبة ("الحرف بمكان آخر")، فاستخدامه
+     هني كان يخلي اللون الواحد يحمل معنيين بنفس الشاشة */
+  outline: 3px solid var(--gold);
   outline-offset: 2px;
 }
 
@@ -691,7 +711,9 @@ body.home-page .page {
   padding: 10px 14px;
   text-align: center;
   font-weight: 700;
-  color: var(--blue-700);
+  color: var(--navy);
+  /* شريط ذهبي بجهة البداية — ينرسم كظل داخلي عشان ما يزيد عرض الصندوق */
+  box-shadow: inset -3px 0 0 var(--gold);
 }
 
 .abilities-row {
@@ -767,6 +789,8 @@ body.home-page .page {
   border-radius: 16px;
   background: linear-gradient(135deg, var(--blue-700), var(--navy-fixed));
   color: var(--white-fixed);
+  /* شريط ذهبي علوي — نفس ذهبي الشريط العلوي، وينرسم كظل فما يزيد الارتفاع */
+  box-shadow: inset 0 4px 0 var(--gold);
 }
 
 .winner-banner h2 {
@@ -807,6 +831,26 @@ body.home-page .page {
   flex: 1;
   min-height: 0;
   padding: 12px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* زخرفة السدو بزاوية بطاقة اللعب — نفس نقش الرئيسية، خارج مسار التخطيط تماماً
+   (position:absolute) وبلا تفاعل، فما تكلّف ولا بكسل من مساحة الشبكة */
+.wrap-motif {
+  position: absolute;
+  bottom: 6px;
+  inset-inline-start: 8px;
+  width: 120px;
+  height: 30px;
+  color: var(--gold);
+  opacity: 0.09;
+  pointer-events: none;
+  z-index: 0;
+}
+
+:root[data-theme="dark"] .wrap-motif {
+  opacity: 0.14;
 }
 
 /* الفئات + نص الجولة + المؤقّت + البوق + دليل الألوان + المساعدات + السجل —
@@ -1019,7 +1063,8 @@ body.home-page .page {
 .wordle-legend .lg {
   width: 9px;
   height: 9px;
-  border-radius: 50%;
+  /* مربّع صغير مو دائرة: الدليل يشرح خانات الشبكة، فيتكلم بنفس شكلها */
+  border-radius: 3px;
   display: inline-block;
   flex-shrink: 0;
 }
@@ -1075,6 +1120,37 @@ body.home-page .page {
 
 .wordle-tile.filled {
   border-color: var(--blue-600);
+}
+
+/* الخانة الفاضية تاخذ عمقاً خفيفاً بدل ما تكون مسطّحة — ظل داخلي، بلا كلفة تخطيط */
+.wordle-tile {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55), inset 0 -1px 2px rgba(6, 38, 74, 0.05);
+}
+
+:root[data-theme="dark"] .wordle-tile {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), inset 0 -1px 2px rgba(0, 0, 0, 0.25);
+}
+
+/* كشف الصف المُرسَل: الخانات تنقلب وحدة ورا الثانية — نفس حركة الشعار بالرئيسية،
+   فتصير الحركة توقيع اللعبة مو زينة عشوائية. transform بس، صفر كلفة تخطيط.
+   التأخير لكل خانة يجي من renderGrid عبر --reveal-delay */
+@media (prefers-reduced-motion: no-preference) {
+  .wordle-tile.reveal {
+    animation: tile-reveal 0.4s ease-out backwards;
+    animation-delay: var(--reveal-delay, 0s);
+  }
+}
+
+@keyframes tile-reveal {
+  0% {
+    transform: rotateX(-90deg);
+  }
+  60% {
+    transform: rotateX(10deg);
+  }
+  100% {
+    transform: rotateX(0);
+  }
 }
 
 /* طيف تلميح "اكشف حرف": الحرف بمكانه الصح بس مو مكتوب — اللاعب حر يكتبه أو يكتب

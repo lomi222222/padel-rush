@@ -5,6 +5,51 @@
 
   const Core = window.WordleCore;
 
+  // ===== أيقونات الواجهة =====
+  // رسمات خطّية بنفس لغة الصفحة الرئيسية: حد ٢px، currentColor، أطراف مدوّرة.
+  // القاعدة بكل اللعبة: أيقونة لأدوات التحكم، وإيموجي داخل الجُمل بس (رسائل اللعب).
+  // المقاس بالـem مع vertical-align عشان ما تغيّر ارتفاع السطر ولا تمس أي قياس.
+  const ICON_PATHS = {
+    // خانة انكشف فيها حرف — من مفردة اللعبة نفسها. عمداً قليلة الخطوط: الأيقونة
+    // تنعرض بحدود ١٣px، وأي تفصيل زيادة يتحوّل لطخة
+    letter: '<rect x="4" y="4" width="16" height="16" rx="4"/><path d="M12 9v6"/><path d="M9.5 15h5"/>',
+    // خانتان متراكبتان = تكرار
+    repeat: '<rect x="3.5" y="3.5" width="12" height="12" rx="3.5"/><path d="M8.5 20.5h9a3 3 0 0 0 3-3v-9"/>',
+    // مصباح
+    bulb: '<path d="M9 18h6"/><path d="M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.5.4.5 1 .5 1.6v.5h6v-.5c0-.6 0-1.2.5-1.6A6 6 0 0 0 12 3z"/>',
+    // بوق — الاسم عربي ومعناه بوق فعلاً
+    horn: '<path d="M3 10.5v3a1.5 1.5 0 0 0 1.5 1.5H7l7 4.5V4.5L7 9H4.5A1.5 1.5 0 0 0 3 10.5z"/><path d="M17.5 8.5a5 5 0 0 1 0 7"/><path d="M20 6a8.5 8.5 0 0 1 0 12"/>',
+    // عَلَم
+    flag: '<path d="M6 21V4"/><path d="M6 4.5h11l-2.5 4 2.5 4H6"/>',
+    // سهم للأمام (يشير لجهة السرد العربي: يسار)
+    next: '<path d="M20 12H5"/><path d="M11 6l-6 6 6 6"/>',
+    // شبكة مربّعات = كل الفئات
+    grid: '<rect x="3" y="3" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="2"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="2"/>',
+    // كأس
+    trophy: '<path d="M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M7 6H4.5v1.5A3.5 3.5 0 0 0 8 11"/><path d="M17 6h2.5v1.5A3.5 3.5 0 0 1 16 11"/><path d="M12 14v3"/><path d="M8.5 20h7"/>',
+    sun: '<circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.2 5.2l1.4 1.4M17.4 17.4l1.4 1.4M18.8 5.2l-1.4 1.4M6.6 17.4l-1.4 1.4"/>',
+    moon: '<path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"/>',
+    // المؤقّت: شغّال / موقوف
+    clock: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
+    pause: '<circle cx="12" cy="12" r="8.5"/><path d="M10 9v6M14 9v6"/>',
+  };
+
+  function iconSvg(name) {
+    return (
+      '<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" ' +
+      'stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+      ICON_PATHS[name] +
+      "</svg>"
+    );
+  }
+
+  // يعبّي عنصراً بأيقونة + نص. نستخدم textContent للنص عشان ما ندخل HTML من بيانات
+  // اللعبة (أسماء الفرق يكتبها اللاعبون)
+  function setIconLabel(el, name, text) {
+    el.innerHTML = iconSvg(name);
+    el.appendChild(document.createTextNode(" " + text));
+  }
+
   function renderGrid(gridEl, opts) {
     const { guesses, currentGuess, wordLength, maxAttempts } = opts;
     const spaces = opts.spaceIndexes instanceof Set ? opts.spaceIndexes : new Set(opts.spaceIndexes || []);
@@ -18,6 +63,14 @@
     // أي هامش زيادة، وأي هامش كان يطلع صف فاضي زيادة بعد آخر محاولة
     const stealRows = guesses.filter((g) => g && g.steal).length;
     const totalRows = maxAttempts + stealRows;
+
+    // كشف الصف المُرسَل حديثاً: الشبكة تُرسم من الصفر مع كل ضغطة حرف، فلو علّقنا
+    // الحركة على كل الصفوف المُرسلة راح تنعاد بكل ضغطة. نتذكّر عدد التخمينات على
+    // العنصر نفسه، والحركة تشتغل بس لما يزيد — فتنطبق مرة وحدة على الصف الجديد،
+    // وتشتغل بنفس الكود على جهاز اللاعب وأجهزة المتفرجين بالأونلاين
+    const prevCount = gridEl._lastGuessCount;
+    const revealRow = prevCount != null && guesses.length > prevCount ? guesses.length - 1 : -1;
+    gridEl._lastGuessCount = guesses.length;
 
     gridEl.innerHTML = "";
     for (let row = 0; row < totalRows; row++) {
@@ -43,6 +96,10 @@
         if (submitted) {
           tile.textContent = submitted.chars[col];
           tile.classList.add(submitted.statuses[col]);
+          if (row === revealRow) {
+            tile.classList.add("reveal");
+            tile.style.setProperty("--reveal-delay", col * 0.07 + "s");
+          }
         } else if (isCurrentRow && currentGuess[col]) {
           tile.textContent = currentGuess[col];
           tile.classList.add("filled");
@@ -209,15 +266,16 @@
       list.length === Core.SELECTABLE_CATEGORIES.length && !Core.hasExclusive(selectedCategories);
 
     el.innerHTML = "";
-    const add = (text, cls) => {
+    const add = (text, cls, icon) => {
       const pill = document.createElement("span");
       pill.className = "cat-pill" + (cls ? " " + cls : "");
-      pill.textContent = text;
+      if (icon) setIconLabel(pill, icon, text);
+      else pill.textContent = text;
       el.appendChild(pill);
     };
 
     if (all) {
-      add("🎯 كل الفئات", "all");
+      add("كل الفئات", "all", "grid");
       return;
     }
 
@@ -278,7 +336,7 @@
     timerEl.classList.remove("hidden");
     const ms = pausedRemainingMs != null ? pausedRemainingMs : deadline - Date.now();
     const seconds = Math.max(0, ms / 1000);
-    timerEl.textContent = (pausedRemainingMs != null ? "⏸️ " : "⏳ ") + Core.formatClock(seconds);
+    setIconLabel(timerEl, pausedRemainingMs != null ? "pause" : "clock", Core.formatClock(seconds));
     timerEl.classList.toggle("low", pausedRemainingMs == null && seconds <= 10);
   }
 
@@ -288,9 +346,9 @@
     const winners = sorted.filter((t) => t.score === topScore);
 
     if (winners.length > 1) {
-      els.winnerName.textContent = "🏆 تعادل بين: " + winners.map((w) => w.name).join(" و ");
+      setIconLabel(els.winnerName, "trophy", "تعادل بين: " + winners.map((w) => w.name).join(" و "));
     } else {
-      els.winnerName.textContent = "🏆 الفريق الفائز: " + winners[0].name;
+      setIconLabel(els.winnerName, "trophy", "الفريق الفائز: " + winners[0].name);
     }
     els.winnerScore.textContent = "بمجموع " + Core.toArabicDigits(topScore) + " نقطة";
 
@@ -311,6 +369,8 @@
   }
 
   window.WordleView = {
+    iconSvg,
+    setIconLabel,
     renderGrid,
     renderKeyboard,
     applyTileSize,
