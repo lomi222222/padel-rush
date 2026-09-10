@@ -368,38 +368,85 @@ body.home-page .page {
   }
 }
 
+/* الشعار: اسم اللعبة مكتوب جوّه خانات حروف — نفس مربّعات شبكة اللعب.
+   الحروف تطلع منفصلة (مو موصولة) بالقصد، لأن هذا بالضبط اللي تسويه الشبكة داخل اللعبة */
 .brand-mark {
-  display: inline-flex;
-  align-items: center;
+  display: flex;
   justify-content: center;
-  gap: 12px;
+  margin: 0;
   position: relative;
 }
 
-.brand-mark svg {
-  width: 44px;
-  height: 44px;
-  flex-shrink: 0;
+.brand-tiles {
+  display: flex;
+  gap: clamp(4px, 1.2vw, 8px);
+  /* منظور خفيف عشان انقلاب الخانات يبين مجسّم مو مجرد تصغير عمودي */
+  perspective: 600px;
 }
 
-.brand-mark-gem {
-  /* navy لا navy-fixed: لازم يقلب فاتح بالوضع الليلي عشان يبين على الخلفية الغامقة */
-  fill: var(--navy);
+.brand-tile {
+  width: clamp(42px, 11vw, 62px);
+  height: clamp(42px, 11vw, 62px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 3px solid var(--navy);
+  border-radius: 10px;
+  background: var(--white);
+  color: var(--navy);
+  font-size: clamp(22px, 5.8vw, 32px);
+  font-weight: 800;
+  line-height: 1;
+  /* الخانة تعوّض نزول الحروف العربية شوي عشان الحرف يقعد بالنص بصرياً */
+  padding-bottom: 0.06em;
 }
 
-.brand-mark-weave {
-  fill: none;
-  stroke: var(--gold);
-  stroke-width: 3;
-  stroke-linecap: round;
-  stroke-linejoin: round;
+.brand-tile--accent {
+  background: var(--navy);
+  color: var(--sand);
 }
 
 .hero h1 {
   font-size: clamp(30px, 5vw, 46px);
-  color: var(--navy);
   margin: 0;
-  font-weight: 800;
+}
+
+/* كشف الخانات عند فتح الصفحة — نفس إحساس انقلاب الحرف باللعبة */
+@media (prefers-reduced-motion: no-preference) {
+  .brand-tile {
+    animation: brand-tile-flip 0.42s ease-out backwards;
+  }
+
+  .brand-tile:nth-child(1) { animation-delay: 0.05s; }
+  .brand-tile:nth-child(2) { animation-delay: 0.12s; }
+  .brand-tile:nth-child(3) { animation-delay: 0.19s; }
+  .brand-tile:nth-child(4) { animation-delay: 0.26s; }
+  .brand-tile:nth-child(5) { animation-delay: 0.33s; }
+  .brand-tile:nth-child(6) { animation-delay: 0.4s; }
+}
+
+@keyframes brand-tile-flip {
+  from {
+    transform: rotateX(-90deg);
+    opacity: 0;
+  }
+  to {
+    transform: rotateX(0);
+    opacity: 1;
+  }
+}
+
+/* نص للقارئ الصوتي بس: يقرا "الأذكى" كلمة وحدة بدل ما يهجّي الخانات حرف حرف */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .hero-rule {
