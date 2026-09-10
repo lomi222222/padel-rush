@@ -1051,6 +1051,16 @@ body.home-page .page {
   border-color: var(--blue-600);
 }
 
+/* طيف تلميح "اكشف حرف": الحرف بمكانه الصح بس مو مكتوب — اللاعب حر يكتبه أو يكتب
+   غيره. أخضر لأن دليل الألوان يقول أخضر = مكانه صحيح، ومتقطّع عشان ما ينلخبط مع
+   حرف مكتوب فعلاً. الحد يبقى 2px والمقاسات ما تنلمس */
+.wordle-tile.ghost {
+  border-style: dashed;
+  border-color: var(--green);
+  color: var(--green);
+  opacity: 0.55;
+}
+
 .wordle-tile.green {
   background: var(--green);
   border-color: var(--green);

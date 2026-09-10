@@ -639,7 +639,7 @@
 
     hostState.hintedLetters = {};
     hostState.currentGuess = [];
-    Core.autoFillKnown(hostState.currentGuess, hostState.wordLength, hostState.spaceIndexes, hostState.hintedLetters);
+    Core.autoFillSpaces(hostState.currentGuess, hostState.wordLength, hostState.spaceIndexes);
     hostState.guesses = [];
     hostState.keyStatus = {};
     hostState.hints = Core.newHints();
@@ -676,6 +676,10 @@
         keyStatus: h.keyStatus,
         hintLog: h.hintLog,
         hints: h.hints,
+        // مواضع حروف تلميح "اكشف حرف" — عشان جهاز اللاعب يقدر يرسم الطيف. ما تكشف
+        // شي جديد: سجل التلميحات المنشور يقول الموضع بالنص أصلاً، والكلمة نفسها
+        // تبقى محجوبة لين نهاية الجولة (revealedWord تحت)
+        hintedLetters: h.hintedLetters,
         gameOver: h.gameOver,
         message: h.message,
         roundNumber: h.roundNumber,
@@ -717,11 +721,11 @@
       (c) => typeof c === "string" && Core.ARABIC_LETTER_RE.test(c)
     );
     const out = [];
-    Core.autoFillKnown(out, hostState.wordLength, hostState.spaceIndexes, hostState.hintedLetters);
+    Core.autoFillSpaces(out, hostState.wordLength, hostState.spaceIndexes);
     for (const ch of letters) {
       if (out.length >= hostState.wordLength) break;
       out.push(ch);
-      Core.autoFillKnown(out, hostState.wordLength, hostState.spaceIndexes, hostState.hintedLetters);
+      Core.autoFillSpaces(out, hostState.wordLength, hostState.spaceIndexes);
     }
     return out;
   }
@@ -778,7 +782,7 @@
       value: Core.finalScoreForAttempt(hostOwnAttemptCount() + 1, h.maxAttempts, h.hints),
     };
     h.currentGuess = [];
-    Core.autoFillKnown(h.currentGuess, h.wordLength, h.spaceIndexes, h.hintedLetters);
+    Core.autoFillSpaces(h.currentGuess, h.wordLength, h.spaceIndexes);
     h.ack = null;
     h.message = { text: "", kind: "" };
     // نوقف المؤقّت طول السرقة
@@ -803,10 +807,10 @@
       h.hints.revealLetterUses++;
       h.keyStatus[hint.letter] = hint.status;
       h.hintLog.push(hint.text);
-      // "حرف موجود" الأخضر معناه موضعه معروف — نصحّح الخانة مباشرة لو already مكتوبة
+      // "حرف موجود" الأخضر معناه موضعه معروف — ينعرض كطيف باهت بمربعه، وما ينكتب
+      // بالتخمين: اللاعب حر يكتبه أو يكتب غيره
       if (hint.status === "green" && typeof hint.pos === "number") {
         h.hintedLetters[hint.pos] = hint.letter;
-        Core.autoFillKnown(h.currentGuess, h.wordLength, h.spaceIndexes, h.hintedLetters);
       }
     }
     publishState();
@@ -827,7 +831,7 @@
 
     const won = statuses.every((s) => s === "green");
     h.currentGuess = [];
-    Core.autoFillKnown(h.currentGuess, h.wordLength, h.spaceIndexes, h.hintedLetters);
+    Core.autoFillSpaces(h.currentGuess, h.wordLength, h.spaceIndexes);
 
     // ===== مسار السرقة =====
     if (h.steal) {
@@ -997,7 +1001,7 @@
       return;
     }
     if (key === "DEL") {
-      localBuffer.pop();
+      Core.deleteLast(localBuffer, r.spaceIndexes || []);
       renderPlay();
       sendInput("buffer");
       return;
@@ -1074,6 +1078,7 @@
       wordLength: r.wordLength,
       maxAttempts: r.maxAttempts,
       spaceIndexes: r.spaceIndexes || [],
+      hintedLetters: r.hintedLetters || {},
       stealActive: !!r.steal,
     });
   }

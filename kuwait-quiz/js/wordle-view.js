@@ -8,6 +8,9 @@
   function renderGrid(gridEl, opts) {
     const { guesses, currentGuess, wordLength, maxAttempts } = opts;
     const spaces = opts.spaceIndexes instanceof Set ? opts.spaceIndexes : new Set(opts.spaceIndexes || []);
+    // حروف تلميح "اكشف حرف" — تنعرض كطيف باهت بمكانها ولا تدخل التخمين. اللاعب حر
+    // يكتبها أو يكتب غيرها؛ أول ما يكتب بالخانة يغطّي الطيف، ولو مسح يرجع
+    const hinted = opts.hintedLetters || {};
 
     // صفوف السرقة (البوق) تنضاف فوق العدد الأصلي عشان الفريق الأصلي ما يخسر محاولاته.
     // ملاحظة: guesses.length ما يتجاوز maxAttempts+stealRows أبداً بالتصميم الحالي
@@ -43,6 +46,9 @@
         } else if (isCurrentRow && currentGuess[col]) {
           tile.textContent = currentGuess[col];
           tile.classList.add("filled");
+        } else if (isCurrentRow && hinted[col]) {
+          tile.textContent = hinted[col];
+          tile.classList.add("ghost");
         }
 
         rowEl.appendChild(tile);

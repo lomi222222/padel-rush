@@ -153,27 +153,25 @@
   // مكانها الصحيح بدل ما نطلب من اللاعب يكتبها بنفسه. نمرر مواضع المسافات (مو الكلمة
   // نفسها) عشان جهاز اللاعب بالأونلاين يقدر يسوي نفس الشي بدون ما يعرف الكلمة.
   //
-  // hintedLetters (اختياري): خريطة {موضع: حرف} من تلميح "حرف موجود" بعد ما يتأكد
-  // موضعه (أخضر). عمداً ما نحجز له مكان قبل ما توصله الكتابة (خلاف المسافات) — لأن
-  // الأونلاين يعيد بناء المخزن من عدد الحروف الخام اللي وصلت من جهاز اللاعب
-  // (sanitizeBuffer)، وحجز مكان مسبق يزيح باقي حروفه خانة وحده ويخرب الترتيب. بدالها
-  // نصحّح محتوى الخانة بعد ما توصلها الكتابة فعلياً — ينطبق فوراً لو already مكتوبة.
-  function autoFillKnown(currentGuess, wordLength, spaceIndexes, hintedLetters) {
+  // ملاحظة: الحروف الملمّحة (تلميح "اكشف حرف") ما تدخل المخزن أبداً — تُرسم كطيف بس،
+  // شوف renderGrid. فالمخزن دايماً حروف اللاعب + المسافات، ولا شي غيرهم.
+  function autoFillSpaces(currentGuess, wordLength, spaceIndexes) {
     const spaces = spaceIndexes instanceof Set ? spaceIndexes : new Set(spaceIndexes || []);
     while (currentGuess.length < wordLength && spaces.has(currentGuess.length)) {
       currentGuess.push(" ");
     }
-    const hinted = hintedLetters || {};
-    for (const posStr in hinted) {
-      const pos = Number(posStr);
-      if (pos < currentGuess.length) currentGuess[pos] = hinted[pos];
-    }
     return currentGuess;
   }
 
-  // إبقاء الاسم القديم يشتغل بنفس الاستخدامات اللي ما تحتاج حروف ملمّحة
-  function autoFillSpaces(currentGuess, wordLength, spaceIndexes) {
-    return autoFillKnown(currentGuess, wordLength, spaceIndexes, null);
+  // حذف حرف: نشيل المسافات المعبّاة تلقائياً من الطرف أول، بعدها حرف اللاعب. الترتيب
+  // مهم لسببين — الضغطة لازم تشيل حرفاً يشوفه اللاعب مو خانة مسافة مخفية، والمخزن
+  // لازم ما ينتهي عند موضع مسافة أبداً وإلا الحرف الجاي ينحط بخانة المسافة نفسها
+  // (autoFillSpaces تشتغل بعد الإضافة فما تقدر تحمي الخانة اللي انحط فيها الحرف)
+  function deleteLast(currentGuess, spaceIndexes) {
+    const spaces = spaceIndexes instanceof Set ? spaceIndexes : new Set(spaceIndexes || []);
+    while (currentGuess.length && spaces.has(currentGuess.length - 1)) currentGuess.pop();
+    currentGuess.pop();
+    return currentGuess;
   }
 
   function evaluateGuess(guessChars, targetChars) {
@@ -322,7 +320,7 @@
     attemptsForLength,
     spaceIndexesOf,
     autoFillSpaces,
-    autoFillKnown,
+    deleteLast,
     evaluateGuess,
     statusRank,
     mergeKeyStatus,
