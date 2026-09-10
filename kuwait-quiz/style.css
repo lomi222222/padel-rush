@@ -21,11 +21,14 @@
   --radius: 16px;
   --shadow: 0 10px 30px rgba(6, 38, 74, 0.15);
   --body-bg-end: #ffffff;
-  /* دافئ-كويتي: للصفحة الرئيسية بس (الهيرو وبطاقات القائمة) — داخل اللعبة نفسها
-     يبقى على الأزرق/الأبيض الأصلي بدون أي تغيير */
+  /* دافئ-كويتي: الهيرو وبطاقات القائمة بالرئيسية */
   --sand: #fbf4e6;
   --sand-deep: #f3e4c4;
   --sand-line: rgba(184, 134, 43, 0.25);
+  /* سطح وحد ناعمين — أسماء دلالية مو لونية عمداً: قيمتهم دافئة الحين، ولو تغيّر
+     المزاج بعدين ينتغيّرون من مكان واحد بدل ما نلاحق عشرين موضع */
+  --surface-soft: #f8f1e3;
+  --border-soft: #d9c193;
 }
 
 :root[data-theme="dark"] {
@@ -39,6 +42,8 @@
   --sand: #201a12;
   --sand-deep: #16120c;
   --sand-line: rgba(224, 179, 84, 0.3);
+  --surface-soft: #241d14;
+  --border-soft: #a08a5e;
 }
 
 * {
@@ -56,7 +61,7 @@ body {
 
 body {
   font-family: "Cairo", "Segoe UI", Tahoma, "Noto Sans Arabic", sans-serif;
-  background: linear-gradient(180deg, var(--blue-100) 0%, var(--body-bg-end) 55%);
+  background: linear-gradient(180deg, var(--surface-soft) 0%, var(--body-bg-end) 55%);
   color: var(--ink);
   direction: rtl;
   /* dvh يحسب شريط المتصفح المتحرك بالجوال، و100vh لو المتصفح قديم */
@@ -122,7 +127,9 @@ a {
   background: var(--navy-fixed);
   color: var(--white-fixed);
   border-radius: var(--radius);
-  box-shadow: var(--shadow);
+  /* الخط الذهبي السفلي ينرسم كظل داخلي مو border-bottom: الحد يزيد ارتفاع الشريط،
+     والشريط جزء من شاشة اللعب الثابتة فأي بكسل زايد ياكل من مساحة الشبكة */
+  box-shadow: var(--shadow), inset 0 -3px 0 var(--gold);
 }
 
 .topbar h1 {
@@ -147,6 +154,15 @@ a {
   background: rgba(255, 255, 255, 0.22);
 }
 
+/* العلامة المصغّرة جنب اسم اللعبة بالشريط. مقاسها بالـem عشان تتقلّص لحالها مع
+   تصغير خط الشريط بالشاشات القصيرة، و inline (مو flex) عشان ما تغيّر ارتفاع السطر */
+.topbar-mark {
+  height: 0.95em;
+  width: auto;
+  vertical-align: -0.15em;
+  margin-inline-end: 5px;
+}
+
 /* ===== Theme toggle ===== */
 .theme-toggle-btn {
   position: fixed;
@@ -156,7 +172,7 @@ a {
   width: 42px;
   height: 42px;
   border-radius: 50%;
-  border: 2px solid var(--blue-300);
+  border: 2px solid var(--border-soft);
   background: var(--white);
   font-size: 18px;
   cursor: pointer;
@@ -168,7 +184,7 @@ a {
 }
 
 .theme-toggle-btn:hover {
-  background: var(--blue-100);
+  background: var(--surface-soft);
 }
 
 @media (max-width: 400px) {
@@ -212,7 +228,9 @@ a {
 .card {
   background: var(--white);
   border-radius: var(--radius);
-  box-shadow: var(--shadow);
+  /* الحد الذهبي الشفاف ينرسم كظل داخلي — البطاقة تستخدمها شاشة اللعب بعد،
+     وحد حقيقي كان بيزيد بكسلين على كل بطاقة */
+  box-shadow: var(--shadow), inset 0 0 0 1px var(--sand-line);
   padding: 24px;
 }
 
@@ -263,7 +281,7 @@ a {
 }
 
 .btn-outline:hover:not(:disabled) {
-  background: var(--blue-100);
+  background: var(--surface-soft);
 }
 
 .btn-success {
@@ -293,7 +311,7 @@ input[type="text"] {
   font-size: 16px;
   padding: 12px 14px;
   border-radius: 10px;
-  border: 2px solid var(--blue-300);
+  border: 2px solid var(--border-soft);
   background: var(--white);
   color: var(--ink);
   width: 100%;
@@ -305,10 +323,10 @@ input[type="text"]:focus {
 }
 
 /* ===== الصفحة الرئيسية — دافئ-كويتي =====
-   مزاج مستقل عن باقي اللعبة عمداً: خلفية رملية دافئة بدل التدرّج الأزرق البارد،
-   وزخرفة سدو هندسية خفيفة (مثلثات متعرّجة — نسيج بدوي/خليجي تقليدي، بالعمد بدل
-   المشربية العربية العامة عشان الهوية تكون كويتية بالذات). ما يمس باقي الصفحات:
-   body.home-page هي النطاق الوحيد لهالتغييرات */
+   الدفء صار يعم كل الصفحات (شوف --surface-soft / --border-soft فوق)، وهالقسم
+   يخص عناصر الرئيسية وحدها: الهيرو، الشعار، بطاقات القائمة. الزخرفة سدو
+   (مثلثات متعرّجة — نسيج بدوي/خليجي تقليدي، بالعمد بدل المشربية العربية العامة
+   عشان الهوية تكون كويتية بالذات) */
 body.home-page {
   background: linear-gradient(180deg, var(--sand) 0%, var(--body-bg-end) 78%);
 }
@@ -377,11 +395,27 @@ body.home-page .page {
   position: relative;
 }
 
+/* الشعار زر: الضغط عليه يعيد تشغيل حركة الانقلاب. إعادة الضبط تحته تخلي شكله
+   مطابق تماماً للي كان لما كان <span> — الفرق إنه صار قابل للضغط */
 .brand-tiles {
   display: flex;
   gap: clamp(4px, 1.2vw, 8px);
   /* منظور خفيف عشان انقلاب الخانات يبين مجسّم مو مجرد تصغير عمودي */
   perspective: 600px;
+  background: none;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.brand-tiles:focus-visible {
+  outline: 3px solid var(--gold);
+  outline-offset: 6px;
+  border-radius: 14px;
 }
 
 .brand-tile {
@@ -411,18 +445,21 @@ body.home-page .page {
   margin: 0;
 }
 
-/* كشف الخانات عند فتح الصفحة — نفس إحساس انقلاب الحرف باللعبة */
+/* كشف الخانات — نفس إحساس انقلاب الحرف باللعبة.
+   الحركة معلّقة على كلاس `replay` مو على `.brand-tile` مباشرة: الكلاس موجود
+   بالـHTML فتشتغل أول ما تفتح الصفحة، و js/brand.js يشيله ويرجّعه عند الضغط
+   عشان تنعاد. إضافة كلاس ما يغيّر خصائص الحركة ما تعيد تشغيلها، فلازم تنشال أول */
 @media (prefers-reduced-motion: no-preference) {
-  .brand-tile {
+  .brand-tiles.replay .brand-tile {
     animation: brand-tile-flip 0.42s ease-out backwards;
   }
 
-  .brand-tile:nth-child(1) { animation-delay: 0.05s; }
-  .brand-tile:nth-child(2) { animation-delay: 0.12s; }
-  .brand-tile:nth-child(3) { animation-delay: 0.19s; }
-  .brand-tile:nth-child(4) { animation-delay: 0.26s; }
-  .brand-tile:nth-child(5) { animation-delay: 0.33s; }
-  .brand-tile:nth-child(6) { animation-delay: 0.4s; }
+  .brand-tiles.replay .brand-tile:nth-child(1) { animation-delay: 0.05s; }
+  .brand-tiles.replay .brand-tile:nth-child(2) { animation-delay: 0.12s; }
+  .brand-tiles.replay .brand-tile:nth-child(3) { animation-delay: 0.19s; }
+  .brand-tiles.replay .brand-tile:nth-child(4) { animation-delay: 0.26s; }
+  .brand-tiles.replay .brand-tile:nth-child(5) { animation-delay: 0.33s; }
+  .brand-tiles.replay .brand-tile:nth-child(6) { animation-delay: 0.4s; }
 }
 
 @keyframes brand-tile-flip {
@@ -623,7 +660,7 @@ body.home-page .page {
 }
 
 .hint-box {
-  background: var(--blue-100);
+  background: var(--surface-soft);
   border-radius: 10px;
   padding: 10px 14px;
   text-align: center;
@@ -643,8 +680,8 @@ body.home-page .page {
   align-items: center;
   gap: 6px;
   background: var(--white);
-  border: 2px solid var(--blue-500);
-  color: var(--blue-700);
+  border: 2px solid var(--border-soft);
+  color: var(--navy);
   border-radius: 999px;
   padding: 8px 14px;
   font-family: inherit;
@@ -669,8 +706,8 @@ body.home-page .page {
 
 .ability-btn {
   background: var(--white);
-  border: 2px solid var(--blue-500);
-  color: var(--blue-700);
+  border: 2px solid var(--border-soft);
+  color: var(--navy);
   border-radius: 999px;
   padding: 8px 16px;
   font-family: inherit;
@@ -680,7 +717,7 @@ body.home-page .page {
 }
 
 .ability-btn:hover:not(:disabled) {
-  background: var(--blue-100);
+  background: var(--surface-soft);
 }
 
 .ability-btn:disabled {
@@ -723,7 +760,7 @@ body.home-page .page {
   justify-content: space-between;
   padding: 12px 16px;
   border-radius: 12px;
-  background: var(--blue-100);
+  background: var(--surface-soft);
   color: var(--ink);
   font-weight: 800;
 }
@@ -894,9 +931,9 @@ body.home-page .page {
 }
 
 .cat-pill {
-  background: var(--blue-100);
+  background: var(--surface-soft);
   color: var(--blue-700);
-  border: 1px solid var(--blue-300);
+  border: 1px solid var(--border-soft);
   border-radius: 999px;
   padding: 2px 10px;
   font-size: 11.5px;
@@ -946,7 +983,7 @@ body.home-page .page {
   align-items: center;
   gap: 5px;
   white-space: nowrap;
-  background: var(--blue-100);
+  background: var(--surface-soft);
   color: var(--muted);
   border-radius: 999px;
   padding: 2px 9px;
@@ -991,7 +1028,7 @@ body.home-page .page {
   width: var(--tile-size, clamp(40px, 12vw, 52px));
   height: var(--tile-size, clamp(40px, 12vw, 52px));
   flex-shrink: 0;
-  border: 2px solid var(--blue-300);
+  border: 2px solid var(--border-soft);
   border-radius: 8px;
   display: flex;
   align-items: center;
@@ -1364,7 +1401,7 @@ body.home-page .page {
     max-height: 90px;
     overflow-y: auto;
     padding: 5px;
-    border: 1px solid var(--blue-100);
+    border: 1px solid var(--surface-soft);
     border-radius: 12px;
   }
 
@@ -1588,7 +1625,7 @@ body.home-page .page {
   content: "";
   flex: 1;
   height: 1px;
-  background: var(--blue-300);
+  background: var(--border-soft);
   opacity: 0.6;
 }
 
@@ -1601,7 +1638,7 @@ body.home-page .page {
 }
 
 .online-room-box {
-  background: var(--blue-100);
+  background: var(--surface-soft);
   border-radius: var(--radius);
   padding: 14px;
   display: flex;
@@ -1629,7 +1666,7 @@ body.home-page .page {
   align-items: center;
   gap: 10px;
   justify-content: space-between;
-  background: var(--blue-100);
+  background: var(--surface-soft);
   border-radius: 12px;
   padding: 10px 12px;
   border-right: 4px solid var(--gray-absent);
@@ -1692,7 +1729,7 @@ body.home-page .page {
 
 .online-turn-note.watching {
   color: var(--muted);
-  background: var(--blue-100);
+  background: var(--surface-soft);
 }
 
 /* ===== فئة حصرية (ذهبية) + البوق + مؤقّت الجولة ===== */
@@ -1724,7 +1761,7 @@ body.home-page .page {
   font-weight: 700;
   padding: 10px 12px;
   border-radius: 12px;
-  border: 2px solid var(--blue-300);
+  border: 2px solid var(--border-soft);
   background: var(--white);
   color: var(--ink);
   width: 100%;
@@ -1773,7 +1810,7 @@ body.home-page .page {
   font-weight: 700;
   padding: 10px 12px;
   border-radius: 12px;
-  border: 2px solid var(--blue-300);
+  border: 2px solid var(--border-soft);
   background: var(--white);
   color: var(--ink);
   width: 100%;
