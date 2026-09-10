@@ -29,6 +29,13 @@
      المزاج بعدين ينتغيّرون من مكان واحد بدل ما نلاحق عشرين موضع */
   --surface-soft: #f8f1e3;
   --border-soft: #d9c193;
+  /* حواف الأمان (النوتش وشريط الهوم) عبر متغيّرات بدل env() مباشرة بكل موضع:
+     env() ترجّع صفراً دايماً على متصفح سطح المكتب، فبالمتغيّر يقدر الاختبار يحقن
+     قيم جهاز حقيقي ويتأكد إن الواجهة تبتعد عنها فعلاً */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
 }
 
 :root[data-theme="dark"] {
@@ -78,6 +85,9 @@ a {
   color: inherit;
 }
 
+/* الحشو يحترم حواف الأمان (النوتش وشريط الهوم). لازم صراحةً لأن viewport-fit=cover
+   بالـmeta يأمر المتصفح يرسم تحتهم — وبالوضع العرضي النوتش يجي على جنب الشاشة فيغطي
+   عمود كامل من الواجهة. max() تضمن إن الحشو ما يقل عن الأصلي بالأجهزة اللي بلا حواف */
 .page {
   flex: 1;
   min-height: 0;
@@ -85,6 +95,9 @@ a {
   max-width: 1100px;
   margin: 0 auto;
   padding: 14px 16px;
+  padding-inline-start: max(16px, var(--safe-right));
+  padding-inline-end: max(16px, var(--safe-left));
+  padding-bottom: max(14px, var(--safe-bottom));
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -94,6 +107,9 @@ a {
 @media (max-width: 400px) {
   .page {
     padding: 10px;
+    padding-inline-start: max(10px, var(--safe-right));
+    padding-inline-end: max(10px, var(--safe-left));
+    padding-bottom: max(10px, var(--safe-bottom));
     gap: 10px;
   }
 }
@@ -166,8 +182,8 @@ a {
 /* ===== Theme toggle ===== */
 .theme-toggle-btn {
   position: fixed;
-  top: 14px;
-  left: 14px;
+  top: max(14px, var(--safe-top));
+  left: max(14px, var(--safe-left));
   z-index: 999;
   width: 42px;
   height: 42px;
@@ -192,8 +208,8 @@ a {
     width: 36px;
     height: 36px;
     font-size: 15px;
-    top: 10px;
-    left: 10px;
+    top: max(10px, var(--safe-top));
+    left: max(10px, var(--safe-left));
   }
 }
 
@@ -571,6 +587,16 @@ body.home-page .page {
   color: var(--muted);
   font-size: 15px;
   line-height: 1.6;
+}
+
+/* ===== أغلفة شاشة الإعداد =====
+   بالوضع الطولي تختفي تماماً من التخطيط (display:contents)، فأولادها يصيرون أولاد
+   مباشرين للبطاقة زي ما كانوا قبل ما نلفّهم — صفر فرق بالشكل. بالوضع العرضي بس
+   تتحوّل لأعمدة حقيقية (شوف بلوك orientation:landscape) */
+.setup-head,
+.setup-col,
+.setup-foot {
+  display: contents;
 }
 
 /* ===== Team setup ===== */
@@ -1312,6 +1338,11 @@ body.home-page .page {
 @media (orientation: landscape) and (max-height: 600px) {
   .page {
     padding: 6px 10px;
+    /* الاختصار فوق يمسح حشو حواف الأمان، فنرجّعه — وبالوضع العرضي هو الأهم أصلاً
+       لأن النوتش يجي على جنب الشاشة مباشرة فوق الكيبورد */
+    padding-inline-start: max(10px, var(--safe-right));
+    padding-inline-end: max(10px, var(--safe-left));
+    padding-bottom: max(6px, var(--safe-bottom));
     gap: 6px;
   }
 
@@ -1329,7 +1360,7 @@ body.home-page .page {
      بعمودها الخاص، فتصير الشبكة عمود خاص فيها بس (كل الارتفاع لها) وكذا الكيبورد */
   .wordle-wrap {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(150px, 210px) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) minmax(125px, 160px) minmax(0, 1fr);
     grid-template-rows: auto minmax(0, 1fr);
     grid-template-areas:
       "grid info score"
@@ -1406,17 +1437,96 @@ body.home-page .page {
     max-height: 34px;
   }
 
+  /* ما نخلي القائمة حاوية تمرير: بقواعد الفلكس، أي عنصر يصير حاوية تمرير يفقد حده
+     الأدنى التلقائي (min-height:auto يصير صفر)، فينسحق تحت flex-shrink — وهذا اللي
+     كان يخلي ٢٠ فئة تنحشر بعشرة بكسل. البطاقة نفسها تمرّر، فمجال تمرير واحد يكفي */
   #wordle-category-list,
   #online-category-list {
-    max-height: 90px;
-    overflow-y: auto;
+    flex: 0 0 auto;
     padding: 5px;
-    border: 1px solid var(--surface-soft);
+    border: 1px solid var(--border-soft);
     border-radius: 12px;
   }
 
+  /* ===== شاشة الإعداد بعمودين =====
+     المحتوى بعمود واحد يطلع ~٦٠٥px مقابل ٢٧٦–٣٥٨ متاحة، فزر البدء كان يقعد تحت
+     الشاشة بـ١٩٠px بدون أي إشارة إنه موجود.
+     الصف الأوسط ياخذ الباقي (minmax(0,1fr)) والعمودان يمرّرون داخل نفسهم، فصف
+     الأزرار يقعد مثبّت بالأسفل ودايماً ظاهر. عمود الفئات أوسع لأنه الأطول محتوى */
+  #wordle-setup-screen {
+    display: grid;
+    grid-template-columns: 1fr 1.5fr;
+    grid-template-areas:
+      "head head"
+      "cola colb"
+      "foot foot";
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    gap: 6px 14px;
+    overflow: hidden;
+  }
+
+  #wordle-setup-screen .setup-col {
+    overflow-y: auto;
+    /* صريح لأن overflow يلغي الحد الأدنى التلقائي — بدونه ينسحق زي ما انسحقت
+       قائمة الفئات قبل */
+    min-height: 0;
+  }
+
+  /* زر البدء ورابط الأونلاين جنب بعض بدل ما ياخذون سطرين وفاصل بينهم */
+  #wordle-setup-screen .setup-foot {
+    flex-direction: row;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  #wordle-setup-screen .setup-foot .online-divider {
+    display: none;
+  }
+
+  #wordle-setup-screen .setup-foot .btn {
+    flex: 1 1 0;
+    padding: 9px 12px;
+    font-size: 14px;
+  }
+
+  /* اللوبي: عمودان بدون تثبيت صفوف — البطاقة نفسها تمرّر لأن فوقها رمز الغرفة
+     وقائمة اللاعبين، فتقسيمها لمناطق ثابتة يعقّدها بلا فايدة */
+  #online-host-controls {
+    display: grid;
+    grid-template-columns: 1fr 1.5fr;
+    grid-template-areas: "cola colb" "foot foot";
+    align-content: start;
+    gap: 8px 14px;
+  }
+
+  .setup-head { grid-area: head; }
+  .setup-foot { grid-area: foot; }
+  .setup-col:nth-of-type(1) { grid-area: cola; }
+  .setup-col:nth-of-type(2) { grid-area: colb; }
+
+  .setup-head,
+  .setup-col,
+  .setup-foot {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  /* العنوان الفرعي الشارح يختفي — المساحة الرأسية أغلى منه بهالوضع */
+  .setup-intro {
+    display: none;
+  }
+
+  #wordle-setup-screen h2,
+  #online-host-controls h2 {
+    font-size: 17px;
+    margin: 0;
+  }
+
+  /* ارتفاع الشريط يحدّده زر الثيم مو النص، فتنحيفه يبدأ من الزر */
   .topbar {
-    padding: 4px 10px;
+    padding: 3px 10px;
   }
 
   .topbar h1 {
@@ -1424,14 +1534,14 @@ body.home-page .page {
   }
 
   .topbar .home-link {
-    padding: 3px 8px;
+    padding: 2px 8px;
     font-size: 11px;
   }
 
   .theme-toggle-inline {
-    width: 28px;
-    height: 28px;
-    font-size: 13px;
+    width: 22px;
+    height: 22px;
+    font-size: 11px;
   }
 
   #wordle-subtitle,

@@ -34,55 +34,66 @@
       </div>
 
       <!-- شاشة إعداد الفريقين -->
+      <!-- المجموعات ملفوفة عشان الوضع العرضي يصفّها بعمودين. بالوضع الطولي كل
+           غلاف يصير display:contents فيختفي من التخطيط تماماً — الترتيب والشكل
+           يبقون مثل ما هم بالضبط -->
       <section id="wordle-setup-screen" class="card stack">
-        <h2 class="center">إعداد الفريقين</h2>
-        <p class="muted center">فريقان، كل فريق ياخذ دوره كامل بكلمته الخاصة</p>
-
-        <div class="team-setup-list">
-          <div class="team-setup-row">
-            <div class="team-swatch" style="background: #12539f"></div>
-            <input type="text" id="wordle-team1-input" maxlength="20" placeholder="الفريق الأول" />
-          </div>
-          <div class="team-setup-row">
-            <div class="team-swatch" style="background: #06264a"></div>
-            <input type="text" id="wordle-team2-input" maxlength="20" placeholder="الفريق الثاني" />
-          </div>
+        <div class="setup-head">
+          <h2 class="center">إعداد الفريقين</h2>
+          <p class="muted center setup-intro">فريقان، كل فريق ياخذ دوره كامل بكلمته الخاصة</p>
         </div>
 
-        <p class="muted center">اختر الفئات (كلها مفعّلة افتراضياً)</p>
-        <div class="abilities-row">
-          <label class="category-chip all">
-            <input type="checkbox" id="wordle-cat-all" checked />
-            الكل
-          </label>
+        <div class="setup-col">
+          <div class="team-setup-list">
+            <div class="team-setup-row">
+              <div class="team-swatch" style="background: #12539f"></div>
+              <input type="text" id="wordle-team1-input" maxlength="20" placeholder="الفريق الأول" />
+            </div>
+            <div class="team-setup-row">
+              <div class="team-swatch" style="background: #06264a"></div>
+              <input type="text" id="wordle-team2-input" maxlength="20" placeholder="الفريق الثاني" />
+            </div>
+          </div>
+
+          <p class="muted center">وقت الجولة</p>
+          <select id="wordle-round-time" class="round-time-select"></select>
+          <input
+            type="number"
+            id="wordle-round-time-custom"
+            class="round-time-custom hidden"
+            min="1"
+            max="60"
+            step="1"
+            value="4"
+            placeholder="كم دقيقة؟"
+          />
+          <p id="wordle-round-time-hint" class="muted center round-time-hint hidden">
+            بالدقائق (من ١ إلى ٦٠)
+          </p>
         </div>
-        <div id="wordle-category-list" class="abilities-row"></div>
-        <p id="wordle-category-error" class="hidden" style="color: var(--red); font-weight: 700; text-align: center"></p>
 
-        <p class="muted center">وقت الجولة</p>
-        <select id="wordle-round-time" class="round-time-select"></select>
-        <input
-          type="number"
-          id="wordle-round-time-custom"
-          class="round-time-custom hidden"
-          min="1"
-          max="60"
-          step="1"
-          value="4"
-          placeholder="كم دقيقة؟"
-        />
-        <p id="wordle-round-time-hint" class="muted center round-time-hint hidden">
-          بالدقائق (من ١ إلى ٦٠)
-        </p>
+        <div class="setup-col">
+          <p class="muted center">اختر الفئات (كلها مفعّلة افتراضياً)</p>
+          <div class="abilities-row">
+            <label class="category-chip all">
+              <input type="checkbox" id="wordle-cat-all" checked />
+              الكل
+            </label>
+          </div>
+          <div id="wordle-category-list" class="abilities-row"></div>
+          <p id="wordle-category-error" class="hidden" style="color: var(--red); font-weight: 700; text-align: center"></p>
+        </div>
 
-        <button id="wordle-start-btn" class="btn btn-primary btn-block">
-          ابدأ اللعبة
-        </button>
+        <div class="setup-foot">
+          <button id="wordle-start-btn" class="btn btn-primary btn-block">
+            ابدأ اللعبة
+          </button>
 
-        <div class="online-divider"><span>أو</span></div>
-        <a class="btn btn-outline btn-block" href="wordle-online.html">
-          العب أونلاين مع ربعك 🌐
-        </a>
+          <div class="online-divider"><span>أو</span></div>
+          <a class="btn btn-outline btn-block" href="wordle-online.html">
+            العب أونلاين مع ربعك 🌐
+          </a>
+        </div>
       </section>
 
       <!-- شاشة اللعب -->

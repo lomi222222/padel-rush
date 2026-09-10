@@ -85,49 +85,57 @@
           </div>
         </div>
 
+        <!-- نفس لفّ المجموعات حق شاشة الإعداد المحلية: عمودان بالعرضي،
+             وdisplay:contents بالطولي فما يتغيّر شي -->
         <div id="online-host-controls" class="stack hidden">
-          <button id="online-auto-assign-btn" class="btn btn-outline btn-block">
-            توزيع تلقائي ⚡
-          </button>
+          <div class="setup-col">
+            <button id="online-auto-assign-btn" class="btn btn-outline btn-block">
+              توزيع تلقائي ⚡
+            </button>
 
-          <div class="team-setup-list">
-            <div class="team-setup-row">
-              <div class="team-swatch" style="background: #12539f"></div>
-              <input type="text" id="online-team1-input" maxlength="20" placeholder="الفريق الأول" />
+            <div class="team-setup-list">
+              <div class="team-setup-row">
+                <div class="team-swatch" style="background: #12539f"></div>
+                <input type="text" id="online-team1-input" maxlength="20" placeholder="الفريق الأول" />
+              </div>
+              <div class="team-setup-row">
+                <div class="team-swatch" style="background: #06264a"></div>
+                <input type="text" id="online-team2-input" maxlength="20" placeholder="الفريق الثاني" />
+              </div>
             </div>
-            <div class="team-setup-row">
-              <div class="team-swatch" style="background: #06264a"></div>
-              <input type="text" id="online-team2-input" maxlength="20" placeholder="الفريق الثاني" />
-            </div>
+
+            <p class="muted center">وقت الجولة</p>
+            <select id="online-round-time" class="round-time-select"></select>
+            <input
+              type="number"
+              id="online-round-time-custom"
+              class="round-time-custom hidden"
+              min="1"
+              max="60"
+              step="1"
+              value="4"
+              placeholder="كم دقيقة؟"
+            />
+            <p id="online-round-time-hint" class="muted center round-time-hint hidden">
+              بالدقائق (من ١ إلى ٦٠)
+            </p>
           </div>
 
-          <p class="muted center">اختر الفئات (كلها مفعّلة افتراضياً)</p>
-          <div class="abilities-row">
-            <label class="category-chip all">
-              <input type="checkbox" id="online-cat-all" checked />
-              الكل
-            </label>
+          <div class="setup-col">
+            <p class="muted center">اختر الفئات (كلها مفعّلة افتراضياً)</p>
+            <div class="abilities-row">
+              <label class="category-chip all">
+                <input type="checkbox" id="online-cat-all" checked />
+                الكل
+              </label>
+            </div>
+            <div id="online-category-list" class="abilities-row"></div>
           </div>
-          <div id="online-category-list" class="abilities-row"></div>
 
-          <p class="muted center">وقت الجولة</p>
-          <select id="online-round-time" class="round-time-select"></select>
-          <input
-            type="number"
-            id="online-round-time-custom"
-            class="round-time-custom hidden"
-            min="1"
-            max="60"
-            step="1"
-            value="4"
-            placeholder="كم دقيقة؟"
-          />
-          <p id="online-round-time-hint" class="muted center round-time-hint hidden">
-            بالدقائق (من ١ إلى ٦٠)
-          </p>
-
-          <p id="online-lobby-error" class="online-error hidden"></p>
-          <button id="online-start-btn" class="btn btn-primary btn-block">ابدأ اللعبة</button>
+          <div class="setup-foot">
+            <p id="online-lobby-error" class="online-error hidden"></p>
+            <button id="online-start-btn" class="btn btn-primary btn-block">ابدأ اللعبة</button>
+          </div>
         </div>
 
         <p id="online-wait-host" class="muted center">بانتظار الهوست يبدأ اللعبة…</p>

@@ -137,9 +137,14 @@
     const rawHeight =
       availableY > 0 ? (availableY - gapPx * (maxAttempts - 1)) / maxAttempts : Infinity;
 
-    // ١٣ أصغر مقاس يظل الحرف مقروء فيه. تحته نفضّل التمرير داخل صندوق الشبكة على
-    // إننا نصغّر لدرجة ما تنقرا — ويصير بـ٣٪ من البنك بس (العناوين الطويلة جداً)
-    const size = Math.max(13, Math.min(72, Math.floor(Math.min(rawWidth, rawHeight))));
+    // قيد الارتفاع له أرضية، وقيد العرض ما له. الفرق مقصود:
+    // - لو الطول ما يكفي، الشبكة تنزل وتصعد داخل .wordle-grid-scroll — أحسن من إننا
+    //   نصغّر الخانة لدرجة ما تنقرا (٢٠px بالعرضي كانت النتيجة قبل).
+    // - لو العرض ما يكفي، ما نقدر نتجاوزه: الشبكة بتطلع برّا الشاشة أفقياً، وتمرير
+    //   الكلمة يمين ويسار يخرب اللعبة نفسها. فالعرض يبقى سقفاً صلباً.
+    const READABLE = 26;
+    const byHeight = Math.max(READABLE, rawHeight);
+    const size = Math.max(13, Math.min(72, Math.floor(Math.min(rawWidth, byHeight))));
     // ما نكتب إلا لو تغيّر فعلاً — يقطع أي دورة بين المراقب وتغيّر المقاس
     if (gridEl._tileSize === size) return;
     gridEl._tileSize = size;
