@@ -14,7 +14,8 @@
   let matchOver = false;
   let selectedCategories = new Set(Core.SELECTABLE_CATEGORIES);
   let wordBag = Core.makeWordBag(selectedCategories);
-  let boqLeft = [Core.BOQ_PER_TEAM, Core.BOQ_PER_TEAM];
+  let roundsPerTeam = Core.DEFAULT_ROUNDS;
+  let boqLeft = [Core.boqForRounds(roundsPerTeam), Core.boqForRounds(roundsPerTeam)];
   let roundSeconds = 0;
 
   // ===== حالة الجولة الحالية =====
@@ -62,6 +63,7 @@
   const catAllCheckbox = document.getElementById("wordle-cat-all");
   const catListEl = document.getElementById("wordle-category-list");
   const catErrorEl = document.getElementById("wordle-category-error");
+  const roundCountSelect = document.getElementById("wordle-round-count");
   const roundTimeSelect = document.getElementById("wordle-round-time");
   const roundTimeCustom = document.getElementById("wordle-round-time-custom");
   const roundTimeHint = document.getElementById("wordle-round-time-hint");
@@ -91,6 +93,15 @@
 
   renderCategoryChecklist();
 
+  // ===== عدد الجولات =====
+  Core.ROUND_COUNT_OPTIONS.forEach((n) => {
+    const o = document.createElement("option");
+    o.value = String(n);
+    o.textContent = Core.roundCountLabel(n);
+    if (n === Core.DEFAULT_ROUNDS) o.selected = true;
+    roundCountSelect.appendChild(o);
+  });
+
   // ===== مدة الجولة =====
   Core.ROUND_TIME_OPTIONS.forEach((opt) => {
     const o = document.createElement("option");
@@ -117,7 +128,9 @@
     wordBag = Core.makeWordBag(selectedCategories);
     wordBag.refill();
     roundSeconds = Core.readRoundSeconds(roundTimeSelect, roundTimeCustom);
-    boqLeft = [Core.BOQ_PER_TEAM, Core.BOQ_PER_TEAM];
+    roundsPerTeam = Number(roundCountSelect.value) || Core.DEFAULT_ROUNDS;
+    // البوق يتوسّع مع عدد الجولات عشان يظل معناه ثابتاً — شوف boqForRounds
+    boqLeft = [Core.boqForRounds(roundsPerTeam), Core.boqForRounds(roundsPerTeam)];
 
     teams = [
       { name: team1Input.value.trim() || Core.defaultTeamName(0), color: Core.TEAM_COLORS[0], score: 0 },
@@ -312,7 +325,8 @@
       roundsPlayed[teamIndex] + 1,
       wordLength,
       maxAttempts,
-      spaceIndexes
+      spaceIndexes,
+      roundsPerTeam
     );
     View.renderCategoryPills(activeCategoriesEl, selectedCategories);
     showMessage("", "");
@@ -478,7 +492,7 @@
     stopTicking();
     View.renderTimer(timerEl, null, null);
     roundsPlayed[teamIndex]++;
-    matchOver = roundsPlayed.every((r) => r >= Core.ROUNDS_PER_TEAM);
+    matchOver = roundsPlayed.every((r) => r >= roundsPerTeam);
     View.setIconLabel(
       nextTeamBtn,
       matchOver ? "trophy" : "next",

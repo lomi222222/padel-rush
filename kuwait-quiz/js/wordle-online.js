@@ -111,6 +111,7 @@
   const roundEndEl = el("online-round-end");
   const nextTeamBtn = el("online-next-team-btn");
   const roundEndWaitEl = el("online-round-end-wait");
+  const roundCountSelect = el("online-round-count");
   const roundTimeSelect = el("online-round-time");
   const roundTimeCustom = el("online-round-time-custom");
   const roundTimeHint = el("online-round-time-hint");
@@ -121,6 +122,14 @@
   let selectedCategories = new Set(Core.SELECTABLE_CATEGORIES);
   let tickTimer = null; // عدّاد العرض عند الجميع
   let hostClockTimer = null; // عدّاد الهوست اللي يحسم انتهاء الوقت
+
+  Core.ROUND_COUNT_OPTIONS.forEach((n) => {
+    const o = document.createElement("option");
+    o.value = String(n);
+    o.textContent = Core.roundCountLabel(n);
+    if (n === Core.DEFAULT_ROUNDS) o.selected = true;
+    roundCountSelect.appendChild(o);
+  });
 
   Core.ROUND_TIME_OPTIONS.forEach((opt) => {
     const o = document.createElement("option");
@@ -553,7 +562,8 @@
       ack: null,
       roundNumber: 1,
       players: {},
-      boqLeft: [Core.BOQ_PER_TEAM, Core.BOQ_PER_TEAM],
+      roundsPerTeam: Core.DEFAULT_ROUNDS,
+      boqLeft: [Core.boqForRounds(Core.DEFAULT_ROUNDS), Core.boqForRounds(Core.DEFAULT_ROUNDS)],
       steal: null,
       roundSeconds: 0,
       deadline: null,
@@ -620,7 +630,10 @@
     hostState.bag = Core.makeWordBag(selectedCategories);
     hostState.bag.refill();
     hostState.categories = [...selectedCategories];
-    hostState.boqLeft = [Core.BOQ_PER_TEAM, Core.BOQ_PER_TEAM];
+    hostState.roundsPerTeam = Number(roundCountSelect.value) || Core.DEFAULT_ROUNDS;
+    // البوق يتوسّع مع عدد الجولات عشان يظل معناه ثابتاً — شوف boqForRounds
+    const boqs = Core.boqForRounds(hostState.roundsPerTeam);
+    hostState.boqLeft = [boqs, boqs];
     hostState.roundSeconds = Core.readRoundSeconds(roundTimeSelect, roundTimeCustom);
 
     roomRef("meta/status").set("playing");
@@ -684,7 +697,14 @@
         message: h.message,
         roundNumber: h.roundNumber,
         subtitle: h.teams.length
-          ? Core.roundSubtitle(h.teams[h.teamIndex].name, h.roundNumber, h.wordLength, h.maxAttempts, h.spaceIndexes)
+          ? Core.roundSubtitle(
+              h.teams[h.teamIndex].name,
+              h.roundNumber,
+              h.wordLength,
+              h.maxAttempts,
+              h.spaceIndexes,
+              h.roundsPerTeam
+            )
           : "",
         // الكلمة ما تنكشف إلا بعد نهاية الجولة
         revealedWord: h.gameOver ? h.target : null,
@@ -905,7 +925,7 @@
     h.deadline = null;
     h.pausedRemainingMs = null;
     h.roundsPlayed[h.teamIndex]++;
-    h.matchOver = h.roundsPlayed.every((r) => r >= Core.ROUNDS_PER_TEAM);
+    h.matchOver = h.roundsPlayed.every((r) => r >= h.roundsPerTeam);
     publishState();
   }
 

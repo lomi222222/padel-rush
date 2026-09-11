@@ -7,7 +7,10 @@
   const ARABIC_LETTER_RE = /^[ء-ي]$/;
   const ARABIC_DIGITS = ["٠", "١", "٢", "٣", "٤", "٥", "٦", "٧", "٨", "٩"];
   const TEAM_COLORS = ["#12539f", "#06264a"];
-  const ROUNDS_PER_TEAM = 5;
+
+  // عدد جولات كل فريق — يختاره الهوست. كل فريق يلعب نفس العدد فما فيه أفضلية للبادئ
+  const ROUND_COUNT_OPTIONS = [3, 5, 7, 10];
+  const DEFAULT_ROUNDS = 5;
 
   const KEYBOARD_ROWS = [
     ["ض", "ص", "ث", "ق", "ف", "غ", "ع", "ه", "خ", "ح", "ج"],
@@ -23,8 +26,16 @@
   const EXCLUSIVE_CATEGORIES = new Set(["سور القرآن الكريم"]);
   const SELECTABLE_CATEGORIES = ALL_CATEGORIES.filter((c) => !EXCLUSIVE_CATEGORIES.has(c));
 
-  // البوق: الفريق المنتظر يقاطع ويسرق الكلمة — محاولة وحدة، ومرتين بالمباراة
-  const BOQ_PER_TEAM = 2;
+  // البوق: الفريق المنتظر يقاطع ويسرق الكلمة — محاولة وحدة.
+  //
+  // عدد البوقات يتوسّع مع عدد الجولات عمداً. البوق ياخذ قيمة الجولة كاملة، فلو خليناه
+  // ثابتاً (٢) يصير معناه مختلفاً تماماً حسب طول المباراة: بـ٣ جولات يكون متاحاً
+  // بـ٦٧٪ من أدوار انتظارك فتصير اللعبة "لعبة بوق"، وبـ١٠ جولات ينزل لـ٢٠٪ فيصير
+  // هامشاً. القسمة على ٢.٥ تثبّت النسبة تقريباً: ٣→١، ٥→٢، ٧→٣، ١٠→٤
+  function boqForRounds(roundsPerTeam) {
+    return Math.max(1, Math.round(roundsPerTeam / 2.5));
+  }
+
   const BOQ_ATTEMPTS = 1;
 
   // مدة الجولة (بالثواني) — 0 يعني بدون وقت، و CUSTOM_TIME يفتح حقل رقم بالدقائق
@@ -60,6 +71,12 @@
 
   function stealAttemptsLabel(n) {
     return countLabel(n, ATTEMPT_FORMS);
+  }
+
+  // نص خيار عدد الجولات — عبر countLabel عشان التمييز يظل سليماً لو انضافت خيارات
+  // خارج نطاق ٣-١٠ بعدين (١ تصير "جولة" و٢ "جولتين" بدل "١ جولات")
+  function roundCountLabel(n) {
+    return countLabel(n, { one: "جولة", two: "جولتين", few: "جولات", many: "جولة" }) + " لكل فريق";
   }
 
   // يطبّق اختيار/إلغاء فئة مع مراعاة الحصرية، ويرجّع المجموعة الجديدة
@@ -245,7 +262,7 @@
     return toArabicDigits(m) + ":" + toArabicDigits(String(s % 60).padStart(2, "0"));
   }
 
-  function roundSubtitle(teamName, roundNumber, wordLength, maxAttempts, spaceIndexes) {
+  function roundSubtitle(teamName, roundNumber, wordLength, maxAttempts, spaceIndexes, roundsPerTeam) {
     // المسافات في العناوين متعددة الكلمات تنعبّي تلقائياً، فما تنعدّ حروفاً
     const spaces = spaceIndexes instanceof Set ? spaceIndexes.size : (spaceIndexes || []).length;
     const letters = Math.max(1, wordLength - spaces);
@@ -256,7 +273,7 @@
       " (الجولة " +
       toArabicDigits(roundNumber) +
       " من " +
-      toArabicDigits(ROUNDS_PER_TEAM) +
+      toArabicDigits(roundsPerTeam || DEFAULT_ROUNDS) +
       ") — " +
       (spaces ? countLabel(spaces + 1, { one: "كلمة", two: "كلمتين", few: "كلمات", many: "كلمة" }) : "كلمة") +
       " من " +
@@ -299,12 +316,14 @@
   window.WordleCore = {
     ARABIC_LETTER_RE,
     TEAM_COLORS,
-    ROUNDS_PER_TEAM,
+    ROUND_COUNT_OPTIONS,
+    DEFAULT_ROUNDS,
+    roundCountLabel,
     KEYBOARD_ROWS,
     ALL_CATEGORIES,
     EXCLUSIVE_CATEGORIES,
     SELECTABLE_CATEGORIES,
-    BOQ_PER_TEAM,
+    boqForRounds,
     BOQ_ATTEMPTS,
     ROUND_TIME_OPTIONS,
     CUSTOM_TIME,
