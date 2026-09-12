@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem("kw-theme");
+          if (!t) t = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+          document.documentElement.setAttribute("data-theme", t);
+        } catch (e) {}
+      })();
+    </script>
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
+    />
+    <title>احزر الكلمة أونلاين - الأذكى</title>
+    <link rel="icon" href="logo.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="page">
+      <div class="topbar">
+        <h1>احزر الكلمة أونلاين</h1>
+        <a class="home-link" href="index.html" title="القائمة الرئيسية" aria-label="الأذكى — القائمة الرئيسية">
+          <svg class="topbar-mark" viewBox="0 0 50 24" aria-hidden="true">
+            <rect x="1.5" y="1.5" width="14" height="21" rx="4" fill="none" stroke="currentColor" stroke-width="3" />
+            <rect x="18" y="1.5" width="14" height="21" rx="4" fill="currentColor" />
+            <rect x="34.5" y="1.5" width="14" height="21" rx="4" fill="none" stroke="currentColor" stroke-width="3" />
+          </svg>
+          الأذكى
+        </a>
+      </div>
+
+      <p id="online-status" class="online-status hidden"></p>
+
+      <!-- شاشة البداية: إنشاء غرفة أو دخول برمز -->
+      <section id="online-home" class="card stack">
+        <h2 class="center">العب مع ربعك</h2>
+        <p class="muted center">
+          واحد يسوي غرفة ويدز الرابط، والباقي يدشون من جوالاتهم ويتوزعون على فريقين
+        </p>
+
+        <input type="text" id="online-name-input" maxlength="16" placeholder="اسمك" />
+
+        <button id="online-create-btn" class="btn btn-primary btn-block">
+          <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 8.5v7M8.5 12h7"/></svg> إنشاء غرفة جديدة
+        </button>
+
+        <div class="online-divider"><span>أو</span></div>
+
+        <input
+          type="text"
+          id="online-code-input"
+          maxlength="4"
+          placeholder="رمز الغرفة"
+          class="online-code-input"
+          autocomplete="off"
+        />
+        <button id="online-join-btn" class="btn btn-outline btn-block">دخول غرفة</button>
+
+        <p id="online-home-error" class="online-error hidden"></p>
+      </section>
+
+      <!-- اللوبي -->
+      <section id="online-lobby" class="card stack hidden">
+        <div class="online-room-box">
+          <p class="muted center">رمز الغرفة</p>
+          <div id="online-room-code" class="online-room-code"></div>
+          <div class="row" style="justify-content: center">
+            <button id="online-copy-btn" class="btn btn-outline"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13.5a3.5 3.5 0 0 0 5 0l3-3a3.5 3.5 0 0 0-5-5l-1.2 1.2"/><path d="M14 10.5a3.5 3.5 0 0 0-5 0l-3 3a3.5 3.5 0 0 0 5 5l1.2-1.2"/></svg> نسخ الرابط</button>
+            <a id="online-wa-btn" class="btn btn-outline" target="_blank" rel="noopener"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11.5v7A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5v-7"/><path d="M12 15V4"/><path d="M8 7.5L12 3.5l4 4"/></svg> مشاركة</a>
+          </div>
+        </div>
+
+        <h3 class="center">اللاعبون</h3>
+        <div id="online-players" class="online-players"></div>
+
+        <div class="stack">
+          <p class="muted center">اختر فريقك</p>
+          <div class="row" style="justify-content: center">
+            <button type="button" class="btn btn-outline online-team-pick" data-team="0"></button>
+            <button type="button" class="btn btn-outline online-team-pick" data-team="1"></button>
+          </div>
+        </div>
+
+        <!-- نفس لفّ المجموعات حق شاشة الإعداد المحلية: عمودان بالعرضي،
+             وdisplay:contents بالطولي فما يتغيّر شي -->
+        <div id="online-host-controls" class="stack hidden">
+          <div class="setup-col">
+            <button id="online-auto-assign-btn" class="btn btn-outline btn-block">
+              <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h4l10 10h4"/><path d="M3 17h4l10-10h4"/><path d="M18 4l3 3-3 3"/><path d="M18 14l3 3-3 3"/></svg> توزيع تلقائي
+            </button>
+
+            <div class="team-setup-list">
+              <div class="team-setup-row">
+                <div class="team-swatch" style="background: #12539f"></div>
+                <input type="text" id="online-team1-input" maxlength="20" placeholder="الفريق الأول" />
+              </div>
+              <div class="team-setup-row">
+                <div class="team-swatch" style="background: #06264a"></div>
+                <input type="text" id="online-team2-input" maxlength="20" placeholder="الفريق الثاني" />
+              </div>
+            </div>
+
+            <p class="muted center">عدد الجولات</p>
+            <select id="online-round-count" class="round-time-select"></select>
+
+            <p class="muted center">وقت الجولة</p>
+            <select id="online-round-time" class="round-time-select"></select>
+            <input
+              type="number"
+              id="online-round-time-custom"
+              class="round-time-custom hidden"
+              min="1"
+              max="60"
+              step="1"
+              value="4"
+              placeholder="كم دقيقة؟"
+            />
+            <p id="online-round-time-hint" class="muted center round-time-hint hidden">
+              بالدقائق (من ١ إلى ٦٠)
+            </p>
+          </div>
+
+          <div class="setup-col">
+            <p class="muted center">اختر الفئات (كلها مفعّلة افتراضياً)</p>
+            <div class="abilities-row">
+              <label class="category-chip all">
+                <input type="checkbox" id="online-cat-all" checked />
+                الكل
+              </label>
+            </div>
+            <div id="online-category-list" class="abilities-row"></div>
+          </div>
+
+          <div class="setup-foot">
+            <p id="online-lobby-error" class="online-error hidden"></p>
+            <button id="online-start-btn" class="btn btn-primary btn-block">ابدأ اللعبة</button>
+          </div>
+        </div>
+
+        <p id="online-wait-host" class="muted center">بانتظار الهوست يبدأ اللعبة…</p>
+      </section>
+
+      <!-- شاشة اللعب -->
+      <section id="online-play" class="stack hidden">
+        <!-- أربع مناطق: النتائج، الشبكة، المعلومات (الفئات/الجولة/البوق/الدليل/
+             المساعدات/السجل)، الكيبورد. بالطول تترتب فوق بعض بهالتسلسل، وبالعرض
+             تصير ثلاث أعمدة (كيبورد | معلومات | شبكة) — شوف .wordle-wrap بالـCSS -->
+        <div class="card wordle-wrap">
+          <svg class="wrap-motif" viewBox="0 0 200 60" preserveAspectRatio="none" aria-hidden="true">
+            <path d="M0,58 L18,4 L36,58 L54,4 L72,58 L90,4 L108,58 L126,4 L144,58 L162,4 L180,58 L198,4"
+              fill="none" stroke="currentColor" stroke-width="3" />
+          </svg>
+          <div class="score-row">
+            <div id="online-scoreboard" class="scoreboard"></div>
+            <button id="online-end-match-btn" class="btn btn-outline hidden"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 21V4"/><path d="M6 4.5h11l-2.5 4 2.5 4H6"/></svg> إنهاء اللعبة</button>
+          </div>
+
+          <div class="wordle-info">
+            <div id="online-active-categories" class="cat-pills"></div>
+            <p class="round-line" id="online-subtitle"></p>
+            <p id="online-turn-note" class="online-turn-note"></p>
+            <div id="online-timer" class="round-timer hidden"></div>
+            <div class="boq-slot">
+              <button id="online-boq-btn" class="btn boq-btn hidden"></button>
+              <p id="online-steal-note" class="steal-note hidden"></p>
+            </div>
+            <p class="wordle-legend">
+              <span><i class="lg green"></i> مكانه صحيح</span>
+              <span><i class="lg yellow"></i> بمكان آخر</span>
+              <span><i class="lg gray"></i> غير موجود</span>
+            </p>
+
+            <div class="abilities-row">
+              <button id="online-hint-category-btn" class="ability-btn"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.5.4.5 1 .5 1.6v.5h6v-.5c0-.6 0-1.2.5-1.6A6 6 0 0 0 12 3z"/></svg> الفئة ٥٠٪−</button>
+              <button id="online-hint-repeat-btn" class="ability-btn"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6.5" width="8.5" height="11" rx="2.5"/><rect x="13" y="6.5" width="8.5" height="11" rx="2.5"/></svg> حرف مكرر؟ ٥٠−</button>
+              <button id="online-hint-letter-btn" class="ability-btn"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6z"/><circle cx="12" cy="12" r="2.8"/></svg> اكشف حرف ١٠٠−</button>
+            </div>
+
+            <div id="online-hint-log" class="stack"></div>
+          </div>
+
+          <div class="wordle-grid-scroll">
+            <div id="online-grid" class="wordle-grid"></div>
+          </div>
+
+          <div class="wordle-controls">
+            <div id="online-message" class="wordle-message"></div>
+
+            <div id="online-keyboard" class="keyboard"></div>
+
+            <div id="online-round-end" class="row hidden" style="justify-content: center">
+              <button id="online-next-team-btn" class="btn btn-primary"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12H5"/><path d="M11 6l-6 6 6 6"/></svg> دور الفريق التالي</button>
+              <p id="online-round-end-wait" class="muted center hidden">بانتظار الهوست…</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- شاشة النهاية -->
+      <section id="online-end" class="card stack hidden">
+        <div class="winner-banner">
+          <h2 id="online-winner-name"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M7 6H4.5v1.5A3.5 3.5 0 0 0 8 11"/><path d="M17 6h2.5v1.5A3.5 3.5 0 0 1 16 11"/><path d="M12 14v3"/><path d="M8.5 20h7"/></svg> الفريق الفائز</h2>
+          <p id="online-winner-score"></p>
+        </div>
+        <div id="online-final-scores" class="final-scores"></div>
+        <a class="btn btn-primary btn-block" href="wordle-online.html">لعبة جديدة</a>
+      </section>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-database-compat.js"></script>
+    <script src="js/firebase-config.js"></script>
+    <script src="js/words.js"></script>
+    <script src="js/wordle-core.js"></script>
+    <script src="js/wordle-view.js"></script>
+    <script src="js/net-local.js"></script>
+    <script src="js/net.js"></script>
+    <script src="js/wordle-online.js"></script>
+    <script src="js/theme.js" defer></script>
+  </body>
+</html>
