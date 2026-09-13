@@ -36,6 +36,9 @@
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-left: env(safe-area-inset-left, 0px);
   --safe-right: env(safe-area-inset-right, 0px);
+  /* سهم القوائم المنسدلة — نرسمه بأنفسنا لأن مظهر النظام ملغى (شوف
+     .round-time-select). لونه يتبع --ink فينقلب مع الوضع الليلي */
+  --select-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5 6 6.5 11 1.5' fill='none' stroke='%230c2036' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
 :root[data-theme="dark"] {
@@ -51,6 +54,7 @@
   --sand-line: rgba(224, 179, 84, 0.3);
   --surface-soft: #241d14;
   --border-soft: #a08a5e;
+  --select-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5 6 6.5 11 1.5' fill='none' stroke='%23eaf1fb' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
 * {
@@ -2109,11 +2113,22 @@ body.home-page .page {
   font-size: 15px;
   font-weight: 700;
   padding: 10px 12px;
+  /* مساحة لسهم القائمة على اليسار (نهاية السطر بالعربي) */
+  padding-left: 34px;
   border-radius: 12px;
   border: 2px solid var(--border-soft);
-  background: var(--white);
   color: var(--ink);
   width: 100%;
+  /* سفاري بالآيفون كان يرسم القائمة فاضية — ما يبين فيها الاختيار إطلاقاً، لأنه
+     يعتمد على رسم النظام للعنصر مع ستايل مخصص. نلغي مظهر النظام ونرسم النص
+     والسهم بأنفسنا، فالاختيار يبين بنفس الشكل على كل المتصفحات */
+  -webkit-appearance: none;
+  appearance: none;
+  background-color: var(--white);
+  background-image: var(--select-arrow);
+  background-repeat: no-repeat;
+  background-position: left 12px center;
+  background-size: 12px 8px;
 }
 
 .round-timer {

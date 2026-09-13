@@ -104,9 +104,10 @@
     const o = document.createElement("option");
     o.value = String(n);
     o.textContent = Core.roundCountLabel(n);
-    if (n === savedRoundCount) o.selected = true;
     roundCountSelect.appendChild(o);
   });
+  // نحدد القيمة بعد ما تنضاف كل الخيارات (أثبت من selected أثناء الإنشاء)
+  roundCountSelect.value = String(savedRoundCount);
 
   // ===== مدة الجولة =====
   Core.ROUND_TIME_OPTIONS.forEach((opt) => {
