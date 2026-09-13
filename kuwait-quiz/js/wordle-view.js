@@ -388,6 +388,58 @@
     });
   }
 
+  // احتفال إعلان الفوز النهائي: صوت + كونفيتي/ألعاب نارية. يُستدعى مرة وحدة بس عند
+  // انتهاء المباراة فعلياً (مو كل جولة) — الأونلاين يتحمّل هو مسؤولية عدم التكرار
+  // لأن حالته تنرسم أكثر من مرة من Firebase.
+  function celebrateWin() {
+    if (window.KwSound) window.KwSound.playWin();
+    spawnCelebrationOverlay();
+  }
+
+  function spawnCelebrationOverlay() {
+    const overlay = document.createElement("div");
+    overlay.className = "celebrate-overlay";
+    document.body.appendChild(overlay);
+
+    const colors = ["#b8862b", "#06264a", "#e6c15c", "#2f6fb0", "#f6efe0"];
+
+    for (let i = 0; i < 60; i++) {
+      const piece = document.createElement("span");
+      piece.className = "confetti-piece";
+      piece.style.left = Math.random() * 100 + "%";
+      piece.style.background = colors[i % colors.length];
+      piece.style.setProperty("--spin", Math.random() * 720 - 360 + "deg");
+      piece.style.animationDuration = 2.2 + Math.random() * 1.4 + "s";
+      piece.style.animationDelay = Math.random() * 0.5 + "s";
+      overlay.appendChild(piece);
+    }
+
+    for (let b = 0; b < 4; b++) {
+      setTimeout(() => spawnFireworkBurst(overlay, colors), b * 350);
+    }
+
+    setTimeout(() => overlay.remove(), 3600);
+  }
+
+  function spawnFireworkBurst(overlay, colors) {
+    const cx = 15 + Math.random() * 70; // vw
+    const cy = 12 + Math.random() * 35; // vh
+    const particleCount = 18;
+    for (let i = 0; i < particleCount; i++) {
+      const p = document.createElement("span");
+      p.className = "firework-particle";
+      const angle = (Math.PI * 2 * i) / particleCount;
+      const dist = 55 + Math.random() * 40;
+      p.style.left = cx + "vw";
+      p.style.top = cy + "vh";
+      p.style.background = colors[i % colors.length];
+      p.style.setProperty("--dx", Math.cos(angle) * dist + "px");
+      p.style.setProperty("--dy", Math.sin(angle) * dist + "px");
+      p.style.animationDuration = "0.9s";
+      overlay.appendChild(p);
+    }
+  }
+
   window.WordleView = {
     iconSvg,
     setIconLabel,
@@ -401,5 +453,6 @@
     renderCategoryChecklist,
     renderTimer,
     renderFinalScores,
+    celebrateWin,
   };
 })();

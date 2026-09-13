@@ -67,6 +67,10 @@
       actions.className = "topbar-actions";
       btn.classList.add("theme-toggle-inline");
       homeLink.parentNode.insertBefore(actions, homeLink);
+      // زر "طريقة اللعب" (بصفحات اللعب بس) — موجود بالـHTML من البداية، نجمعه هنا
+      // مع زر الثيم بنفس المجموعة بدل ما يضل سايب جنب العنوان
+      const howtoBtn = document.getElementById("wordle-howto-btn");
+      if (howtoBtn) actions.appendChild(howtoBtn);
       actions.appendChild(btn);
       actions.appendChild(homeLink);
     } else {

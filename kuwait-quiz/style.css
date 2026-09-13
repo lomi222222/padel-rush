@@ -237,7 +237,10 @@ a {
   gap: 8px;
 }
 
-.theme-toggle-inline {
+/* .howto-btn (زر "طريقة اللعب") يشارك نفس المقاس والشكل — يحمل class="theme-toggle-btn
+   howto-btn" بالـHTML مباشرة (بلا تدخّل JS زي زر الثيم، لأنه ثابت مكانه من البداية) */
+.theme-toggle-inline,
+.howto-btn {
   position: static;
   width: 38px;
   height: 38px;
@@ -245,14 +248,17 @@ a {
   background: rgba(255, 255, 255, 0.12);
   color: var(--white-fixed);
   box-shadow: none;
+  font-weight: 800;
 }
 
-.theme-toggle-inline:hover {
+.theme-toggle-inline:hover,
+.howto-btn:hover {
   background: rgba(255, 255, 255, 0.22);
 }
 
 @media (max-width: 400px) {
-  .theme-toggle-inline {
+  .theme-toggle-inline,
+  .howto-btn {
     width: 34px;
     height: 34px;
   }
@@ -819,6 +825,153 @@ body.home-page .page {
   background: linear-gradient(90deg, #fff7d6, #ffe9a8);
   border: 2px solid var(--yellow);
   color: #0c2036;
+}
+
+/* ===== نافذة "طريقة اللعب" ===== */
+/* الطبقة والبطاقة تُلحقان بـbody مباشرة (خارج .page)، فوجودها ما يمس قياسات أي
+   شاشة لعب — تماماً زي .celebrate-overlay فوق */
+.howto-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1001;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(6, 38, 74, 0.55);
+  overflow-y: auto;
+}
+
+.howto-card {
+  background: var(--white);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  max-width: 480px;
+  width: 100%;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  gap: 14px;
+}
+
+.howto-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.howto-head h2 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.howto-close {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: var(--surface-soft);
+  color: var(--ink);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.howto-body {
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.howto-body h3 {
+  margin: 0 0 6px;
+  font-size: 15px;
+  color: var(--gold);
+}
+
+.howto-body p {
+  margin: 0;
+  line-height: 1.7;
+}
+
+.howto-tiles {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.howto-list {
+  list-style: none;
+  margin: 0 0 8px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.howto-ico {
+  display: inline-flex;
+  color: var(--gold);
+}
+
+/* ===== احتفال الفوز النهائي: كونفيتي + ألعاب نارية ===== */
+/* عنصر مستقل يُلحَق بـbody عند إعلان الفوز — position:fixed خارج تدفّق الصفحة،
+   فما يقدر يزيد ارتفاع ولا يسبب تمرير أفقي مهما كان عدد القطع بداخله. */
+.celebrate-overlay {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 1000;
+}
+
+.confetti-piece {
+  position: absolute;
+  top: -14px;
+  width: 8px;
+  height: 14px;
+  border-radius: 2px;
+  animation-name: confetti-fall;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+
+@keyframes confetti-fall {
+  to {
+    transform: translateY(112vh) rotate(var(--spin, 360deg));
+    opacity: 0;
+  }
+}
+
+.firework-particle {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  animation-name: firework-burst;
+  animation-timing-function: ease-out;
+  animation-fill-mode: forwards;
+}
+
+@keyframes firework-burst {
+  0% {
+    transform: translate(0, 0) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--dx, 0), var(--dy, 0)) scale(0.3);
+    opacity: 0;
+  }
+}
+
+/* من يفضّل تقليل الحركة: نلغي الحركة بالكامل ونخفي القطع فوراً بدل ما تتراكم ثابتة */
+@media (prefers-reduced-motion: reduce) {
+  .confetti-piece,
+  .firework-particle {
+    display: none;
+  }
 }
 
 /* ===== Wordle ===== */

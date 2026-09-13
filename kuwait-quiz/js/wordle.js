@@ -6,13 +6,15 @@
 
   const Core = window.WordleCore;
   const View = window.WordleView;
+  const Settings = window.WordleSettings;
 
   // ===== حالة الفريقين =====
   let teams = [];
   let teamIndex = 0;
   let roundsPlayed = [0, 0];
   let matchOver = false;
-  let selectedCategories = new Set(Core.SELECTABLE_CATEGORIES);
+  let selectedCategories =
+    (Settings && Settings.loadCategories(Core.ALL_CATEGORIES)) || new Set(Core.SELECTABLE_CATEGORIES);
   let wordBag = Core.makeWordBag(selectedCategories);
   let roundsPerTeam = Core.DEFAULT_ROUNDS;
   let boqLeft = [Core.boqForRounds(roundsPerTeam), Core.boqForRounds(roundsPerTeam)];
@@ -91,14 +93,18 @@
     renderCategoryChecklist();
   });
 
+  syncAllCheckbox(); // الفئات المسترجعة ممكن تكون غير "الكل" — نطابق شكل الدقّة قبل أول رسم
   renderCategoryChecklist();
 
   // ===== عدد الجولات =====
+  const savedRoundCount = Settings
+    ? Settings.loadRoundCount(Core.ROUND_COUNT_OPTIONS, Core.DEFAULT_ROUNDS)
+    : Core.DEFAULT_ROUNDS;
   Core.ROUND_COUNT_OPTIONS.forEach((n) => {
     const o = document.createElement("option");
     o.value = String(n);
     o.textContent = Core.roundCountLabel(n);
-    if (n === Core.DEFAULT_ROUNDS) o.selected = true;
+    if (n === savedRoundCount) o.selected = true;
     roundCountSelect.appendChild(o);
   });
 
@@ -110,11 +116,26 @@
     roundTimeSelect.appendChild(o);
   });
 
-  roundTimeSelect.addEventListener("change", () => {
+  function syncRoundTimeCustomVisibility() {
     const custom = Number(roundTimeSelect.value) === Core.CUSTOM_TIME;
     roundTimeCustom.classList.toggle("hidden", !custom);
     roundTimeHint.classList.toggle("hidden", !custom);
-    if (custom) roundTimeCustom.focus();
+    return custom;
+  }
+
+  if (Settings) {
+    const savedTime = Settings.loadRoundTime();
+    const validValue = Core.ROUND_TIME_OPTIONS.some((o) => String(o.value) === savedTime.value);
+    if (validValue) {
+      roundTimeSelect.value = savedTime.value;
+      if (syncRoundTimeCustomVisibility() && savedTime.customMinutes) {
+        roundTimeCustom.value = savedTime.customMinutes;
+      }
+    }
+  }
+
+  roundTimeSelect.addEventListener("change", () => {
+    if (syncRoundTimeCustomVisibility()) roundTimeCustom.focus();
   });
 
   // ===== إعداد الفريقين =====
@@ -129,6 +150,11 @@
     wordBag.refill();
     roundSeconds = Core.readRoundSeconds(roundTimeSelect, roundTimeCustom);
     roundsPerTeam = Number(roundCountSelect.value) || Core.DEFAULT_ROUNDS;
+    if (Settings) {
+      Settings.saveRoundCount(roundsPerTeam);
+      Settings.saveRoundTime(roundTimeSelect.value, roundTimeCustom.value);
+      Settings.saveCategories(selectedCategories);
+    }
     // البوق يتوسّع مع عدد الجولات عشان يظل معناه ثابتاً — شوف boqForRounds
     boqLeft = [Core.boqForRounds(roundsPerTeam), Core.boqForRounds(roundsPerTeam)];
 
@@ -544,6 +570,7 @@
       },
       teams
     );
+    View.celebrateWin();
   }
 
   document.getElementById("wordle-restart-btn").addEventListener("click", () => {

@@ -60,6 +60,7 @@
   let lastKeyboardSignature = "";
   let lastScoreboardSignature = "";
   let lastTileRev = null;
+  let hasCelebratedEnd = false; // يمنع تكرار صوت/حركة الفوز مع كل إعادة رسم من Firebase
 
   // حالة الهوست الخاصة (ما تُنشر أبداً كاملة)
   let hostState = null;
@@ -119,15 +120,20 @@
   const boqBtn = el("online-boq-btn");
   const stealNoteEl = el("online-steal-note");
 
-  let selectedCategories = new Set(Core.SELECTABLE_CATEGORIES);
+  const Settings = window.WordleSettings;
+  let selectedCategories =
+    (Settings && Settings.loadCategories(Core.ALL_CATEGORIES)) || new Set(Core.SELECTABLE_CATEGORIES);
   let tickTimer = null; // عدّاد العرض عند الجميع
   let hostClockTimer = null; // عدّاد الهوست اللي يحسم انتهاء الوقت
 
+  const savedRoundCount = Settings
+    ? Settings.loadRoundCount(Core.ROUND_COUNT_OPTIONS, Core.DEFAULT_ROUNDS)
+    : Core.DEFAULT_ROUNDS;
   Core.ROUND_COUNT_OPTIONS.forEach((n) => {
     const o = document.createElement("option");
     o.value = String(n);
     o.textContent = Core.roundCountLabel(n);
-    if (n === Core.DEFAULT_ROUNDS) o.selected = true;
+    if (n === savedRoundCount) o.selected = true;
     roundCountSelect.appendChild(o);
   });
 
@@ -138,11 +144,26 @@
     roundTimeSelect.appendChild(o);
   });
 
-  roundTimeSelect.addEventListener("change", () => {
+  function syncRoundTimeCustomVisibility() {
     const custom = Number(roundTimeSelect.value) === Core.CUSTOM_TIME;
     roundTimeCustom.classList.toggle("hidden", !custom);
     roundTimeHint.classList.toggle("hidden", !custom);
-    if (custom) roundTimeCustom.focus();
+    return custom;
+  }
+
+  if (Settings) {
+    const savedTime = Settings.loadRoundTime();
+    const validValue = Core.ROUND_TIME_OPTIONS.some((o) => String(o.value) === savedTime.value);
+    if (validValue) {
+      roundTimeSelect.value = savedTime.value;
+      if (syncRoundTimeCustomVisibility() && savedTime.customMinutes) {
+        roundTimeCustom.value = savedTime.customMinutes;
+      }
+    }
+  }
+
+  roundTimeSelect.addEventListener("change", () => {
+    if (syncRoundTimeCustomVisibility()) roundTimeCustom.focus();
   });
 
   // ===== أدوات عامة =====
@@ -313,6 +334,7 @@
     endMatchBtn.classList.toggle("hidden", !isHost);
 
     if (isHost) {
+      syncAllCheckbox(); // الفئات المسترجعة ممكن تكون غير "الكل" — نطابق شكل الدقّة قبل أول رسم
       renderCategoryChecklist();
     }
 
@@ -635,6 +657,11 @@
     const boqs = Core.boqForRounds(hostState.roundsPerTeam);
     hostState.boqLeft = [boqs, boqs];
     hostState.roundSeconds = Core.readRoundSeconds(roundTimeSelect, roundTimeCustom);
+    if (Settings) {
+      Settings.saveRoundCount(hostState.roundsPerTeam);
+      Settings.saveRoundTime(roundTimeSelect.value, roundTimeCustom.value);
+      Settings.saveCategories(selectedCategories);
+    }
 
     roomRef("meta/status").set("playing");
     hostStartRound();
@@ -1078,15 +1105,21 @@
   function renderCurrent() {
     if (!roomCode) return;
     if (!pub || pub.phase === "lobby") {
+      hasCelebratedEnd = false;
       renderLobby();
       showScreen(lobbyScreen);
       return;
     }
     if (pub.phase === "ended") {
+      if (!hasCelebratedEnd) {
+        hasCelebratedEnd = true;
+        View.celebrateWin();
+      }
       renderEnd();
       showScreen(endScreen);
       return;
     }
+    hasCelebratedEnd = false;
     renderPlay();
     showScreen(playScreen);
   }
