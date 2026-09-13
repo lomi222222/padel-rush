@@ -201,6 +201,62 @@
     return url.toString();
   }
 
+  // ===== نسخ رابط الدعوة =====
+  // الطريقة القديمة (execCommand) لازمة كخطة بديلة: الـClipboard API الحديث ما
+  // يشتغل إلا بسياق آمن (https)، وبعض المتصفحات ترفضه حتى مع الضغط المباشر
+  function legacyCopy(text) {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    // خارج الشاشة بس مو hidden — العنصر المخفي ما ينقرأ منه التحديد
+    ta.style.cssText = "position:fixed;top:0;left:0;width:1px;height:1px;padding:0;border:0;opacity:0;font-size:16px";
+    document.body.appendChild(ta);
+    try {
+      // الآيفون ما يحدد من textarea عادي — يحتاج Range على عنصر قابل للتحرير
+      if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
+        ta.contentEditable = "true";
+        ta.readOnly = false;
+        const range = document.createRange();
+        range.selectNodeContents(ta);
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+        ta.setSelectionRange(0, text.length);
+      } else {
+        ta.select();
+      }
+      return document.execCommand("copy");
+    } catch (e) {
+      return false;
+    } finally {
+      document.body.removeChild(ta);
+    }
+  }
+
+  const copyBtnHtml = copyBtn.innerHTML;
+  let copyResetTimer = null;
+  function flashCopyResult(ok) {
+    clearTimeout(copyResetTimer);
+    if (ok) View.setIconLabel(copyBtn, "check", "اننسخ الرابط");
+    else copyBtn.textContent = "ما انقدر أنسخ — استخدم مشاركة";
+    copyResetTimer = setTimeout(() => {
+      copyBtn.innerHTML = copyBtnHtml;
+    }, 2000);
+  }
+
+  copyBtn.addEventListener("click", () => {
+    const url = joinUrl();
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(
+        () => flashCopyResult(true),
+        // الرفض يجي بعد ما تنتهي لحظة الضغط، فالبديل القديم غالباً ما ينفع هنا —
+        // نجرّبه بأي حال وإلا نبيّن للاعب إن النسخ ما ضبط
+        () => flashCopyResult(legacyCopy(url))
+      );
+      return;
+    }
+    flashCopyResult(legacyCopy(url));
+  });
+
   function cleanupSubs() {
     unsubscribers.forEach((fn) => {
       try {
