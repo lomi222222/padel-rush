@@ -17,6 +17,37 @@
     />
     <title>توقع الكلمة - الأذكى</title>
     <link rel="icon" href="logo.svg" type="image/svg+xml" />
+
+    <!-- التثبيت على الشاشة الرئيسية والعمل بلا نت -->
+    <link rel="manifest" href="manifest.json" />
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon-180.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="الأذكى" />
+    <meta name="theme-color" content="#fbf4e6" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0a1626" media="(prefers-color-scheme: dark)" />
+
+    <!-- بطاقة المعاينة عند مشاركة الرابط. الروابط مطلقة عمداً — واتساب ما يقرأ
+         الروابط النسبية -->
+    <meta
+      name="description"
+      content="فريقان على جهاز واحد يتناوبون على توقّع كلمة عربية سرية: الأخضر بمكانه الصحيح والأصفر بمكان ثاني."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="الأذكى" />
+    <meta property="og:locale" content="ar_AR" />
+    <meta property="og:title" content="توقّع الكلمة — الأذكى" />
+    <meta
+      property="og:description"
+      content="فريقان على جهاز واحد يتناوبون على توقّع كلمة عربية سرية، من ٢٠ فئة."
+    />
+    <meta property="og:url" content="https://lomi222222.github.io/padel-rush/kuwait-quiz/wordle.html" />
+    <meta property="og:image" content="https://lomi222222.github.io/padel-rush/kuwait-quiz/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
@@ -185,5 +216,6 @@
     <script src="js/settings.js"></script>
     <script src="js/wordle.js"></script>
     <script src="js/theme.js" defer></script>
+    <script src="js/pwa.js" defer></script>
   </body>
 </html>

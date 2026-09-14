@@ -17,6 +17,37 @@
     />
     <title>الأذكى - ألعاب تحدي المعلومات والكلمات</title>
     <link rel="icon" href="logo.svg" type="image/svg+xml" />
+
+    <!-- التثبيت على الشاشة الرئيسية والعمل بلا نت -->
+    <link rel="manifest" href="manifest.json" />
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon-180.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="الأذكى" />
+    <meta name="theme-color" content="#fbf4e6" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0a1626" media="(prefers-color-scheme: dark)" />
+
+    <!-- بطاقة المعاينة عند مشاركة الرابط (واتساب/تويتر). الروابط مطلقة عمداً —
+         واتساب ما يقرأ الروابط النسبية -->
+    <meta
+      name="description"
+      content="لعبة كويتية للحفلات: فريقان يتناوبون على توقّع كلمة عربية سرية من بنك فيه ١٢٤٧ كلمة و٢٠ فئة — على جهاز واحد أو أونلاين مع ربعك."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="الأذكى" />
+    <meta property="og:locale" content="ar_AR" />
+    <meta property="og:title" content="الأذكى — توقّع الكلمة" />
+    <meta
+      property="og:description"
+      content="فريقان يتناوبون على توقّع كلمة عربية سرية. ١٢٤٧ كلمة و٢٠ فئة — على جهاز واحد أو أونلاين مع ربعك."
+    />
+    <meta property="og:url" content="https://lomi222222.github.io/padel-rush/kuwait-quiz/" />
+    <meta property="og:image" content="https://lomi222222.github.io/padel-rush/kuwait-quiz/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+
     <link rel="stylesheet" href="style.css" />
   </head>
   <body class="home-page">
@@ -109,6 +140,7 @@
     </main>
 
     <script src="js/theme.js" defer></script>
+    <script src="js/pwa.js" defer></script>
     <script src="js/brand.js" defer></script>
   </body>
 </html>

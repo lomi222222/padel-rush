@@ -17,6 +17,40 @@
     />
     <title>توقع الكلمة أونلاين - الأذكى</title>
     <link rel="icon" href="logo.svg" type="image/svg+xml" />
+
+    <!-- التثبيت على الشاشة الرئيسية والعمل بلا نت -->
+    <link rel="manifest" href="manifest.json" />
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon-180.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="الأذكى" />
+    <meta name="theme-color" content="#fbf4e6" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0a1626" media="(prefers-color-scheme: dark)" />
+
+    <!-- هذي أهم بطاقة معاينة: رابط الدعوة اللي يندزّ بالواتساب يطلع من هالصفحة،
+         فنصّها بصيغة دعوة مو وصف عام. الروابط مطلقة — واتساب ما يقرأ النسبية -->
+    <meta
+      name="description"
+      content="غرفة لعب أونلاين: كل واحد على جواله، فريقان يتنافسون على توقّع الكلمة."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="الأذكى" />
+    <meta property="og:locale" content="ar_AR" />
+    <meta property="og:title" content="تعال العب وياي — توقّع الكلمة" />
+    <meta
+      property="og:description"
+      content="دش الغرفة من جوالك وتوزعوا على فريقين، وشوفوا مين يتوقّع الكلمة أسرع."
+    />
+    <meta
+      property="og:url"
+      content="https://lomi222222.github.io/padel-rush/kuwait-quiz/wordle-online.html"
+    />
+    <meta property="og:image" content="https://lomi222222.github.io/padel-rush/kuwait-quiz/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
@@ -225,5 +259,6 @@
     <script src="js/net.js"></script>
     <script src="js/wordle-online.js"></script>
     <script src="js/theme.js" defer></script>
+    <script src="js/pwa.js" defer></script>
   </body>
 </html>
