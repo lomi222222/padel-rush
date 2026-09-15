@@ -248,6 +248,16 @@
     return { categoryUsed: false, repeatUsed: false, revealLetterUses: 0 };
   }
 
+  // «اكشف حرف» هي المساعدة الوحيدة اللي تتكرر، فلازم لها حد أقصى: بدونه يقدر
+  // اللاعب يكشف الكلمة كاملة، وبعد ما النقاط توصل صفر ما فيه شي يوقفه لأن الخصم
+  // ما ينزل تحت الصفر (شوف Math.max بـfinalScoreForAttempt) — فالكشف يصير مجانياً
+  const MAX_REVEAL_LETTER_USES = 2;
+
+  function revealLetterUsesLeft(hints) {
+    const used = (hints && hints.revealLetterUses) || 0;
+    return Math.max(0, MAX_REVEAL_LETTER_USES - used);
+  }
+
   // النقاط اللي بياخذها الفريق لو حزرها بالمحاولة الجاية — نفس حساب لحظة الفوز
   // بالضبط عشان المعروض ما يختلف عن المقبوض.
   // مع البوق: القيمة تنثبّت من لحظة السرقة (steal.value) فما تتأثر بأي مساعدة
@@ -380,6 +390,8 @@
     finalScoreForAttempt,
     potentialScore,
     potentialScoreLabel,
+    MAX_REVEAL_LETTER_USES,
+    revealLetterUsesLeft,
     splitRoundSubtitle,
     newHints,
     categoriesLabel,

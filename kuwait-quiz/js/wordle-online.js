@@ -907,6 +907,9 @@
       h.hints.repeatUsed = true;
       h.hintLog.push(Core.repeatHintText(h.targetChars));
     } else if (kind === "letter") {
+      // الحارس الفعلي للحد الأقصى: زر اللاعب مقفول بس جهازه يقدر يدز الطلب
+      // بأي وقت، والهوست هو الحكم
+      if (Core.revealLetterUsesLeft(h.hints) === 0) return publishState();
       if (Core.allLettersKnown(h.targetChars, h.keyStatus)) return publishState();
       const hint = Core.revealLetterHint(h.targetChars, h.keyStatus);
       if (!hint) return publishState();
@@ -1304,7 +1307,11 @@
     const hintsAllowed = myTurn && !r.steal;
     hintCategoryBtn.disabled = !hintsAllowed || hints.categoryUsed;
     hintRepeatBtn.disabled = !hintsAllowed || hints.repeatUsed;
-    hintLetterBtn.disabled = !hintsAllowed;
+
+    // الحد ينحسب من revealLetterUses المنشور أصلاً، فالزر ينقفل عند الكل بنفس
+    // اللحظة. الباقي ما ينكتب على الزر — شوف التعليق بـwordle.js: الثلاثة لازم
+    // يقعدون بسطر واحد
+    hintLetterBtn.disabled = !hintsAllowed || Core.revealLetterUsesLeft(hints) === 0;
 
     roundEndEl.classList.toggle("hidden", !r.gameOver);
     nextTeamBtn.classList.toggle("hidden", !isHost);

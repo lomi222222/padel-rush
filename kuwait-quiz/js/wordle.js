@@ -394,7 +394,17 @@
     // أثناء السرقة ما فيه تلميحات — محاولتين وبس
     hintCategoryBtn.disabled = gameOver || !!steal || hints.categoryUsed;
     hintRepeatBtn.disabled = gameOver || !!steal || hints.repeatUsed;
-    hintLetterBtn.disabled = gameOver || !!steal || Core.allLettersKnown(targetChars, keyStatus);
+
+    // «اكشف حرف» تتكرر لحد MAX_REVEAL_LETTER_USES، وبعدها الزر ينقفل.
+    // ما نكتب الباقي على الزر عمداً: الثلاثة لازم يقعدون بسطر واحد (شوف
+    // .wordle-info .ability-btn بالـCSS)، وأي حرفين زيادة يلفّون السطر على
+    // ٣٧٥ بكسل وياكلون ~٣٠ بكسل من ارتفاع الشبكة
+    hintLetterBtn.disabled =
+      gameOver ||
+      !!steal ||
+      Core.revealLetterUsesLeft(hints) === 0 ||
+      Core.allLettersKnown(targetChars, keyStatus);
+
     renderPoints();
   }
 
