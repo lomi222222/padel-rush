@@ -212,9 +212,13 @@
             </p>
             <p id="online-turn-note" class="online-turn-note"></p>
             <div id="online-timer" class="round-timer hidden"></div>
+            <!-- صف الأزرار: البوق + زر فتح سجل التلميحات. السجل نفسه انتقل
+                 لنافذة منبثقة لأن صناديقه كانت تاكل ارتفاع الشبكة، وزره هني
+                 عمداً مو بصف مستقل عشان ما يرجع ياخذ نفس المكان -->
             <div class="boq-slot">
               <button id="online-boq-btn" class="btn boq-btn hidden"></button>
               <p id="online-steal-note" class="steal-note hidden"></p>
+              <button id="online-hintlog-btn" type="button" class="ability-btn hintlog-btn hidden"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h10"/></svg> <span id="online-hintlog-count"></span></button>
             </div>
             <p class="wordle-legend">
               <span><i class="lg green"></i> مكانه صحيح</span>

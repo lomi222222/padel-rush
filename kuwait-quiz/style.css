@@ -2347,3 +2347,69 @@ body.home-page .page {
     padding: 6px 0;
   }
 }
+
+/* ===== نافذة منبثقة صغيرة =====
+   ملحقة بـbody بموضع fixed عمداً: .wordle-info فيه overflow-y:auto
+   و#wordle-play-screen فيه overflow:hidden، فأي شي بموضع مطلق جوّاهم ينقص */
+.kw-popover {
+  position: fixed;
+  z-index: 1002;
+  max-width: min(320px, calc(100vw - 16px));
+  background: var(--white);
+  border: 2px solid var(--border-soft);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.kw-popover-title {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--muted);
+  text-align: center;
+}
+
+/* سجل التلميحات داخل النافذة: العرض مضمون هني فالنص ما ينضغط، والصناديق ترجع
+   بحجمها الطبيعي بدل ما تنكمش عشان توفّر مكاناً */
+.kw-popover #wordle-hint-log,
+.kw-popover #online-hint-log {
+  max-height: min(240px, 40vh);
+}
+
+.kw-popover .hint-box {
+  font-size: 13px;
+  padding: 8px 12px;
+}
+
+/* زر فتح سجل التلميحات — يقعد بصف البوق، ومخفي لين ينوجد تلميح */
+.hintlog-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.hintlog-btn[aria-expanded="true"] {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+/* حبّة «+٧» صارت زراً — نرجّع شكل الحبّة اللي ياخذه الزر من المتصفح */
+button.cat-pill {
+  font-family: inherit;
+  cursor: pointer;
+  line-height: inherit;
+}
+
+button.cat-pill.more:hover {
+  border-style: solid;
+  color: var(--blue-700);
+}
+
+.boq-slot {
+  gap: 6px;
+  flex-wrap: wrap;
+}

@@ -110,6 +110,8 @@
   const hintCategoryBtn = el("online-hint-category-btn");
   const hintRepeatBtn = el("online-hint-repeat-btn");
   const hintLetterBtn = el("online-hint-letter-btn");
+  const hintLogBtn = el("online-hintlog-btn");
+  const hintLogCountEl = el("online-hintlog-count");
   const hintLogEl = el("online-hint-log");
   const messageEl = el("online-message");
   const keyboardEl = el("online-keyboard");
@@ -170,6 +172,28 @@
   roundTimeSelect.addEventListener("change", () => {
     if (syncRoundTimeCustomVisibility()) roundTimeCustom.focus();
   });
+
+  // ===== سجل التلميحات بنافذة منبثقة =====
+  // صناديق السجل كانت تاكل لين ٩٢ بكسل من عمود المعلومات أول ما يستخدم اللاعب
+  // المساعدات، فتنسحق الشبكة. ننقل السجل نفسه (بنفس الـid والعناصر) جوّه نافذة،
+  // فـView.renderHintLog تشتغل عليه مثل ما كانت بالضبط.
+  const hintLogPopover = View.createPopover(hintLogBtn, null, {
+    placeBelow: document.querySelector("#online-play .wordle-info"),
+  });
+  hintLogPopover.panel.appendChild(hintLogEl);
+
+  // نفتحها تلقائياً أول ما يدخل تلميح جديد: اللاعب دفع نقاطاً مقابل هالمعلومة،
+  // فإخفاؤها لحظة شرائها أسوأ من الوضع القديم. الفتح معلّق على **زيادة العدد**
+  // مو على كل إعادة رسم، وإلا بالأونلاين تنفتح مع كل تحديث حالة من فايربيس
+  let lastHintCount = 0;
+  function syncHintLogBtn(entries) {
+    const n = (entries || []).length;
+    hintLogBtn.classList.toggle("hidden", n === 0);
+    hintLogCountEl.textContent = "التلميحات " + Core.toArabicDigits(n);
+    if (n > lastHintCount) hintLogPopover.open();
+    else if (n === 0) hintLogPopover.close();
+    lastHintCount = n;
+  }
 
   // ===== أدوات عامة =====
   function showScreen(which) {
@@ -1317,6 +1341,7 @@
       });
     }
     View.renderHintLog(hintLogEl, r.hintLog || []);
+    syncHintLogBtn(r.hintLog || []);
     View.showMessage(messageEl, (r.message && r.message.text) || "", (r.message && r.message.kind) || "");
 
     // ما فيه تلميحات أثناء السرقة — محاولتين وبس

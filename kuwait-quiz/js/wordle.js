@@ -61,6 +61,8 @@
   const hintCategoryBtn = document.getElementById("wordle-hint-category-btn");
   const hintRepeatBtn = document.getElementById("wordle-hint-repeat-btn");
   const hintLetterBtn = document.getElementById("wordle-hint-letter-btn");
+  const hintLogBtn = document.getElementById("wordle-hintlog-btn");
+  const hintLogCountEl = document.getElementById("wordle-hintlog-count");
   const roundEndEl = document.getElementById("wordle-round-end");
   const nextTeamBtn = document.getElementById("wordle-next-team-btn");
   const endMatchBtn = document.getElementById("wordle-end-match-btn");
@@ -334,6 +336,7 @@
   function logHint(text) {
     hintLog.push(text);
     View.renderHintLog(hintLogEl, hintLog);
+    syncHintLogBtn(hintLog);
   }
 
   function startRound() {
@@ -375,6 +378,7 @@
     View.renderCategoryPills(activeCategoriesEl, selectedCategories);
     showMessage("", "");
     View.renderHintLog(hintLogEl, hintLog);
+    syncHintLogBtn(hintLog);
     roundEndEl.classList.add("hidden");
     updateHintButtons();
 
@@ -382,6 +386,30 @@
     renderGrid();
     renderKeyboard();
     renderScoreboard();
+  }
+
+  // ننقل صف المساعدات نفسه جوّه النافذة — نفس العناصر والـid، فـupdateHintButtons
+  // تشتغل عليها مثل ما كانت بالضبط
+  // ===== سجل التلميحات بنافذة منبثقة =====
+  // صناديق السجل كانت تاكل لين ٩٢ بكسل من عمود المعلومات أول ما يستخدم اللاعب
+  // المساعدات، فتنسحق الشبكة. ننقل السجل نفسه (بنفس الـid والعناصر) جوّه نافذة،
+  // فـView.renderHintLog تشتغل عليه مثل ما كانت بالضبط.
+  const hintLogPopover = View.createPopover(hintLogBtn, null, {
+    placeBelow: document.querySelector("#wordle-play-screen .wordle-info"),
+  });
+  hintLogPopover.panel.appendChild(hintLogEl);
+
+  // نفتحها تلقائياً أول ما يدخل تلميح جديد: اللاعب دفع نقاطاً مقابل هالمعلومة،
+  // فإخفاؤها لحظة شرائها أسوأ من الوضع القديم. الفتح معلّق على **زيادة العدد**
+  // مو على كل إعادة رسم، وإلا بالأونلاين تنفتح مع كل تحديث حالة من فايربيس
+  let lastHintCount = 0;
+  function syncHintLogBtn(entries) {
+    const n = (entries || []).length;
+    hintLogBtn.classList.toggle("hidden", n === 0);
+    hintLogCountEl.textContent = "التلميحات " + Core.toArabicDigits(n);
+    if (n > lastHintCount) hintLogPopover.open();
+    else if (n === 0) hintLogPopover.close();
+    lastHintCount = n;
   }
 
   // كم نقطة بياخذها لو حزرها الحين. ينخفي بعد نهاية الجولة عشان ما يزاحم رسالة

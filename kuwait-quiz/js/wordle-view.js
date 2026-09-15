@@ -278,6 +278,89 @@
 
   // الفئات المختارة كحبّات بدال سطر نص طويل. لو كلها مختارة نكتفي بحبّة وحدة،
   // ولو كثيرة نبيّن أول أربع و"+باقي" عشان ما تاكل ارتفاع الشبكة
+  // ===== نافذة منبثقة صغيرة =====
+  // تُلحق بـdocument.body بموضع fixed — مو داخل عمود المعلومات: .wordle-info فيه
+  // overflow-y:auto و #wordle-play-screen فيه overflow:hidden، فأي شي بموضع مطلق
+  // جوّاهم ينقص. والإحداثيات تنحسب من صندوق الزر وتنحصر داخل الشاشة.
+  // كل النوافذ المفتوحة — فتح وحدة يسكّر الباقي، وإلا انفتحت نافذتان فوق بعض
+  // (سجل التلميحات + قائمة الفئات) وتغطّيان الشاشة
+  const openPopovers = [];
+
+  // opts.placeBelow: عنصر يُحسب الموضع الرأسي تحته بدل الزر نفسه. نحتاجه لسجل
+  // التلميحات: زرّه بصف البوق، فلو انفتحت تحته مباشرة غطّت أزرار المساعدات
+  // اللي تحته — وهي تنفتح تلقائياً بعد كل تلميح، فتصير حاجزاً أمام التلميح التالي
+  function createPopover(anchor, fill, opts) {
+    const panel = document.createElement("div");
+    panel.className = "kw-popover hidden";
+    document.body.appendChild(panel);
+
+    function place() {
+      const a = anchor.getBoundingClientRect();
+      const below = (opts && opts.placeBelow) || anchor;
+      const b = below.getBoundingClientRect();
+      // نقيسه وهو ظاهر عشان العرض والارتفاع يكونون حقيقيين
+      const p = panel.getBoundingClientRect();
+      const margin = 8;
+      // تحت العنصر المرجعي، وفوق الزر لو ما فيه مساحة
+      let top = b.bottom + 6;
+      if (top + p.height > window.innerHeight - margin) {
+        top = Math.max(margin, a.top - p.height - 6);
+      }
+      // متمركز أفقياً على الزر ومحصور داخل الشاشة
+      let left = a.left + a.width / 2 - p.width / 2;
+      left = Math.max(margin, Math.min(left, window.innerWidth - p.width - margin));
+      panel.style.top = Math.round(top) + "px";
+      panel.style.left = Math.round(left) + "px";
+    }
+
+    function isOpen() {
+      return !panel.classList.contains("hidden");
+    }
+
+    function close() {
+      if (!isOpen()) return;
+      panel.classList.add("hidden");
+      anchor.setAttribute("aria-expanded", "false");
+      const i = openPopovers.indexOf(api);
+      if (i >= 0) openPopovers.splice(i, 1);
+      document.removeEventListener("pointerdown", onOutside, true);
+      document.removeEventListener("keydown", onKeydown, true);
+      window.removeEventListener("resize", close);
+    }
+
+    function open() {
+      if (isOpen()) return;
+      openPopovers.slice().forEach((o) => o.close());
+      openPopovers.push(api);
+      if (fill) fill(panel);
+      panel.classList.remove("hidden");
+      anchor.setAttribute("aria-expanded", "true");
+      place();
+      document.addEventListener("pointerdown", onOutside, true);
+      document.addEventListener("keydown", onKeydown, true);
+      window.addEventListener("resize", close);
+    }
+
+    function onOutside(e) {
+      if (panel.contains(e.target) || anchor.contains(e.target)) return;
+      close();
+    }
+
+    function onKeydown(e) {
+      if (e.key === "Escape") close();
+    }
+
+    anchor.setAttribute("aria-expanded", "false");
+    anchor.addEventListener("click", (e) => {
+      e.preventDefault();
+      if (anchor.disabled) return;
+      isOpen() ? close() : open();
+    });
+
+    const api = { panel, open, close, isOpen };
+    return api;
+  }
+
   // سطر الجولة: الجزء الأول بعنصر، و«خلال ٦ محاولات» بعنصر ثاني ملصوق برقم
   // النقاط داخل مجموعة ما تنكسر. بالأونلاين يوصلنا العنوان نص جاهز من الهوست،
   // فالفصل يصير هني على النص نفسه بدل ما نغيّر شكل البيانات المنشورة
@@ -310,12 +393,33 @@
     list.slice(0, MAX_SHOWN).forEach((cat) => {
       add(cat, Core.EXCLUSIVE_CATEGORIES.has(cat) ? "gold" : "");
     });
-    if (list.length > MAX_SHOWN) {
-      add("+" + Core.toArabicDigits(list.length - MAX_SHOWN), "more");
-      el.title = list.join("، ");
-    } else {
-      el.removeAttribute("title");
-    }
+    if (list.length <= MAX_SHOWN) return;
+
+    // «+٧» زر حقيقي يفتح كل الفئات المختارة. كان قبلها title بس — والـtitle ما
+    // يشتغل باللمس إطلاقاً، يعني على الجوال ما كان فيه أي طريقة يشوف المخفي
+    const more = document.createElement("button");
+    more.type = "button";
+    more.className = "cat-pill more";
+    more.textContent = "+" + Core.toArabicDigits(list.length - MAX_SHOWN);
+    more.setAttribute("aria-label", "عرض كل الفئات المختارة");
+    el.appendChild(more);
+
+    createPopover(more, (panel) => {
+      panel.innerHTML = "";
+      const title = document.createElement("p");
+      title.className = "kw-popover-title";
+      title.textContent = "الفئات المختارة";
+      panel.appendChild(title);
+      const wrap = document.createElement("div");
+      wrap.className = "cat-pills";
+      list.forEach((cat) => {
+        const pill = document.createElement("span");
+        pill.className = "cat-pill" + (Core.EXCLUSIVE_CATEGORIES.has(cat) ? " gold" : "");
+        pill.textContent = cat;
+        wrap.appendChild(pill);
+      });
+      panel.appendChild(wrap);
+    });
   }
 
   function showMessage(messageEl, text, kind) {
@@ -460,6 +564,7 @@
     renderScoreboard,
     renderCategoryPills,
     renderRoundLine,
+    createPopover,
     showMessage,
     renderHintLog,
     renderCategoryChecklist,
