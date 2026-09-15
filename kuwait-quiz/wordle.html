@@ -15,7 +15,7 @@
       name="viewport"
       content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
     />
-    <title>توقع الكلمة - الأذكى</title>
+    <title>صيد الكلمة - صيدها</title>
     <link rel="icon" href="logo.svg" type="image/svg+xml" />
 
     <!-- التثبيت على الشاشة الرئيسية والعمل بلا نت -->
@@ -24,7 +24,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <meta name="apple-mobile-web-app-title" content="الأذكى" />
+    <meta name="apple-mobile-web-app-title" content="صيدها" />
     <meta name="theme-color" content="#fbf4e6" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#0a1626" media="(prefers-color-scheme: dark)" />
 
@@ -32,15 +32,15 @@
          الروابط النسبية -->
     <meta
       name="description"
-      content="فريقان على جهاز واحد يتناوبون على توقّع كلمة عربية سرية: الأخضر بمكانه الصحيح والأصفر بمكان ثاني."
+      content="فريقان على جهاز واحد يتناوبون على صيد كلمة عربية سرية: الأخضر بمكانه الصحيح والأصفر بمكان ثاني."
     />
     <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="الأذكى" />
+    <meta property="og:site_name" content="صيدها" />
     <meta property="og:locale" content="ar_AR" />
-    <meta property="og:title" content="توقّع الكلمة — الأذكى" />
+    <meta property="og:title" content="صيد الكلمة — صيدها" />
     <meta
       property="og:description"
-      content="فريقان على جهاز واحد يتناوبون على توقّع كلمة عربية سرية، من فئات متنوّعة."
+      content="فريقان على جهاز واحد يتناوبون على صيد كلمة عربية سرية، من فئات متنوّعة."
     />
     <meta property="og:url" content="https://lomi222222.github.io/padel-rush/kuwait-quiz/wordle.html" />
     <meta property="og:image" content="https://lomi222222.github.io/padel-rush/kuwait-quiz/og-image.png" />
@@ -53,15 +53,15 @@
   <body>
     <div class="page">
       <div class="topbar">
-        <h1>توقع الكلمة</h1>
+        <h1>صيد الكلمة</h1>
         <button id="wordle-howto-btn" type="button" class="theme-toggle-btn howto-btn" aria-label="طريقة اللعب">؟</button>
-        <a class="home-link" href="index.html" title="القائمة الرئيسية" aria-label="الأذكى — القائمة الرئيسية">
+        <a class="home-link" href="index.html" title="القائمة الرئيسية" aria-label="صيدها — القائمة الرئيسية">
           <svg class="topbar-mark" viewBox="0 0 50 24" aria-hidden="true">
             <rect x="1.5" y="1.5" width="14" height="21" rx="4" fill="none" stroke="currentColor" stroke-width="3" />
             <rect x="18" y="1.5" width="14" height="21" rx="4" fill="currentColor" />
             <rect x="34.5" y="1.5" width="14" height="21" rx="4" fill="none" stroke="currentColor" stroke-width="3" />
           </svg>
-          الأذكى
+          صيدها
         </a>
       </div>
 
@@ -150,7 +150,15 @@
 
           <div class="wordle-info">
             <div id="wordle-active-categories" class="cat-pills"></div>
-            <p class="round-line" id="wordle-subtitle"></p>
+            <!-- «خلال ٦ محاولات» والنقاط داخل مجموعة وحدة ما تنكسر، عشان الرقم
+                 يظل ملصوق على يسار المحاولات مهما لف السطر -->
+            <p class="round-line">
+              <span id="wordle-subtitle"></span>
+              <span class="round-tail">
+                <span id="wordle-attempts"></span>
+                <span id="wordle-points" class="round-points"></span>
+              </span>
+            </p>
             <div id="wordle-timer" class="round-timer hidden"></div>
             <div class="boq-slot">
               <button id="wordle-boq-btn" class="btn boq-btn hidden"></button>

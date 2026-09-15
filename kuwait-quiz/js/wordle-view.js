@@ -1,4 +1,4 @@
-// دوال رسم واجهة "احزر الكلمة" — كلها "ارسم من الحالة" وتاخذ كل شي تحتاجه كمعاملات
+// دوال رسم واجهة "صيد الكلمة" — كلها "ارسم من الحالة" وتاخذ كل شي تحتاجه كمعاملات
 // صريحة، فتنفع للوضع المحلي وللأونلاين بنفس الشكل.
 (function () {
   "use strict";
@@ -278,6 +278,15 @@
 
   // الفئات المختارة كحبّات بدال سطر نص طويل. لو كلها مختارة نكتفي بحبّة وحدة،
   // ولو كثيرة نبيّن أول أربع و"+باقي" عشان ما تاكل ارتفاع الشبكة
+  // سطر الجولة: الجزء الأول بعنصر، و«خلال ٦ محاولات» بعنصر ثاني ملصوق برقم
+  // النقاط داخل مجموعة ما تنكسر. بالأونلاين يوصلنا العنوان نص جاهز من الهوست،
+  // فالفصل يصير هني على النص نفسه بدل ما نغيّر شكل البيانات المنشورة
+  function renderRoundLine(subtitleEl, attemptsEl, text) {
+    const parts = Core.splitRoundSubtitle(text || "");
+    subtitleEl.textContent = parts.head;
+    attemptsEl.textContent = parts.tail;
+  }
+
   function renderCategoryPills(el, selectedCategories) {
     const list = [...selectedCategories];
     const all =
@@ -450,6 +459,7 @@
     applyTileSize,
     renderScoreboard,
     renderCategoryPills,
+    renderRoundLine,
     showMessage,
     renderHintLog,
     renderCategoryChecklist,

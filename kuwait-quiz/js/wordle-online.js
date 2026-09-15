@@ -1,4 +1,4 @@
-// الوضع الأونلاين للعبة "احزر الكلمة".
+// الوضع الأونلاين للعبة "صيد الكلمة".
 //
 // المعمارية: جهاز الهوست هو السيرفر. هو وحده اللي يمسك الكلمة السرية وكيس الكلمات
 // ويقيّم التخمينات ويحسب النقاط، وينشر "حالة عامة منقّحة" ما فيها الجواب. أجهزة
@@ -101,6 +101,8 @@
   const endMatchBtn = el("online-end-match-btn");
   const activeCategoriesEl = el("online-active-categories");
   const subtitleEl = el("online-subtitle");
+  const attemptsEl = el("online-attempts");
+  const pointsEl = el("online-points");
   const turnNoteEl = el("online-turn-note");
   const gridEl = el("online-grid");
   const hintCategoryBtn = el("online-hint-category-btn");
@@ -1219,7 +1221,19 @@
     }
 
     View.renderCategoryPills(activeCategoriesEl, pub.categories || []);
-    subtitleEl.textContent = r.subtitle || "";
+    View.renderRoundLine(subtitleEl, attemptsEl, r.subtitle || "");
+
+    // النقاط المتوقّعة تنحسب على كل جهاز من الحالة المنشورة، مو من نص العنوان:
+    // العنوان نص جاهز يكتبه الهوست، فلو كان الرقم جواه ما راح ينزل لحظة ما
+    // يستخدم الفريق مساعدة. كل اللي تحتاجه موجود بالمنشور أصلاً
+    pointsEl.textContent = r.gameOver
+      ? ""
+      : Core.potentialScoreLabel({
+          attemptsMade: (r.guesses || []).filter((g) => !g.steal).length,
+          maxAttempts: r.maxAttempts,
+          hints: r.hints || Core.newHints(),
+          steal: r.steal,
+        });
 
     const activeTeamName = teams[pub.teamIndex] ? teams[pub.teamIndex].name : "";
     if (mine === null) {

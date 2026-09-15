@@ -503,7 +503,6 @@ body.home-page .page {
   .brand-tiles.replay .brand-tile:nth-child(3) { animation-delay: 0.19s; }
   .brand-tiles.replay .brand-tile:nth-child(4) { animation-delay: 0.26s; }
   .brand-tiles.replay .brand-tile:nth-child(5) { animation-delay: 0.33s; }
-  .brand-tiles.replay .brand-tile:nth-child(6) { animation-delay: 0.4s; }
 }
 
 @keyframes brand-tile-flip {
@@ -517,7 +516,7 @@ body.home-page .page {
   }
 }
 
-/* نص للقارئ الصوتي بس: يقرا "الأذكى" كلمة وحدة بدل ما يهجّي الخانات حرف حرف */
+/* نص للقارئ الصوتي بس: يقرا "صيدها" كلمة وحدة بدل ما يهجّي الخانات حرف حرف */
 .sr-only {
   position: absolute;
   width: 1px;
@@ -1193,6 +1192,28 @@ body.home-page .page {
   font-size: 13px;
   font-weight: 700;
   line-height: 1.4;
+}
+
+/* «خلال ٦ محاولات · ٦٠٠ نقطة» — مجموعة وحدة ما تنكسر، عشان رقم النقاط ما ينفصل
+   عن المحاولات لو لفّ السطر. داخل نفس فقرة العنوان عمداً: ولا صندوق جديد */
+.round-tail {
+  white-space: nowrap;
+}
+
+/* النقاط اللي بياخذها لو حزرها بالمحاولة الجاية — تنقص مع كل مساعدة */
+.round-points {
+  color: var(--gold);
+  font-weight: 800;
+}
+
+.round-points::before {
+  content: "· ";
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.round-points:empty {
+  display: none;
 }
 
 /* دليل الألوان: ثلاث حبّات صغيرة بنقطة ملوّنة بدال ثلاث أسطر نص */

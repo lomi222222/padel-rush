@@ -1,4 +1,4 @@
-// الوضع المحلي (جهاز واحد) للعبة "احزر الكلمة".
+// الوضع المحلي (جهاز واحد) للعبة "صيد الكلمة".
 // المنطق المشترك في js/wordle-core.js والرسم المشترك في js/wordle-view.js — هذا الملف
 // متحكّم الوضع المحلي فقط.
 (function () {
@@ -51,6 +51,8 @@
 
   const scoreboardEl = document.getElementById("wordle-scoreboard");
   const subtitleEl = document.getElementById("wordle-subtitle");
+  const attemptsEl = document.getElementById("wordle-attempts");
+  const pointsEl = document.getElementById("wordle-points");
   const activeCategoriesEl = document.getElementById("wordle-active-categories");
   const gridEl = document.getElementById("wordle-grid");
   const messageEl = document.getElementById("wordle-message");
@@ -347,13 +349,17 @@
     startTicking();
     updateBoqUi();
 
-    subtitleEl.textContent = Core.roundSubtitle(
-      teams[teamIndex].name,
-      roundsPlayed[teamIndex] + 1,
-      wordLength,
-      maxAttempts,
-      spaceIndexes,
-      roundsPerTeam
+    View.renderRoundLine(
+      subtitleEl,
+      attemptsEl,
+      Core.roundSubtitle(
+        teams[teamIndex].name,
+        roundsPlayed[teamIndex] + 1,
+        wordLength,
+        maxAttempts,
+        spaceIndexes,
+        roundsPerTeam
+      )
     );
     View.renderCategoryPills(activeCategoriesEl, selectedCategories);
     showMessage("", "");
@@ -367,11 +373,29 @@
     renderScoreboard();
   }
 
+  // كم نقطة بياخذها لو حزرها الحين. ينخفي بعد نهاية الجولة عشان ما يزاحم رسالة
+  // الفوز اللي فيها الرقم المقبوض فعلاً
+  function renderPoints() {
+    if (gameOver) {
+      pointsEl.textContent = "";
+      return;
+    }
+    pointsEl.textContent = Core.potentialScoreLabel({
+      attemptsMade: ownAttemptCount(),
+      maxAttempts: maxAttempts,
+      hints: hints,
+      steal: steal,
+    });
+  }
+
+  // تنادى بعد كل مساعدة وكل محاولة وعند بداية/نهاية السرقة، فهي المكان الطبيعي
+  // اللي يخلي رقم النقاط متزامن مع حالة المساعدات
   function updateHintButtons() {
     // أثناء السرقة ما فيه تلميحات — محاولتين وبس
     hintCategoryBtn.disabled = gameOver || !!steal || hints.categoryUsed;
     hintRepeatBtn.disabled = gameOver || !!steal || hints.repeatUsed;
     hintLetterBtn.disabled = gameOver || !!steal || Core.allLettersKnown(targetChars, keyStatus);
+    renderPoints();
   }
 
   hintCategoryBtn.addEventListener("click", () => {

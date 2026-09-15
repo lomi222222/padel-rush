@@ -1,4 +1,4 @@
-// منطق لعبة "احزر الكلمة" بدون أي تعامل مع الواجهة — مشترك بين الوضع المحلي والأونلاين.
+// منطق لعبة "صيد الكلمة" بدون أي تعامل مع الواجهة — مشترك بين الوضع المحلي والأونلاين.
 // كل الدوال هنا نقية أو تشتغل على كائنات تُمرَّر لها، عشان نفس المنطق يشتغل على جهاز
 // الهوست (اللي يمسك الكلمة السرية) وعلى أجهزة اللاعبين (اللي ما تعرف الكلمة).
 (function () {
@@ -248,6 +248,24 @@
     return { categoryUsed: false, repeatUsed: false, revealLetterUses: 0 };
   }
 
+  // النقاط اللي بياخذها الفريق لو حزرها بالمحاولة الجاية — نفس حساب لحظة الفوز
+  // بالضبط عشان المعروض ما يختلف عن المقبوض.
+  // مع البوق: القيمة تنثبّت من لحظة السرقة (steal.value) فما تتأثر بأي مساعدة
+  // بعدها، وهذا مقصود — السارق ياخذ الرقم اللي وافق عليه.
+  // attemptsMade لازم تكون محاولات الفريق نفسه بدون محاولات السرقة.
+  function potentialScore(opts) {
+    if (opts.steal) return opts.steal.value;
+    // الحالة المنشورة من فايربيس ممكن ترجع بحقول ناقصة (فايربيس ما يخزّن null)،
+    // فنكمّلها هني بدل ما يطلع NaN بوجه اللاعب
+    const h = Object.assign(newHints(), opts.hints || {});
+    return finalScoreForAttempt(opts.attemptsMade + 1, opts.maxAttempts, h);
+  }
+
+  // نص الرقم زي ما ينعرض جنب المحاولات: «٦٠٠ نقطة» — نفس صيغة رسالة الفوز
+  function potentialScoreLabel(opts) {
+    return toArabicDigits(potentialScore(opts)) + " نقطة";
+  }
+
   function categoriesLabel(selectedCategories) {
     const size = selectedCategories instanceof Set ? selectedCategories.size : selectedCategories.length;
     if (size === SELECTABLE_CATEGORIES.length && !hasExclusive(selectedCategories)) {
@@ -278,9 +296,24 @@
       (spaces ? countLabel(spaces + 1, { one: "كلمة", two: "كلمتين", few: "كلمات", many: "كلمة" }) : "كلمة") +
       " من " +
       countLabel(letters, { one: "حرف واحد", two: "حرفين", few: "أحرف", many: "حرفاً" }) +
-      " خلال " +
+      " " +
+      SUBTITLE_TAIL_MARK +
+      " " +
       countLabel(maxAttempts, ATTEMPT_FORMS)
     );
+  }
+
+  // آخر جزء بالعنوان («خلال ٦ محاولات»). الواجهة تفصله عشان تلصق رقم النقاط فيه
+  // بمجموعة ما تنكسر، فيظل الرقم على يسار «المحاولات» مهما لف السطر.
+  // بالأونلاين العنوان يوصل نص جاهز من الهوست، فالفصل لازم يصير من النص نفسه —
+  // وهني المكان الوحيد اللي يعرف الصيغة، فما يصير انحراف بين البناء والفصل
+  const SUBTITLE_TAIL_MARK = "خلال";
+
+  function splitRoundSubtitle(text) {
+    const s = text || "";
+    const i = s.lastIndexOf(" " + SUBTITLE_TAIL_MARK + " ");
+    if (i < 0) return { head: s, tail: "" };
+    return { head: s.slice(0, i), tail: s.slice(i + 1) };
   }
 
   // هل زر التلميح "حرف موجود" لازم ينقفل؟ (كل حروف الكلمة صارت معروفة)
@@ -345,6 +378,9 @@
     mergeKeyStatus,
     rawScoreForAttempt,
     finalScoreForAttempt,
+    potentialScore,
+    potentialScoreLabel,
+    splitRoundSubtitle,
     newHints,
     categoriesLabel,
     roundSubtitle,
