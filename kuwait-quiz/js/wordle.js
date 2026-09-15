@@ -64,6 +64,8 @@
   const roundEndEl = document.getElementById("wordle-round-end");
   const nextTeamBtn = document.getElementById("wordle-next-team-btn");
   const endMatchBtn = document.getElementById("wordle-end-match-btn");
+  const scoreEditBtn = document.getElementById("wordle-score-edit-btn");
+  const homeLink = document.querySelector(".topbar .home-link");
   const catAllCheckbox = document.getElementById("wordle-cat-all");
   const catListEl = document.getElementById("wordle-category-list");
   const catErrorEl = document.getElementById("wordle-category-error");
@@ -172,9 +174,18 @@
     setupScreen.classList.add("hidden");
     playScreen.classList.remove("hidden");
     endScreen.classList.add("hidden");
+    syncTopbar(true);
     renderScoreboard();
     startRound();
   });
+
+  // الشريط العلوي يعرض واحداً بس: "إنهاء اللعبة" وأنت تلعب، ورابط "القائمة
+  // الرئيسية" بغير ذلك. اجتماعهما كان تكراراً بلا فايدة — وشيل الرابط لحاله كان
+  // بيحبس اللاعب داخل اللعبة، فشاشة النتائج فيها زر للرئيسية
+  function syncTopbar(playing) {
+    endMatchBtn.classList.toggle("hidden", !playing);
+    if (homeLink) homeLink.classList.toggle("hidden", playing);
+  }
 
   function renderScoreboard() {
     View.renderScoreboard(scoreboardEl, { teams, teamIndex, onAdjust: adjustScore });
@@ -596,6 +607,7 @@
     stopTicking();
     playScreen.classList.add("hidden");
     endScreen.classList.remove("hidden");
+    syncTopbar(false);
 
     View.renderFinalScores(
       {
@@ -608,9 +620,16 @@
     View.celebrateWin();
   }
 
+  // أزرار ±٢٥ مخفية لين يطلبها اللاعب — CSS يتكفّل بالإظهار عبر كلاس editing
+  scoreEditBtn.addEventListener("click", () => {
+    const on = scoreboardEl.classList.toggle("editing");
+    scoreEditBtn.setAttribute("aria-pressed", on ? "true" : "false");
+  });
+
   document.getElementById("wordle-restart-btn").addEventListener("click", () => {
     endScreen.classList.add("hidden");
     setupScreen.classList.remove("hidden");
+    syncTopbar(false);
     team1Input.value = "";
     team2Input.value = "";
   });

@@ -24,7 +24,17 @@
     timeValue: "kw-settings-time-value",
     timeCustomMinutes: "kw-settings-time-custom-minutes",
     categories: "kw-settings-categories",
+    tutorialSeen: "kw-tutorial-seen",
   };
+
+  // التجربة التوجيهية تطلع أول زيارة بس. لو localStorage مقفول (تصفح خاص) نرجّع
+  // false دايماً — تطلع كل مرة، وهذا أهون من إنها ما تطلع أبداً للاعب الجديد
+  function tutorialSeen() {
+    return safeGet(KEYS.tutorialSeen) === "1";
+  }
+  function markTutorialSeen() {
+    safeSet(KEYS.tutorialSeen, "1");
+  }
 
   function loadRoundCount(validOptions, fallback) {
     const saved = Number(safeGet(KEYS.rounds));
@@ -67,5 +77,7 @@
     saveRoundTime,
     loadCategories,
     saveCategories,
+    tutorialSeen,
+    markTutorialSeen,
   };
 })();

@@ -174,6 +174,25 @@ a {
   background: rgba(255, 255, 255, 0.22);
 }
 
+/* "إنهاء اللعبة" بالشريط — يبدّل رابط "القائمة الرئيسية" أثناء اللعب، فياخذ
+   نفس شكله بالضبط عشان الشريط ما يتحرّك ولا يتغيّر ارتفاعه بينهما */
+.btn-topbar-end {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  color: var(--white-fixed);
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 14px;
+  white-space: nowrap;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.btn-topbar-end:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
 /* العلامة المصغّرة جنب اسم اللعبة بالشريط. مقاسها بالـem عشان تتقلّص لحالها مع
    تصغير خط الشريط بالشاشات القصيرة، و inline (مو flex) عشان ما تغيّر ارتفاع السطر */
 .topbar-mark {
@@ -692,10 +711,42 @@ body.home-page .page {
   margin-top: 4px;
 }
 
+/* أزرار ±٢٥ مخفية افتراضياً: حالة نادرة (تصحيح يدوي) وظهورها الدائم كان يربك
+   اللاعب الجديد ويوسّع حبّات الفرق. زر القلم يحط كلاس editing على اللوحة */
 .score-adjust-row {
-  display: flex;
+  display: none;
   gap: 6px;
   margin-top: 4px;
+}
+
+.scoreboard.editing .score-adjust-row {
+  display: flex;
+}
+
+.score-edit-btn {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px solid var(--border-soft);
+  background: var(--white);
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
+}
+
+.score-edit-btn .ui-icon {
+  vertical-align: 0;
+  height: 55%;
+  width: 55%;
+}
+
+.score-edit-btn[aria-pressed="true"] {
+  border-color: var(--gold);
+  color: var(--gold);
 }
 
 .score-adjust-btn {
@@ -2212,3 +2263,87 @@ body.home-page .page {
   margin: -6px 0 0;
 }
 
+
+/* ===== التجربة التوجيهية =====
+   ترث شكل نافذة "طريقة اللعب" (.howto-*) وتضيف ما تحتاجه: شبكة وكيبورد مصغّرين.
+   الكيبورد هني أضيق من كيبورد اللعب لأن النافذة أضيق من الشاشة */
+.tutorial-body {
+  align-items: center;
+  gap: 12px;
+}
+
+.tutorial-say {
+  text-align: center;
+  font-weight: 700;
+  min-height: 3.4em; /* يثبّت ارتفاع النافذة فما تنطّ بين الخطوات */
+}
+
+.tutorial-grid {
+  gap: 6px;
+}
+
+.tutorial-grid .wordle-tile {
+  width: 44px;
+  height: 44px;
+  font-size: 22px;
+}
+
+.tutorial-note {
+  width: 100%;
+  background: var(--surface-soft);
+  border: 1px solid var(--border-soft);
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tutorial-note p {
+  margin: 0;
+  line-height: 1.7;
+}
+
+/* سطر شرح لون: الخانة الملوّنة والنص بسطر واحد */
+.tutorial-legend-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  line-height: 1.6;
+}
+
+.tutorial-legend-tile {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+}
+
+.tutorial-note.warn {
+  border-color: var(--red);
+  color: var(--red);
+  font-weight: 700;
+}
+
+.tutorial-keyboard {
+  width: 100%;
+  gap: 5px;
+}
+
+.tutorial-keyboard .key {
+  font-size: 14px;
+  padding: 8px 0;
+  min-width: 0;
+}
+
+@media (max-width: 400px) {
+  .tutorial-grid .wordle-tile {
+    width: 38px;
+    height: 38px;
+    font-size: 19px;
+  }
+
+  .tutorial-keyboard .key {
+    font-size: 12px;
+    padding: 6px 0;
+  }
+}

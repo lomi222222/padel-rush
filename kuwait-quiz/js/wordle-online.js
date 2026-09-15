@@ -99,6 +99,8 @@
 
   const scoreboardEl = el("online-scoreboard");
   const endMatchBtn = el("online-end-match-btn");
+  const scoreEditBtn = el("online-score-edit-btn");
+  const homeLink = document.querySelector(".topbar .home-link");
   const activeCategoriesEl = el("online-active-categories");
   const subtitleEl = el("online-subtitle");
   const attemptsEl = el("online-attempts");
@@ -173,6 +175,16 @@
   function showScreen(which) {
     [homeScreen, lobbyScreen, playScreen, endScreen].forEach((s) => s.classList.add("hidden"));
     which.classList.remove("hidden");
+    syncTopbar(which === playScreen);
+  }
+
+  // الشريط يعرض واحداً بس: "إنهاء اللعبة" أثناء اللعب (وللهوست وحده، هو اللي
+  // يقدر ينهيها)، ورابط "القائمة الرئيسية" بغير ذلك. وشاشة النتائج فيها زر
+  // للرئيسية فاللاعب ما ينحبس
+  function syncTopbar(playing) {
+    endMatchBtn.classList.toggle("hidden", !(playing && isHost));
+    scoreEditBtn.classList.toggle("hidden", !(playing && isHost));
+    if (homeLink) homeLink.classList.toggle("hidden", playing);
   }
 
   function showStatus(text, kind) {
@@ -390,7 +402,7 @@
 
     hostControlsEl.classList.toggle("hidden", !isHost);
     waitHostEl.classList.toggle("hidden", isHost);
-    endMatchBtn.classList.toggle("hidden", !isHost);
+    syncTopbar(!playScreen.classList.contains("hidden"));
 
     if (isHost) {
       syncAllCheckbox(); // الفئات المسترجعة ممكن تكون غير "الكل" — نطابق شكل الدقّة قبل أول رسم
@@ -1026,6 +1038,11 @@
     }
     hostState.teamIndex = (hostState.teamIndex + 1) % 2;
     hostStartRound();
+  });
+
+  scoreEditBtn.addEventListener("click", () => {
+    const on = scoreboardEl.classList.toggle("editing");
+    scoreEditBtn.setAttribute("aria-pressed", on ? "true" : "false");
   });
 
   endMatchBtn.addEventListener("click", () => {

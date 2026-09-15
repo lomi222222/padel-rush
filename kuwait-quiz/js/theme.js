@@ -59,20 +59,21 @@
       updateIcon();
     });
 
-    // بالصفحات اللي فيها topbar (صيدها، صيد الكلمة)، نحط الزر جنب رابط
-    // "القائمة الرئيسية" بدل عائم فوق الصفحة عشان ما يتغطى عليه
-    const homeLink = document.querySelector(".topbar .home-link");
-    if (homeLink) {
-      const actions = document.createElement("div");
-      actions.className = "topbar-actions";
+    // بالصفحات اللي فيها topbar، الزر يقعد داخل مجموعة أزرار الشريط بدل ما يكون
+    // عائماً فوق الصفحة عشان ما يتغطى عليه.
+    // المجموعة موجودة بالـHTML نفسه (.topbar-actions) وما نبنيها هني: محتواها
+    // يتغيّر حسب الشاشة — رابط "القائمة الرئيسية" بشاشة الإعداد و"إنهاء اللعبة"
+    // بشاشة اللعب — فلو علّقنا الترتيب على وجود الرابط، شيله يطيّر زر الثيم
+    const actions = document.querySelector(".topbar .topbar-actions");
+    if (actions) {
       btn.classList.add("theme-toggle-inline");
-      homeLink.parentNode.insertBefore(actions, homeLink);
-      // زر "طريقة اللعب" (بصفحات اللعب بس) — موجود بالـHTML من البداية، نجمعه هنا
-      // مع زر الثيم بنفس المجموعة بدل ما يضل سايب جنب العنوان
+      // بعد زر "طريقة اللعب" وقبل باقي الأزرار — نفس ترتيب ما كان
       const howtoBtn = document.getElementById("wordle-howto-btn");
-      if (howtoBtn) actions.appendChild(howtoBtn);
-      actions.appendChild(btn);
-      actions.appendChild(homeLink);
+      if (howtoBtn && howtoBtn.parentNode === actions) {
+        actions.insertBefore(btn, howtoBtn.nextSibling);
+      } else {
+        actions.insertBefore(btn, actions.firstChild);
+      }
     } else {
       document.body.appendChild(btn);
     }

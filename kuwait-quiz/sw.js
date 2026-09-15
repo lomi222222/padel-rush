@@ -4,7 +4,7 @@
 // رقم النسخة: **لازم يتغيّر مع أي تعديل على الملفات المخزّنة**، وإلا اللاعب يظل
 // عالق على النسخة القديمة بعد أي تحديث. تغييره يخلي المتصفح يخزّن من جديد ويمسح
 // المخزن القديم عند التفعيل.
-const VERSION = "v3";
+const VERSION = "v4";
 const CACHE = "saydha-" + VERSION;
 
 const SHELL = [
@@ -22,6 +22,7 @@ const SHELL = [
   "js/sound.js",
   "js/howto.js",
   "js/settings.js",
+  "js/tutorial.js",
   "js/wordle.js",
   "js/net-local.js",
   "js/net.js",

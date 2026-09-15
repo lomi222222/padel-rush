@@ -57,15 +57,20 @@
     <div class="page">
       <div class="topbar">
         <h1>صيد الكلمة أونلاين</h1>
-        <button id="wordle-howto-btn" type="button" class="theme-toggle-btn howto-btn" aria-label="طريقة اللعب">؟</button>
-        <a class="home-link" href="index.html" title="القائمة الرئيسية" aria-label="صيدها — القائمة الرئيسية">
-          <svg class="topbar-mark" viewBox="0 0 50 24" aria-hidden="true">
-            <rect x="1.5" y="1.5" width="14" height="21" rx="4" fill="none" stroke="currentColor" stroke-width="3" />
-            <rect x="18" y="1.5" width="14" height="21" rx="4" fill="currentColor" />
-            <rect x="34.5" y="1.5" width="14" height="21" rx="4" fill="none" stroke="currentColor" stroke-width="3" />
-          </svg>
-          صيدها
-        </a>
+        <div class="topbar-actions">
+          <button id="wordle-howto-btn" type="button" class="theme-toggle-btn howto-btn" aria-label="طريقة اللعب">؟</button>
+          <button id="online-end-match-btn" type="button" class="btn btn-topbar-end hidden">
+            <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 21V4"/><path d="M6 4.5h11l-2.5 4 2.5 4H6"/></svg> إنهاء اللعبة
+          </button>
+          <a class="home-link" href="index.html" title="القائمة الرئيسية" aria-label="صيدها — القائمة الرئيسية">
+            <svg class="topbar-mark" viewBox="0 0 50 24" aria-hidden="true">
+              <rect x="1.5" y="1.5" width="14" height="21" rx="4" fill="none" stroke="currentColor" stroke-width="3" />
+              <rect x="18" y="1.5" width="14" height="21" rx="4" fill="currentColor" />
+              <rect x="34.5" y="1.5" width="14" height="21" rx="4" fill="none" stroke="currentColor" stroke-width="3" />
+            </svg>
+            صيدها
+          </a>
+        </div>
       </div>
 
       <p id="online-status" class="online-status hidden"></p>
@@ -191,7 +196,7 @@
           </svg>
           <div class="score-row">
             <div id="online-scoreboard" class="scoreboard"></div>
-            <button id="online-end-match-btn" class="btn btn-outline hidden"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 21V4"/><path d="M6 4.5h11l-2.5 4 2.5 4H6"/></svg> إنهاء اللعبة</button>
+            <button id="online-score-edit-btn" type="button" class="score-edit-btn hidden" aria-label="تعديل النقاط يدوياً" aria-pressed="false"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19.5 8.5a2.1 2.1 0 0 0-3-3L5 17v3z"/><path d="M14.5 6.5l3 3"/></svg></button>
           </div>
 
           <div class="wordle-info">
@@ -251,6 +256,9 @@
         </div>
         <div id="online-final-scores" class="final-scores"></div>
         <a class="btn btn-primary btn-block" href="wordle-online.html">لعبة جديدة</a>
+        <a class="btn btn-outline btn-block" href="index.html">
+          <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11l8-6.5 8 6.5"/><path d="M6.5 9.8V19h11V9.8"/></svg> القائمة الرئيسية
+        </a>
       </section>
     </div>
 
@@ -261,8 +269,9 @@
     <script src="js/wordle-core.js"></script>
     <script src="js/wordle-view.js"></script>
     <script src="js/sound.js"></script>
-    <script src="js/howto.js"></script>
     <script src="js/settings.js"></script>
+    <script src="js/tutorial.js"></script>
+    <script src="js/howto.js"></script>
     <script src="js/net-local.js"></script>
     <script src="js/net.js"></script>
     <script src="js/wordle-online.js"></script>
