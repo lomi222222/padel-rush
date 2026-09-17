@@ -1,7 +1,11 @@
 // التثبيت (PWA) + العمل بلا نت + وسوم المشاركة.
 const { launch, BASE } = require("./_browser");
 const fs = require("fs");
-const DIR = "/home/user/padel-rush/kuwait-quiz";
+const path = require("path");
+const DIR = path.join(__dirname, "..");
+// العدد المتوقّع يُقرأ من البنك نفسه مو مكتوباً برقم: الرقم الثابت ينكسر مع أي
+// تنقيح للكلمات، والمقصود «انخزن البنك كامل بلا نت» لا «البنك فيه ١٢٤٧»
+const { WORDS } = require("../js/words.js");
 let fail = 0;
 const check = (n, ok, x) => { console.log((ok ? "✅ " : "‼️ ") + n + (x ? "  " + x : "")); if (!ok) fail++; };
 
@@ -96,7 +100,8 @@ function pngSize(p) {
       cats: document.querySelectorAll("label.category-chip").length,
     }));
     check("بلا نت: الصفحة تفتح", offline.title.includes("صيد الكلمة"), offline.title);
-    check("بلا نت: بنك الكلمات كامل", offline.words === 1247, "كلمات=" + offline.words);
+    check("بلا نت: بنك الكلمات كامل", offline.words === WORDS.length,
+      "كلمات=" + offline.words + " (البنك " + WORDS.length + ")");
     check("بلا نت: الفئات تنرسم", offline.cats > 15, "فئات=" + offline.cats);
 
     // نلعب جولة كاملة وإحنا بلا نت
