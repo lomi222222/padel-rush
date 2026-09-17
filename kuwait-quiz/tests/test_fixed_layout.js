@@ -23,13 +23,32 @@ const VIEWPORTS = [
   ["عرضي صغير 667x375", 667, 375],
 ];
 
-// أقصر كلمة (٣ أحرف => ٤ صفوف) وأطول كلمة (٢٣ خانة => ١٤ صف)
-// عادية = ٩٦.٧٪ من البنك (٩ صفوف فأقل) ولازم تبين كاملة.
-// متطرفة = ٣.٣٪ (١٠ صفوف فأكثر) ومسموح لها تُمرَّر داخل صندوقها بس.
+// عادية = ٩ صفوف فأقل، ولازم تبين كاملة بلا تمرير.
+// متطرفة = ١٠ صفوف فأكثر، ومسموح لها تُمرَّر داخل صندوقها بس.
+//
+// **الكلمات تُختار من البنك وقت التشغيل، مو مثبّتة بالنص**: كانت مثبّتة
+// و«مغامرات السندباد البحري» انشالت منها كلمة «مغامرات» فانكسر الاختبار. نفس
+// الدرس من test_new_titles اللي انهمل لأنه ثبّت مواضع كلمات بالبنك.
+//
+// ثلاث حالات: أقصر كلمة · أطول كلمة «عادية» (حد الـ٩ صفوف، وهي الأصعب لأنها
+// لازم تسع كاملة) · وأطول كلمة بالبنك كله.
+const { WORDS } = require("../js/words.js");
+
+// نفس حساب Core.attemptsForLength، و`wordLength` عنده = `targetChars.length`
+// **بالمسافات** (‏js/wordle.js: wordLength = targetChars.length) — المسافة خانة
+// بالشبكة مثلها مثل الحرف. شيلها هني يعطي رقماً أقل بصف للعناوين المركّبة
+const attemptsFor = (w) => 3 + Math.ceil((Math.max(w.length, 1) - 1) / 2);
+const ranked = WORDS.map((w) => ({ ...w, rows: attemptsFor(w.word) })).sort((a, b) => a.rows - b.rows);
+const pick = (label, item, kind) => [item.word, item.category, kind, label, item.rows];
+
+const shortest = ranked[0];
+const longestNormal = [...ranked].reverse().find((w) => w.rows <= 9);
+const longest = ranked[ranked.length - 1];
+
 const WORDS_UNDER_TEST = [
-  ["اسد", "حيوان", "normal"],
-  ["هجوم العمالقة", "أنميات", "normal"],
-  ["مغامرات السندباد البحري", "روايات", "extreme"],
+  pick("أقصر", shortest, "normal"),
+  pick("أطول عادية", longestNormal, "normal"),
+  pick("أطول بالبنك", longest, "extreme"),
 ];
 
 // ===== عيب تخطيط معروف، لسه ما انصلح =====
@@ -43,9 +62,12 @@ const WORDS_UNDER_TEST = [
 // مؤجّل عمداً: أجهزته قديمة (٣٢٠×٥٦٨ = آيفون ٥/SE الأول ٢٠١٦) وأثر الإصلاح
 // أوسع. معلّم هني عشان بقية الفحوص تظل حارسة بدل ما يصير الطقم أحمر دائماً
 // فينتهي بتجاهله. لما ينصلح، يُشال هالتعليم ويرجع فحصاً عادياً.
-const KNOWN_ISSUES = [["طولي صغير 360x640", "هجوم العمالقة"]];
-const KNOWN_ISSUE_NOTE = "٩ صفوف على ٣٦٠×٦٤٠ ما تسع — الضغط مطبّق أصلاً، يبي طبقة أعمق";
-const isKnownIssue = (vp, word) => KNOWN_ISSUES.some(([v, w]) => vp === v && word === w);
+//
+// التعليم على **دور الكلمة** (أطول عادية) مو على نصّها، فما ينكسر لما يتغيّر
+// البنك — نفس سبب اختيار الكلمات ديناميكياً فوق.
+const KNOWN_ISSUES = [["طولي صغير 360x640", "أطول عادية"]];
+const KNOWN_ISSUE_NOTE = "٧ صفوف فأكثر على ٣٦٠×٦٤٠ ما تسع — الضغط مطبّق أصلاً، يبي طبقة أعمق";
+const isKnownIssue = (vp, role) => KNOWN_ISSUES.some(([v, r]) => vp === v && role === r);
 
 async function startRound(page, word, category) {
   await page.goto(BASE + "/wordle.html");
@@ -88,17 +110,19 @@ const probe = (page) =>
   const browser = await launch();
 
   for (const [vpName, w, h] of VIEWPORTS) {
-    for (const [word, cat, kind] of WORDS_UNDER_TEST) {
+    for (const [word, cat, kind, role, wordRows] of WORDS_UNDER_TEST) {
       const page = await browser.newPage({ viewport: { width: w, height: h } });
        await page.addInitScript(() => { try { localStorage.setItem("kw-tutorial-seen", "1"); } catch (e) {} });  // التجربة التوجيهية تطلع أول زيارة — نتخطاها بالاختبارات
       page.on("pageerror", (e) => { failures++; console.log("PAGEERROR:", e.message); });
       await startRound(page, word, cat);
       const r = await probe(page);
-      const tag = vpName + ' — "' + word + '"';
+      const tag = vpName + ' — ' + role + ' "' + word + '" (' + wordRows + ' صف)';
       check(tag + " | الصفحة ما تنزل وتصعد", r.pageScrolls, false);
       check(tag + " | صندوق الشبكة داخل الشاشة", r.gridInView, true);
+      // الصفوف المرسومة لازم تطابق الصيغة — يمسك لو تغيّرت الصيغة بلا قصد
+      check(tag + " | الصفوف تطابق الصيغة", r.rows, wordRows);
       if (kind === "normal") {
-        if (isKnownIssue(vpName, word)) {
+        if (isKnownIssue(vpName, role)) {
           console.log("        ⚠️  عيب معروف — الشبكة تحتاج تمرير: " + KNOWN_ISSUE_NOTE);
         } else {
           check(tag + " | الشبكة كاملة بلا تمرير", r.gridFits, true);
