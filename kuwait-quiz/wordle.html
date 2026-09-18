@@ -76,8 +76,20 @@
            يبقون مثل ما هم بالضبط -->
       <section id="wordle-setup-screen" class="card stack">
         <div class="setup-head">
-          <h2 class="center">إعداد الفريقين</h2>
-          <p class="muted center setup-intro">فريقان، كل فريق ياخذ دوره كامل بكلمته الخاصة</p>
+          <h2 class="center">إعداد اللعبة</h2>
+          <p class="muted center setup-intro">اختر الفئات، ثم سمِّ الفريقين</p>
+        </div>
+
+        <div class="setup-col">
+          <p class="muted center">اختر الفئات (كلها مفعّلة افتراضياً)</p>
+          <div class="abilities-row">
+            <label class="category-chip all">
+              <input type="checkbox" id="wordle-cat-all" checked />
+              الكل
+            </label>
+          </div>
+          <div id="wordle-category-list" class="abilities-row"></div>
+          <p id="wordle-category-error" class="hidden" style="color: var(--red); font-weight: 700; text-align: center"></p>
         </div>
 
         <div class="setup-col">
@@ -110,18 +122,6 @@
           <p id="wordle-round-time-hint" class="muted center round-time-hint hidden">
             بالدقائق (من ١ إلى ٦٠)
           </p>
-        </div>
-
-        <div class="setup-col">
-          <p class="muted center">اختر الفئات (كلها مفعّلة افتراضياً)</p>
-          <div class="abilities-row">
-            <label class="category-chip all">
-              <input type="checkbox" id="wordle-cat-all" checked />
-              الكل
-            </label>
-          </div>
-          <div id="wordle-category-list" class="abilities-row"></div>
-          <p id="wordle-category-error" class="hidden" style="color: var(--red); font-weight: 700; text-align: center"></p>
         </div>
 
         <div class="setup-foot">

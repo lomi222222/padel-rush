@@ -812,6 +812,98 @@ body.home-page .page {
   font-weight: 800;
 }
 
+/* ===== شبكة بطاقات الفئات =====
+   محصورة بحاويتَي القائمة عمداً: حبّة «الكل» بصفّها المنفصل برّا القائمة،
+   فتظل بيضاوية مثل ما هي */
+#wordle-category-list,
+#online-category-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+#wordle-category-list .category-chip,
+#online-category-list .category-chip {
+  position: relative;
+  flex-direction: column;
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+  border-radius: 14px;
+  /* غير المختارة تبهت — الفرق لازم يبان من نظرة وحدة لأن الاختيار متعدد */
+  opacity: 0.55;
+  transition: opacity 0.15s, border-color 0.15s;
+}
+
+#wordle-category-list .category-chip:has(input:checked),
+#online-category-list .category-chip:has(input:checked) {
+  opacity: 1;
+  border-color: var(--gold);
+}
+
+/* الـinput يغطّي البطاقة كاملة وهو شفاف: ينضغط باللمس وبالاختبارات، وما ينشاف.
+   ما نستخدم hidden — المخفي ما ينضغط */
+#wordle-category-list .category-chip input[type="checkbox"],
+#online-category-list .category-chip input[type="checkbox"] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+  z-index: 1;
+}
+
+#wordle-category-list .cat-art,
+#online-category-list .cat-art {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 10px 0 6px;
+  color: var(--navy);
+  background: var(--surface-soft);
+}
+
+#wordle-category-list .cat-art .ui-icon,
+#online-category-list .cat-art .ui-icon {
+  width: 26px;
+  height: 26px;
+}
+
+#wordle-category-list .cat-name,
+#online-category-list .cat-name {
+  display: block;
+  width: 100%;
+  padding: 5px 4px 6px;
+  font-size: 11px;
+  line-height: 1.25;
+  text-align: center;
+  border-top: 1px solid var(--border-soft);
+}
+
+/* علامة الاختيار من CSS مو من عقدة نصية — فحص يقارن نص الـlabel حرفياً باسم
+   الفئة، وأي حرف زايد بالـDOM يكسره */
+#wordle-category-list .category-chip:has(input:checked)::after,
+#online-category-list .category-chip:has(input:checked)::after {
+  content: "✓";
+  position: absolute;
+  top: 3px;
+  inset-inline-end: 5px;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1;
+  color: var(--gold);
+}
+
+@media (max-width: 360px) {
+  #wordle-category-list,
+  #online-category-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 .ability-btn {
   background: var(--white);
   border: 2px solid var(--border-soft);

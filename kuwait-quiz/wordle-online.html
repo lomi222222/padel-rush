@@ -129,6 +129,17 @@
              وdisplay:contents بالطولي فما يتغيّر شي -->
         <div id="online-host-controls" class="stack hidden">
           <div class="setup-col">
+            <p class="muted center">اختر الفئات (كلها مفعّلة افتراضياً)</p>
+            <div class="abilities-row">
+              <label class="category-chip all">
+                <input type="checkbox" id="online-cat-all" checked />
+                الكل
+              </label>
+            </div>
+            <div id="online-category-list" class="abilities-row"></div>
+          </div>
+
+          <div class="setup-col">
             <button id="online-auto-assign-btn" class="btn btn-outline btn-block">
               <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h4l10 10h4"/><path d="M3 17h4l10-10h4"/><path d="M18 4l3 3-3 3"/><path d="M18 14l3 3-3 3"/></svg> توزيع تلقائي
             </button>
@@ -162,17 +173,6 @@
             <p id="online-round-time-hint" class="muted center round-time-hint hidden">
               بالدقائق (من ١ إلى ٦٠)
             </p>
-          </div>
-
-          <div class="setup-col">
-            <p class="muted center">اختر الفئات (كلها مفعّلة افتراضياً)</p>
-            <div class="abilities-row">
-              <label class="category-chip all">
-                <input type="checkbox" id="online-cat-all" checked />
-                الكل
-              </label>
-            </div>
-            <div id="online-category-list" class="abilities-row"></div>
           </div>
 
           <div class="setup-foot">
