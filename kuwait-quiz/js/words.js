@@ -87,7 +87,7 @@ const WORDS = [
 
   // ===================== حيوان =====================
   { word: "اسد", category: "حيوان" }, { word: "نمر", category: "حيوان" },
-  { word: "ذئب", category: "حيوان" }, { word: "فيل", category: "حيوان" },
+  { word: "ذيب", category: "حيوان" }, { word: "فيل", category: "حيوان" },
   { word: "جمل", category: "حيوان" }, { word: "قرد", category: "حيوان" },
   { word: "نسر", category: "حيوان" }, { word: "صقر", category: "حيوان" },
   { word: "حوت", category: "حيوان" }, { word: "قطة", category: "حيوان" },
@@ -106,7 +106,7 @@ const WORDS = [
   { word: "قنفذ", category: "حيوان" }, { word: "حلزون", category: "حيوان" },
   { word: "نحلة", category: "حيوان" }, { word: "دبور", category: "حيوان" },
   { word: "جراد", category: "حيوان" }, { word: "اخطبوط", category: "حيوان" },
-  { word: "دولفين", category: "حيوان" }, { word: "قرش", category: "حيوان" },
+  { word: "دلفين", category: "حيوان" }, { word: "قرش", category: "حيوان" },
   { word: "حمار", category: "حيوان" }, { word: "بغل", category: "حيوان" },
   { word: "ماعز", category: "حيوان" }, { word: "خنزير", category: "حيوان" },
   { word: "نعامة", category: "حيوان" },
