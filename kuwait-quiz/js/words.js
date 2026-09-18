@@ -521,7 +521,7 @@ const WORDS = [
   { word: "تزلج", category: "رياضة" }, { word: "قفز", category: "رياضة" },
   { word: "وثب طويل", category: "رياضة" }, { word: "رمي جلة", category: "رياضة" },
   { word: "رمي رمح", category: "رياضة" }, { word: "شطرنج", category: "رياضة" },
-  { word: "سباق", category: "رياضة" },
+  { word: "سنوكر", category: "رياضة" }, { word: "بولو", category: "رياضة" },
   { word: "كرة ماء", category: "رياضة" },
   { word: "تنس طاولة", category: "رياضة" },
   { word: "ريشة طائرة", category: "رياضة" },
