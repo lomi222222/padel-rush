@@ -184,25 +184,62 @@
     requestAnimationFrame(() => sizeTiles(gridEl, true));
   }
 
+  // تحت هالحجم الحرف العربي ما ينقرا — الخط نصف الخانة وأرضيته ١٠px
+  const WIDE_GRID_BELOW = 30;
+
+  // الفراغات تضيق كل ما طالت الكلمة: ١٢ خانة بشاشة ٣٩٠ تعني الفراغات وحدها تاكل
+  // خُمس السطر، فنضيّقها عشان الحرف نفسه يكبر
+  function spacingFor(wordLength) {
+    const narrow = window.innerWidth <= 400;
+    return {
+      gapPx: wordLength >= 10 ? 3 : wordLength >= 7 ? 5 : narrow ? 6 : 8,
+      spacerWidth: wordLength >= 10 ? 9 : narrow ? 14 : 20,
+    };
+  }
+
+  // عرض الخانة اللي يسمح به عرض الحاوية الحالي
+  function widthPerTile(container, opts) {
+    const { wordLength } = opts;
+    const spaceCount = opts.spaceCount || 0;
+    const cs = getComputedStyle(container);
+    const paddingX = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
+    const available = Math.max(container.clientWidth - paddingX, 200);
+    const { gapPx, spacerWidth } = spacingFor(wordLength);
+    const numLetters = Math.max(1, wordLength - spaceCount);
+    return (available - gapPx * (wordLength - 1) - spacerWidth * spaceCount) / numLetters;
+  }
+
+  // يقرر: هل ننزّل الكيبورد تحت عشان الشبكة تاخذ العرض كله؟
+  //
+  // **القرار يُقاس دائماً من الحالة الضيّقة** — نشيل الراية ونقيس ثم نقرر. لو
+  // قِسنا من الحالة الحالية لتذبذب: بالعريض العرض كبير فالجواب "لا نحتاج"، وأول
+  // ما نرجع ضيّق يصير "نحتاج"، وهكذا مع كل تغيير مقاس.
+  function decideWideGrid(gridEl, opts) {
+    const wrap = gridEl.closest(".wordle-wrap");
+    if (!wrap) return;
+    wrap.removeAttribute("data-wide-grid");
+    // قراءة clientWidth بعد الشيل تجبر إعادة تخطيط، فالقياس يطلع للحالة الضيّقة
+    if (widthPerTile(gridEl.parentElement, opts) < WIDE_GRID_BELOW) {
+      wrap.setAttribute("data-wide-grid", "");
+    }
+  }
+
   function sizeTiles(gridEl, allowed) {
     const opts = gridEl._tileOpts;
     if (!opts || !allowed) return;
     const { wordLength, maxAttempts } = opts;
     const spaceCount = opts.spaceCount || 0;
 
+    // العرض هو القيد القاتل بالوضع العرضي: الكيبورد ياخذ عموداً جنب الشبكة فيقسم
+    // العرض نصّين، وكلمة ١٥ خانة تطلع خانتها ١٨px وخطها يوصل أرضيته فيختفي الحرف.
+    // القرار هني مو بالـCSS لأن CSS ما يعرف طول الكلمة
+    decideWideGrid(gridEl, opts);
+
     const container = gridEl.parentElement;
     const cs = getComputedStyle(container);
-    const paddingX = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
-    const available = Math.max(container.clientWidth - paddingX, 200);
-    // الكلمات الطويلة يحدّها العرض مو الطول: ١٢ خانة بشاشة ٣٩٠ تعني الفراغات وحدها
-    // تاكل خُمس السطر. فنضيّق الفراغ كل ما طالت الكلمة عشان الحرف نفسه يكبر
-    const narrow = window.innerWidth <= 400;
-    const gapPx = wordLength >= 10 ? 3 : wordLength >= 7 ? 5 : narrow ? 6 : 8;
-    const spacerWidth = wordLength >= 10 ? 9 : narrow ? 14 : 20;
+    const { gapPx, spacerWidth } = spacingFor(wordLength);
 
-    const numLetters = Math.max(1, wordLength - spaceCount);
-
-    const rawWidth = (available - gapPx * (wordLength - 1) - spacerWidth * spaceCount) / numLetters;
+    const rawWidth = widthPerTile(container, opts);
 
     // الشبكة تقعد داخل حاوية محدودة الارتفاع بالوضعين (flex:1 + min-height:0)، فنقيس
     // ارتفاعها الفعلي ونختار الأصغر بين ما يسمح به العرض وما يسمح به الطول — جذي
@@ -217,9 +254,15 @@
     //   نصغّر الخانة لدرجة ما تنقرا (٢٠px بالعرضي كانت النتيجة قبل).
     // - لو العرض ما يكفي، ما نقدر نتجاوزه: الشبكة بتطلع برّا الشاشة أفقياً، وتمرير
     //   الكلمة يمين ويسار يخرب اللعبة نفسها. فالعرض يبقى سقفاً صلباً.
-    const READABLE = 26;
+    // أرضية الارتفاع: تحتها تنمرَّر الصفوف رأسياً بدل ما تصغر الخانة.
+    // بالتخطيط العريض نرفعها — هناك نزّلنا الكيبورد عمداً عشان الخانة تكبر، فلو
+    // خلّينا الأرضية ٢٦ صارت هي السقف وضاع المكسب كله (قِسناه: ٢٦px بدل ٤٣).
+    // والتمرير الرأسي مقبول هناك أصلاً، وهو اللي طلبه المستخدم صراحةً
+    const isWide = gridEl.closest(".wordle-wrap")?.hasAttribute("data-wide-grid");
+    const READABLE = isWide ? 40 : 26;
     const byHeight = Math.max(READABLE, rawHeight);
     const size = Math.max(13, Math.min(72, Math.floor(Math.min(rawWidth, byHeight))));
+
     // ما نكتب إلا لو تغيّر فعلاً — يقطع أي دورة بين المراقب وتغيّر المقاس
     if (gridEl._tileSize === size) return;
     gridEl._tileSize = size;
