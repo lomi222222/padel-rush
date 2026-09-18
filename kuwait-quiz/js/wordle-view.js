@@ -218,6 +218,10 @@
     const wrap = gridEl.closest(".wordle-wrap");
     if (!wrap) return;
     wrap.removeAttribute("data-wide-grid");
+    // الراية ما تنحط إلا لما تخطيطها موجود فعلاً. قواعدها داخل استعلام الوضع
+    // العرضي، فلو حطيناها بالطولي صارت تدّعي تخطيطاً ما ينطبق — والطولي أصلاً
+    // ما يحتاجها لأن الكيبورد تحت فيه من البداية
+    if (!matchMedia("(orientation: landscape) and (max-height: 600px)").matches) return;
     // قراءة clientWidth بعد الشيل تجبر إعادة تخطيط، فالقياس يطلع للحالة الضيّقة
     if (widthPerTile(gridEl.parentElement, opts) < WIDE_GRID_BELOW) {
       wrap.setAttribute("data-wide-grid", "");

@@ -65,8 +65,13 @@ const WORDS_UNDER_TEST = [
 //
 // التعليم على **دور الكلمة** (أطول عادية) مو على نصّها، فما ينكسر لما يتغيّر
 // البنك — نفس سبب اختيار الكلمات ديناميكياً فوق.
-const KNOWN_ISSUES = [["طولي صغير 360x640", "أطول عادية"]];
-const KNOWN_ISSUE_NOTE = "٧ صفوف فأكثر على ٣٦٠×٦٤٠ ما تسع — الضغط مطبّق أصلاً، يبي طبقة أعمق";
+const KNOWN_ISSUES = [
+  ["طولي صغير 360x640", "أطول عادية"],
+  // أطول كلمة بالبنك على أصغر شاشة عرضية: ١٨ حرفاً على ~٤٧٠ بكسل ⇒ ~٢٢px حتى
+  // بعد التخطيط العريض. حدّ حسابي مو عيب تنفيذ
+  ["عرضي صغير 667x375", "أطول بالبنك"],
+];
+const KNOWN_ISSUE_NOTE = "أضيق حالة بالبنك — الحد من عرض الشاشة نفسه";
 const isKnownIssue = (vp, role) => KNOWN_ISSUES.some(([v, r]) => vp === v && role === r);
 
 async function startRound(page, word, category) {
@@ -102,7 +107,10 @@ const probe = (page) =>
       keyboardInView: kr.top >= -1 && kr.bottom <= window.innerHeight + 1,
       keyRowsVisible: document.querySelectorAll("#keyboard .keyboard-row").length,
       tile: getComputedStyle(grid).getPropertyValue("--tile-size").trim(),
+      tilePx: Math.round(parseFloat(getComputedStyle(document.querySelector(".wordle-tile")).width)),
       rows: document.querySelectorAll(".wordle-row").length,
+      // التخطيط العريض: الكيبورد نزل تحت عشان الشبكة تاخذ العرض كله
+      wide: !!document.querySelector(".wordle-wrap[data-wide-grid]"),
     };
   });
 
@@ -121,7 +129,20 @@ const probe = (page) =>
       check(tag + " | صندوق الشبكة داخل الشاشة", r.gridInView, true);
       // الصفوف المرسومة لازم تطابق الصيغة — يمسك لو تغيّرت الصيغة بلا قصد
       check(tag + " | الصفوف تطابق الصيغة", r.rows, wordRows);
-      if (kind === "normal") {
+      if (r.wide) {
+        // بالتخطيط العريض التمرير الرأسي **مقصود**: نزّلنا الكيبورد تحت عشان
+        // الخانة تكبر، وهذي مقايضة صريحة طلبها المستخدم («خلّه كبير ويبين ولو
+        // تصعد وتنزل»). فالمفحوص هني المقروئية مو أن الشبكة تسع كاملة.
+        //
+        // الاستثناء: أطول كلمة بالبنك (٢٠ خانة) على أصغر شاشة عرضية (٦٦٧×٣٧٥)
+        // تطلع ~٢٢px حتى بعد التخطيط العريض — حدّ فيزيائي: ١٨ حرفاً على ٤٧٠
+        // بكسل. كلمة وحدة من ١٢٩٨ على جهاز قديم بالوضع العرضي، معلّمة مو مخفية
+        if (isKnownIssue(vpName, role)) {
+          console.log("        ⚠️  حدّ معروف — " + r.tilePx + "px: " + KNOWN_ISSUE_NOTE);
+        } else {
+          check(tag + " | عريض: الخانة مقروءة (≥٣٠px)", r.tilePx >= 30, true);
+        }
+      } else if (kind === "normal") {
         if (isKnownIssue(vpName, role)) {
           console.log("        ⚠️  عيب معروف — الشبكة تحتاج تمرير: " + KNOWN_ISSUE_NOTE);
         } else {
@@ -163,7 +184,9 @@ const probe = (page) =>
   await page.waitForTimeout(350);
   const afterRotate = await probe(page);
   check("بعد القلب: ما تنزل وتصعد", afterRotate.pageScrolls, false);
-  check("بعد القلب: الشبكة كاملة", afterRotate.gridFits, true);
+  // «اسد» قصيرة فما تدخل التخطيط العريض — والشرط مكتوب عشان ما ينكسر الاختبار
+  // لو تغيّرت كلمة الفحص لكلمة طويلة بعدين
+  check("بعد القلب: الشبكة كاملة", afterRotate.wide || afterRotate.gridFits, true);
   check("بعد القلب: الحرف باقي مكتوب", await page.$eval(".wordle-row .wordle-tile", (t) => t.textContent), "ا");
   console.log("        INFO  بعد القلب خلية=" + afterRotate.tile);
 
