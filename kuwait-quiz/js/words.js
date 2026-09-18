@@ -778,6 +778,35 @@ const WORDS = [
   { word: "المسد", category: "سور القرآن الكريم" }, { word: "الاخلاص", category: "سور القرآن الكريم" },
   { word: "الفلق", category: "سور القرآن الكريم" }, { word: "الناس", category: "سور القرآن الكريم" },
 
+  // ===================== ألعاب =====================
+  { word: "ماينكرافت", category: "ألعاب" }, { word: "كول اوف ديوتي", category: "ألعاب" },
+  { word: "روكيت ليق", category: "ألعاب" }, { word: "اوفرواتش", category: "ألعاب" },
+  { word: "فالورانت", category: "ألعاب" }, { word: "فورتنايت", category: "ألعاب" },
+  { word: "فيفا", category: "ألعاب" }, { word: "تيكن", category: "ألعاب" },
+  { word: "ستريت فايتر", category: "ألعاب" }, { word: "مورتال كومبات", category: "ألعاب" },
+  { word: "اساسنز كريد", category: "ألعاب" }, { word: "ذا ويتشر", category: "ألعاب" },
+  { word: "دارك سولز", category: "ألعاب" }, { word: "قود اوف وار", category: "ألعاب" },
+  { word: "سبايدرمان", category: "ألعاب" }, { word: "باتمان", category: "ألعاب" },
+  { word: "وولفرين", category: "ألعاب" }, { word: "انتشارتد", category: "ألعاب" },
+  { word: "رزدنت ايفل", category: "ألعاب" }, { word: "فار كراي", category: "ألعاب" },
+  { word: "فورزا هورايزن", category: "ألعاب" }, { word: "ليغ اوف ليجندز", category: "ألعاب" },
+  { word: "كاونتر سترايك", category: "ألعاب" }, { word: "زيلدا", category: "ألعاب" },
+  { word: "ماريو", category: "ألعاب" }, { word: "سونيك", category: "ألعاب" },
+  { word: "كيربي", category: "ألعاب" }, { word: "سماش", category: "ألعاب" },
+  { word: "ميتل قير", category: "ألعاب" }, { word: "ريد ديد", category: "ألعاب" },
+  { word: "قراند", category: "ألعاب" }, { word: "ببجي", category: "ألعاب" },
+  { word: "كلاش رويال", category: "ألعاب" }, { word: "كلاش اوف كلانس", category: "ألعاب" },
+  { word: "رينبو", category: "ألعاب" }, { word: "ابيكس ليجندز", category: "ألعاب" },
+  { word: "كراش", category: "ألعاب" }, { word: "تيترس", category: "ألعاب" },
+  { word: "دوم", category: "ألعاب" }, { word: "لاست اوف اس", category: "ألعاب" },
+  { word: "تومب رايدر", category: "ألعاب" }, { word: "هتمان", category: "ألعاب" },
+  { word: "قيرز اوف وور", category: "ألعاب" }, { word: "نيد فور سبيد", category: "ألعاب" },
+  { word: "ستاردو فالي", category: "ألعاب" }, { word: "داينستي واريورز", category: "ألعاب" },
+  { word: "هولو نايت", category: "ألعاب" }, { word: "انيمل كروسينق", category: "ألعاب" },
+  { word: "هالو", category: "ألعاب" }, { word: "ديابلو", category: "ألعاب" },
+  { word: "دونكي كونق", category: "ألعاب" }, { word: "باك مان", category: "ألعاب" },
+  { word: "ايلدن رينق", category: "ألعاب" },
+
 ];
 
 if (typeof module !== "undefined" && module.exports) {

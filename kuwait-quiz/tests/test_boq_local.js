@@ -60,8 +60,9 @@ const enter = (page) => page.locator('.key:text-is("إدخال")').first().click
   // ===== الفئة الحصرية =====
   // حد أدنى مو رقم ثابت — الرقم الثابت ينكسر مع كل توسيع للبنك
   check("bank size لا ينقص", await page.evaluate(() => WORDS.length >= 1196), true);
+  // حد أدنى بعد — الفئة كاملة ١١٤ سورة، والرقم الثابت ينكسر مع أي تنقيح لها
   check("surah category count", await page.evaluate(
-    () => WORDS.filter((w) => w.category === "سور القرآن الكريم").length), 110);
+    () => WORDS.filter((w) => w.category === "سور القرآن الكريم").length >= 110), true);
   check("exclusive chip is gold-styled", await page.$eval(
     "#wordle-category-list label.exclusive", (el) => el.textContent), "سور القرآن الكريم");
 

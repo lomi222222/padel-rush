@@ -41,7 +41,13 @@ async function pickAndStart(page, category, targetWord) {
 
   // حد أدنى بدل عدد ثابت: العدد الثابت كان ينكسر مع كل توسيع للبنك، والمهم إنه ما ينقص
   check("WORDS.length لا ينقص", await page.evaluate(() => WORDS.length >= 1014), true);
-  check("categories count", await page.$$eval("#wordle-category-list label", (e) => e.length), 20);
+  // نفس سبب السطر اللي فوق، مطبّقاً على الفئات: الرقم الثابت (كان ٢٠) ينكسر مع
+  // كل فئة جديدة. المقصود إن القائمة تعرض كل الفئات الموجودة بالبنك، فنقارن بها
+  check(
+    "الفئات المعروضة = فئات البنك",
+    await page.$$eval("#wordle-category-list label", (e) => e.length),
+    await page.evaluate(() => new Set(WORDS.map((w) => w.category)).size)
+  );
 
   for (const inp of await page.$$("#wordle-team1-input, #wordle-team2-input")) await inp.fill("فريق");
 
