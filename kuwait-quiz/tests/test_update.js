@@ -14,7 +14,7 @@ const { launch, makeChecker } = require("./_browser");
 
 const check = makeChecker();
 const SRC = path.join(__dirname, "..");
-const PORT = Number(process.env.KW_UPDATE_PORT || 8957);
+const PORT = Number(process.env.KW_UPDATE_PORT || 0) || 8900 + (process.pid % 90);
 const BASE = "http://127.0.0.1:" + PORT;
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
