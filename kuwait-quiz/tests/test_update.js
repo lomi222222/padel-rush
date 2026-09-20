@@ -9,15 +9,24 @@
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
-const { spawn, execFileSync } = require("child_process");
+const http = require("http");
 const { launch, makeChecker } = require("./_browser");
 
 const check = makeChecker();
 const SRC = path.join(__dirname, "..");
-const PORT = Number(process.env.KW_UPDATE_PORT || 0) || 8900 + (process.pid % 90);
-const BASE = "http://127.0.0.1:" + PORT;
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+const TYPES = {
+  ".html": "text/html; charset=utf-8",
+  ".js": "text/javascript; charset=utf-8",
+  ".css": "text/css; charset=utf-8",
+  ".json": "application/json; charset=utf-8",
+  ".webmanifest": "application/manifest+json",
+  ".svg": "image/svg+xml",
+  ".png": "image/png",
+  ".mp3": "audio/mpeg",
+};
 
 // ننسخ اللعبة كاملة (بلا tests) عشان نقدر نعدّل عليها بأمان
 function copySite() {
@@ -29,21 +38,38 @@ function copySite() {
   return dir;
 }
 
-async function serve(dir) {
-  const proc = spawn("python3", ["-m", "http.server", String(PORT)], {
-    cwd: dir,
-    stdio: "ignore",
-  });
-  for (let i = 0; i < 40; i++) {
-    try {
-      execFileSync("curl", ["-fsS", "-o", "/dev/null", "--max-time", "1", BASE + "/wordle.html"], { stdio: "ignore" });
-      return proc;
-    } catch (e) {
-      await sleep(250);
+// سيرفر خاص بهالاختبار على منفذ يختاره النظام (0). كان يرفع python على منفذ
+// محسوب من رقم العملية، وهذا انكسر: المدى كان يشمل ٨٩٥١ منفذ طقم الاختبارات —
+// فلو تصادم، python يفشل بالربط بهدوء، والفحص بـcurl ينجح لأن **سيرفر الطقم**
+// هو اللي يرد. فيشتغل الاختبار على جذر غلط (المستودع الحقيقي مو النسخة المؤقتة)
+// وما يشوف التحديث المنشور أبداً. منفذ ٠ يقفل الباب: النظام يعطينا منفذاً حراً
+// ونمسك المقبس بأنفسنا، فما فيه سباق ولا فحص يخمّن
+function serve(dir) {
+  const server = http.createServer((req, res) => {
+    const rel = decodeURIComponent(req.url.split("?")[0]).replace(/^\/+/, "") || "index.html";
+    const file = path.join(dir, rel);
+    if (!file.startsWith(dir)) {
+      res.writeHead(403).end();
+      return;
     }
-  }
-  proc.kill();
-  throw new Error("السيرفر المؤقت ما اشتغل على " + PORT);
+    fs.readFile(file, (err, body) => {
+      if (err) {
+        res.writeHead(404).end();
+        return;
+      }
+      res.writeHead(200, {
+        "Content-Type": TYPES[path.extname(file)] || "application/octet-stream",
+        // بلا تخزين المتصفح: اللي نختبره هو مخزن الـservice worker وحده
+        "Cache-Control": "no-store",
+      });
+      res.end(body);
+    });
+  });
+  return new Promise((resolve) => {
+    server.listen(0, "127.0.0.1", () => {
+      resolve({ server, base: "http://127.0.0.1:" + server.address().port });
+    });
+  });
 }
 
 // "ينشر" نسخة جديدة: يغيّر لوناً بـCSS ويرفع رقم نسخة الـSW — نفس اللي نسويه فعلاً
@@ -74,7 +100,7 @@ async function settle(page) {
 
 (async () => {
   const dir = copySite();
-  const server = await serve(dir);
+  const { server, base: BASE } = await serve(dir);
   const browser = await launch();
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
   await ctx.addInitScript(() => {
@@ -152,7 +178,7 @@ async function settle(page) {
     check("ما صار أي خطأ JS", errs.length === 0, errs.join(" | "));
   } finally {
     await browser.close();
-    server.kill();
+    server.close();
     fs.rmSync(dir, { recursive: true, force: true });
   }
 
