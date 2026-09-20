@@ -54,6 +54,8 @@
   // الهوست بيتجاهل إدخالاته لأن رقمها أصغر من آخر رقم عالجه له
   let mySeq = Date.now();
   let localBuffer = [];
+  // موضع الكتابة بالصف — محلي بحت، ما يُرسل ولا يشوفه الخصم
+  let cursor = 0;
   let heartbeatTimer = null;
   let unsubscribers = [];
   let lastPlayersSignature = "";
@@ -773,8 +775,7 @@
     hostState.maxAttempts = Core.attemptsForLength(hostState.wordLength);
 
     hostState.hintedLetters = {};
-    hostState.currentGuess = [];
-    Core.autoFillSpaces(hostState.currentGuess, hostState.wordLength, hostState.spaceIndexes);
+    hostState.currentGuess = Core.makeGuessBuffer(hostState.wordLength, hostState.spaceIndexes);
     hostState.guesses = [];
     hostState.keyStatus = {};
     hostState.hints = Core.newHints();
@@ -858,16 +859,20 @@
 
   // يعيد بناء المخزن المؤقت من الحروف اللي وصلت، ويتجاهل أي شي غير صالح، ويحط
   // المسافات بمكانها — عشان ما نثق بأي شي يجي من جهاز اللاعب
+  // **يحفظ المواضع**. كان يفلتر الحروف ويعيد رصّها من البداية، فحرف باللاعب
+  // بالموضع ٧ كان يوصل الهوست بالموضع ٠ — يعني الكتابة بموضع تشتغل بالمحلي
+  // وتنهار بالأونلاين بلا أي رسالة خطأ.
+  //
+  // يظل يطهّر: ما يقبل إلا حرفاً عربياً واحداً بكل خانة، والمسافات تُفرض من
+  // مواضع الهوست لا من رسالة اللاعب — فما يقدر يزحزحها ولا يزرع قيماً غريبة
   function sanitizeBuffer(buf) {
-    const letters = (buf || []).filter(
-      (c) => typeof c === "string" && Core.ARABIC_LETTER_RE.test(c)
-    );
-    const out = [];
-    Core.autoFillSpaces(out, hostState.wordLength, hostState.spaceIndexes);
-    for (const ch of letters) {
-      if (out.length >= hostState.wordLength) break;
-      out.push(ch);
-      Core.autoFillSpaces(out, hostState.wordLength, hostState.spaceIndexes);
+    const src = Array.isArray(buf) ? buf : [];
+    const spaces = new Set(hostState.spaceIndexes || []);
+    const out = Core.makeGuessBuffer(hostState.wordLength, hostState.spaceIndexes);
+    for (let i = 0; i < out.length; i++) {
+      if (spaces.has(i)) continue;
+      const c = src[i];
+      if (typeof c === "string" && Core.ARABIC_LETTER_RE.test(c)) out[i] = c;
     }
     return out;
   }
@@ -923,8 +928,7 @@
       attemptsLeft: Core.BOQ_ATTEMPTS,
       value: Core.finalScoreForAttempt(hostOwnAttemptCount() + 1, h.maxAttempts, h.hints),
     };
-    h.currentGuess = [];
-    Core.autoFillSpaces(h.currentGuess, h.wordLength, h.spaceIndexes);
+    h.currentGuess = Core.makeGuessBuffer(h.wordLength, h.spaceIndexes);
     h.ack = null;
     h.message = { text: "", kind: "" };
     // نوقف المؤقّت طول السرقة
@@ -963,7 +967,7 @@
 
   function hostSubmitGuess() {
     const h = hostState;
-    if (h.currentGuess.length < h.wordLength) {
+    if (!Core.isGuessComplete(h.currentGuess, h.spaceIndexes)) {
       h.message = { text: "أدخل " + Core.toArabicDigits(h.wordLength) + " أحرف أولاً", kind: "" };
       publishState();
       return;
@@ -975,8 +979,7 @@
     Core.mergeKeyStatus(h.keyStatus, h.currentGuess, statuses);
 
     const won = statuses.every((s) => s === "green");
-    h.currentGuess = [];
-    Core.autoFillSpaces(h.currentGuess, h.wordLength, h.spaceIndexes);
+    h.currentGuess = Core.makeGuessBuffer(h.wordLength, h.spaceIndexes);
 
     // ===== مسار السرقة =====
     if (h.steal) {
@@ -1127,6 +1130,11 @@
     // الحروف اللي كتبتها للحين ما وصلت
     if (ack && ack.pid === playerId && ack.seq < mySeq) return;
     localBuffer = (live.currentGuess || []).slice();
+    const sp = pub.round?.spaceIndexes || [];
+    if (!localBuffer.length) localBuffer = Core.makeGuessBuffer(pub.round?.wordLength || 0, sp);
+    if (cursor < 0 || cursor >= localBuffer.length || sp.includes(cursor)) {
+      cursor = Core.firstWritable(localBuffer, sp);
+    }
   }
 
   function sendInput(action, extra) {
@@ -1142,26 +1150,46 @@
     if (!isMyTurn()) return;
     const r = pub.round || {};
 
+    const spaces = r.spaceIndexes || [];
+
     if (key === "ENTER") {
-      if (localBuffer.length < r.wordLength) {
+      if (!Core.isGuessComplete(localBuffer, spaces)) {
         View.showMessage(messageEl, "أدخل " + Core.toArabicDigits(r.wordLength) + " أحرف أولاً", "");
         return;
       }
       sendInput("submit");
       return;
     }
+    // المسح عند المؤشر — نفس قاعدة الوضع المحلي
     if (key === "DEL") {
-      Core.deleteLast(localBuffer, r.spaceIndexes || []);
+      if (localBuffer[cursor]) {
+        Core.clearAt(localBuffer, cursor, spaces);
+      } else {
+        const back = Core.prevWritable(localBuffer, cursor, spaces);
+        if (back >= 0) {
+          Core.clearAt(localBuffer, back, spaces);
+          cursor = back;
+        }
+      }
       renderPlay();
       sendInput("buffer");
       return;
     }
-    if (Core.ARABIC_LETTER_RE.test(key) && localBuffer.length < r.wordLength) {
-      localBuffer.push(key);
-      Core.autoFillSpaces(localBuffer, r.wordLength, r.spaceIndexes || []);
+    if (Core.ARABIC_LETTER_RE.test(key) && cursor >= 0) {
+      Core.writeAt(localBuffer, cursor, key, spaces);
+      const next = Core.nextEmpty(localBuffer, cursor + 1, spaces);
+      if (next >= 0) cursor = next;
       renderPlay();
       sendInput("buffer");
     }
+  }
+
+  // ضغط خانة بالصف الحالي. المؤشر محلي بحت — ما يُرسل للهوست ولا يشوفه الخصم
+  function moveCursorTo(col) {
+    if (!isMyTurn()) return;
+    if ((pub.round?.spaceIndexes || []).includes(col)) return;
+    cursor = col;
+    renderPlay();
   }
 
   [
@@ -1236,6 +1264,9 @@
       spaceIndexes: r.spaceIndexes || [],
       hintedLetters: r.hintedLetters || {},
       stealActive: !!r.steal,
+      // المؤشر والضغط للاعب صاحب الدور بس — المتفرّج يشوف الشبكة بلا مؤشر
+      cursor: isMyTurn() ? cursor : -1,
+      onTileTap: isMyTurn() ? moveCursorTo : null,
     });
   }
 

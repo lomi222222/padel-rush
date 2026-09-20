@@ -166,29 +166,63 @@
     return out;
   }
 
-  // الكلمات المكوّنة من كلمتين تحتوي على مسافة بينهما — نملأ خانة المسافة تلقائياً في
-  // مكانها الصحيح بدل ما نطلب من اللاعب يكتبها بنفسه. نمرر مواضع المسافات (مو الكلمة
-  // نفسها) عشان جهاز اللاعب بالأونلاين يقدر يسوي نفس الشي بدون ما يعرف الكلمة.
+  // ===== مخزن التخمين: مصفوفة بطول الكلمة، كل خانة بموضعها =====
+  //
+  // كان المخزن يُبنى بـpush والطول هو موضع الكتابة، فالكتابة كانت بالترتيب إجبارياً.
+  // صار بطول ثابت عشان اللاعب يقدر يضغط أي خانة ويكتب فيها: خانة فاضية = ""،
+  // وخانة مسافة = " " موضوعة من البداية بمكانها الصحيح.
+  //
+  // "" مو undefined عمداً: فايربيس يشيل undefined من المصفوفات فتنخرب المواضع.
   //
   // ملاحظة: الحروف الملمّحة (تلميح "اكشف حرف") ما تدخل المخزن أبداً — تُرسم كطيف بس،
   // شوف renderGrid. فالمخزن دايماً حروف اللاعب + المسافات، ولا شي غيرهم.
-  function autoFillSpaces(currentGuess, wordLength, spaceIndexes) {
-    const spaces = spaceIndexes instanceof Set ? spaceIndexes : new Set(spaceIndexes || []);
-    while (currentGuess.length < wordLength && spaces.has(currentGuess.length)) {
-      currentGuess.push(" ");
-    }
-    return currentGuess;
+  const asSpaces = (s) => (s instanceof Set ? s : new Set(s || []));
+
+  function makeGuessBuffer(wordLength, spaceIndexes) {
+    const spaces = asSpaces(spaceIndexes);
+    return Array.from({ length: wordLength }, (_, i) => (spaces.has(i) ? " " : ""));
   }
 
-  // حذف حرف: نشيل المسافات المعبّاة تلقائياً من الطرف أول، بعدها حرف اللاعب. الترتيب
-  // مهم لسببين — الضغطة لازم تشيل حرفاً يشوفه اللاعب مو خانة مسافة مخفية، والمخزن
-  // لازم ما ينتهي عند موضع مسافة أبداً وإلا الحرف الجاي ينحط بخانة المسافة نفسها
-  // (autoFillSpaces تشتغل بعد الإضافة فما تقدر تحمي الخانة اللي انحط فيها الحرف)
-  function deleteLast(currentGuess, spaceIndexes) {
-    const spaces = spaceIndexes instanceof Set ? spaceIndexes : new Set(spaceIndexes || []);
-    while (currentGuess.length && spaces.has(currentGuess.length - 1)) currentGuess.pop();
-    currentGuess.pop();
-    return currentGuess;
+  const isWritable = (buf, i, spaceIndexes) =>
+    i >= 0 && i < buf.length && !asSpaces(spaceIndexes).has(i);
+
+  function writeAt(buf, i, ch, spaceIndexes) {
+    if (isWritable(buf, i, spaceIndexes)) buf[i] = ch;
+    return buf;
+  }
+
+  function clearAt(buf, i, spaceIndexes) {
+    if (isWritable(buf, i, spaceIndexes)) buf[i] = "";
+    return buf;
+  }
+
+  // أول خانة فاضية بعد from — حركة المؤشر بعد كتابة حرف. على صف فاضي تعطي
+  // الموضع التالي مباشرة، فالكتابة بالترتيب تحس نفسها بالضبط
+  function nextEmpty(buf, from, spaceIndexes) {
+    const spaces = asSpaces(spaceIndexes);
+    for (let i = from; i < buf.length; i++) if (!spaces.has(i) && !buf[i]) return i;
+    return -1;
+  }
+
+  function firstWritable(buf, spaceIndexes) {
+    const spaces = asSpaces(spaceIndexes);
+    for (let i = 0; i < buf.length; i++) if (!spaces.has(i)) return i;
+    return -1;
+  }
+
+  // الخانة القابلة للكتابة قبل from — يستخدمها المسح لما تكون الخانة الحالية فاضية
+  function prevWritable(buf, from, spaceIndexes) {
+    const spaces = asSpaces(spaceIndexes);
+    for (let i = from - 1; i >= 0; i--) if (!spaces.has(i)) return i;
+    return -1;
+  }
+
+  // يحل محل فحص `length < wordLength` القديم: الطول صار ثابتاً دائماً، فالاكتمال
+  // يعني ألا تبقى خانة فاضية
+  function isGuessComplete(buf, spaceIndexes) {
+    const spaces = asSpaces(spaceIndexes);
+    for (let i = 0; i < buf.length; i++) if (!spaces.has(i) && !buf[i]) return false;
+    return buf.length > 0;
   }
 
   function evaluateGuess(guessChars, targetChars) {
@@ -381,8 +415,13 @@
     makeWordBag,
     attemptsForLength,
     spaceIndexesOf,
-    autoFillSpaces,
-    deleteLast,
+    makeGuessBuffer,
+    writeAt,
+    clearAt,
+    nextEmpty,
+    firstWritable,
+    prevWritable,
+    isGuessComplete,
     evaluateGuess,
     statusRank,
     mergeKeyStatus,

@@ -1484,6 +1484,29 @@ body.home-page .page {
   opacity: 0.55;
 }
 
+/* خانات الصف الحالي تنضغط عشان اللاعب يكتب بموضع بدل الترتيب */
+.wordle-tile.tappable {
+  cursor: pointer;
+}
+
+/* المؤشر: وين بيروح الحرف الجاي. بدون علامة ظاهرة تصير الميزة مخفية ما تنكتشف،
+   واللاعب ما يعرف ليش الحرف نزل بمكان غير الي يتوقعه */
+.wordle-tile.cursor {
+  border-color: var(--blue-600);
+  box-shadow: 0 0 0 2px var(--blue-300);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .wordle-tile.cursor {
+    animation: tile-cursor 1.2s ease-in-out infinite;
+  }
+  @keyframes tile-cursor {
+    50% {
+      box-shadow: 0 0 0 2px transparent;
+    }
+  }
+}
+
 .wordle-tile.green {
   background: var(--green);
   border-color: var(--green);

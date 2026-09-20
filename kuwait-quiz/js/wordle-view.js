@@ -199,6 +199,16 @@
           tile.classList.add("ghost");
         }
 
+        // الصف الحالي: الخانة تنضغط عشان اللاعب يكتب بموضع بدل الترتيب، والمؤشر
+        // يبيّن وين بيروح الحرف الجاي. بدونه الميزة مخفية ما تنكتشف
+        if (isCurrentRow && !submitted) {
+          if (col === opts.cursor) tile.classList.add("cursor");
+          if (opts.onTileTap) {
+            tile.classList.add("tappable");
+            tile.addEventListener("click", () => opts.onTileTap(col));
+          }
+        }
+
         rowEl.appendChild(tile);
       }
       gridEl.appendChild(rowEl);

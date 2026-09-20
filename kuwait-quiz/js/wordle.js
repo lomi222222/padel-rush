@@ -28,6 +28,8 @@
   let maxAttempts = 6;
   let category = "";
   let currentGuess = [];
+  // موضع الكتابة الحالي بالصف. اللاعب يحرّكه بضغط أي خانة
+  let cursor = 0;
   let guesses = [];
   let gameOver = false;
   let keyStatus = {};
@@ -207,6 +209,8 @@
       spaceIndexes,
       hintedLetters,
       stealActive: !!steal,
+      cursor,
+      onTileTap: moveCursorTo,
     });
   }
 
@@ -319,8 +323,8 @@
       attemptsLeft: Core.BOQ_ATTEMPTS,
       value: Core.finalScoreForAttempt(ownAttemptCount() + 1, maxAttempts, hints),
     };
-    currentGuess = [];
-    Core.autoFillSpaces(currentGuess, wordLength, spaceIndexes);
+    currentGuess = Core.makeGuessBuffer(wordLength, spaceIndexes);
+    cursor = Core.firstWritable(currentGuess, spaceIndexes);
     pauseTimer();
     showMessage("", "");
     updateHintButtons();
@@ -358,7 +362,8 @@
     steal = null;
     pausedRemainingMs = null;
     deadline = roundSeconds ? Date.now() + roundSeconds * 1000 : null;
-    Core.autoFillSpaces(currentGuess, wordLength, spaceIndexes);
+    currentGuess = Core.makeGuessBuffer(wordLength, spaceIndexes);
+    cursor = Core.firstWritable(currentGuess, spaceIndexes);
     View.renderTimer(timerEl, deadline, null);
     startTicking();
     updateBoqUi();
@@ -489,20 +494,40 @@
       submitGuess();
       return;
     }
+    // المسح عند المؤشر: لو خانته فيها حرف تنفرّغ ويبقى مكانه، وإلا يرجع للسابق
+    // ويفرّغها — نفس سلوك أي حقل كتابة
     if (key === "DEL") {
-      Core.deleteLast(currentGuess, spaceIndexes);
+      if (currentGuess[cursor]) {
+        Core.clearAt(currentGuess, cursor, spaceIndexes);
+      } else {
+        const back = Core.prevWritable(currentGuess, cursor, spaceIndexes);
+        if (back >= 0) {
+          Core.clearAt(currentGuess, back, spaceIndexes);
+          cursor = back;
+        }
+      }
       renderGrid();
       return;
     }
-    if (Core.ARABIC_LETTER_RE.test(key) && currentGuess.length < wordLength) {
-      currentGuess.push(key);
-      Core.autoFillSpaces(currentGuess, wordLength, spaceIndexes);
+    if (Core.ARABIC_LETTER_RE.test(key) && cursor >= 0) {
+      Core.writeAt(currentGuess, cursor, key, spaceIndexes);
+      // المؤشر يقفز لأول فاضية بعده. على صف فاضي هذي هي الخانة التالية مباشرة،
+      // فالكتابة بالترتيب تظل تحس نفسها بالضبط
+      const next = Core.nextEmpty(currentGuess, cursor + 1, spaceIndexes);
+      if (next >= 0) cursor = next;
       renderGrid();
     }
   }
 
+  // ضغط خانة بالصف الحالي — نقطة دخول الميزة. خانات المسافات مستثناة
+  function moveCursorTo(col) {
+    if (gameOver || spaceIndexes.includes(col)) return;
+    cursor = col;
+    renderGrid();
+  }
+
   function submitGuess() {
-    if (currentGuess.length < wordLength) {
+    if (!Core.isGuessComplete(currentGuess, spaceIndexes)) {
       showMessage("أدخل " + Core.toArabicDigits(wordLength) + " أحرف أولاً", "");
       return;
     }
@@ -513,8 +538,8 @@
     Core.mergeKeyStatus(keyStatus, currentGuess, statuses);
 
     const won = statuses.every((s) => s === "green");
-    currentGuess = [];
-    Core.autoFillSpaces(currentGuess, wordLength, spaceIndexes);
+    currentGuess = Core.makeGuessBuffer(wordLength, spaceIndexes);
+    cursor = Core.firstWritable(currentGuess, spaceIndexes);
     renderGrid();
     renderKeyboard();
     updateHintButtons();
