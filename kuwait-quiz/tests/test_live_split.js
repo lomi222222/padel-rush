@@ -97,7 +97,9 @@ async function tap(page, ch) {
   check("the live node did change", after.live !== before.live, true);
 
   const liveObj = JSON.parse(after.live);
-  check("live carries the typed letters", liveObj.currentGuess, ["س", "ل", "ح"]);
+  // المصفوفة بطول الكلمة دائماً والخانات الفاضية "" — عشان الحرف يحتفظ بموضعه لما
+  // يكتب اللاعب بخانة مو بالترتيب
+  check("live carries the typed letters", liveObj.currentGuess, ["س", "ل", "ح", "", "", ""]);
   check("live is tiny (bytes)", after.live.length < 200, true);
   check("state is the heavy node (bytes)", after.state.length > 600, true);
   console.log(
@@ -120,7 +122,7 @@ async function tap(page, ch) {
   await host.waitForTimeout(300);
   const afterDel = await readRoom(p2);
   check("delete also stays on the live node", afterDel.state === before.state, true);
-  check("delete synced to the other device", JSON.parse(afterDel.live).currentGuess, ["س", "ل"]);
+  check("delete synced to the other device", JSON.parse(afterDel.live).currentGuess, ["س", "ل", "", "", "", ""]);
 
   // ===== الإرسال: هنا لازم state يتغيّر (المخزن بعد المسح = س ل، وباقي ح ف ا ة) =====
   for (const ch of ["ح", "ف", "ا", "ة"]) await tap(host, ch);

@@ -56,6 +56,10 @@
   let localBuffer = [];
   // موضع الكتابة بالصف — محلي بحت، ما يُرسل ولا يشوفه الخصم
   let cursor = 0;
+  // بصمة الصف الحالي (جولة + فريق + عدد التخمينات). تصفير المؤشر يُعلّق على
+  // تغيّرها مو على إعادة الرسم: فايربيس يعيد الرسم مع كل تحديث، فلو صفّرنا مع كل
+  // رسمة راح يقفز المؤشر لأول خانة كل ما وصل تحديث من جهاز ثاني
+  let lastRowKey = "";
   let heartbeatTimer = null;
   let unsubscribers = [];
   let lastPlayersSignature = "";
@@ -1130,10 +1134,28 @@
     // الحروف اللي كتبتها للحين ما وصلت
     if (ack && ack.pid === playerId && ack.seq < mySeq) return;
     localBuffer = (live.currentGuess || []).slice();
-    const sp = pub.round?.spaceIndexes || [];
-    if (!localBuffer.length) localBuffer = Core.makeGuessBuffer(pub.round?.wordLength || 0, sp);
-    if (cursor < 0 || cursor >= localBuffer.length || sp.includes(cursor)) {
+    const r = pub.round || {};
+    const sp = r.spaceIndexes || [];
+    if (!localBuffer.length) localBuffer = Core.makeGuessBuffer(r.wordLength || 0, sp);
+
+    // صف جديد (إرسال أو جولة جديدة) ⇒ المؤشر يرجع لأول خانة. بدون هذا يظل عند
+    // آخر موضع بالصف السابق وكل الحروف الجديدة تتكدّس بخانة وحدة
+    const rowKey = [r.roundNumber, pub.teamIndex, (r.guesses || []).length].join(":");
+    if (rowKey !== lastRowKey) {
+      lastRowKey = rowKey;
       cursor = Core.firstWritable(localBuffer, sp);
+      // ما نكمل للقاعدة الثانية: عند تغيّر الصف قد يوصل الـstate الجديد قبل ما
+      // تنمسح الـlive، فنشوف صفاً جديداً بحروف الصف القديم. لو طبّقنا «الحق
+      // الزميل» على هالصورة المؤقتة راح تسحب المؤشر لآخر الصف ويعلق هناك
+      return;
+    }
+
+    // المؤشر يلحق كتابة الزميل: لو خانته امتلأت من جهاز ثاني ننقله لأول فاضي
+    // بعدها. بدون هذا الزميل يكتب فوق حروف الأول لأن مؤشره للحين على البداية
+    if (cursor < 0 || cursor >= localBuffer.length) cursor = Core.firstWritable(localBuffer, sp);
+    if (cursor >= 0 && (sp.includes(cursor) || localBuffer[cursor])) {
+      const next = Core.nextEmpty(localBuffer, cursor, sp);
+      cursor = next >= 0 ? next : Core.prevWritable(localBuffer, localBuffer.length, sp);
     }
   }
 
