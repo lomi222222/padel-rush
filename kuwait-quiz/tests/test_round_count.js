@@ -1,31 +1,7 @@
 // عدد الجولات يختاره الهوست، والبوق يتوسّع معه.
-const { launch, BASE } = require("./_browser");
+const { launch, BASE, pickOnlyCategory, loseRound } = require("./_browser");
 let fail = 0;
 const check = (n, ok, x) => { console.log((ok ? "✅ " : "‼️ ") + n + (x ? "  " + x : "")); if (!ok) fail++; };
-
-// نلعب جولة كاملة بأسرع طريقة: نكتب حروفاً غلط لين تخلص المحاولات
-async function playRoundOut(page) {
-  for (let guard = 0; guard < 40; guard++) {
-    const done = await page.evaluate(() =>
-      !document.querySelector("#wordle-round-end").classList.contains("hidden") ||
-      !document.querySelector("#wordle-end-screen").classList.contains("hidden")
-    );
-    if (done) return;
-    const need = await page.evaluate(() => {
-      const row = [...document.querySelectorAll("#wordle-grid .wordle-row")]
-        .find((r) => ![...r.children].some((e) => /\b(green|yellow|gray)\b/.test(e.className)));
-      if (!row) return 0;
-      return [...row.children].filter((e) => !e.className.includes("gap")).length
-           - [...row.children].filter((e) => e.className.includes("filled")).length;
-    });
-    for (let i = 0; i < need; i++) {
-      await page.locator('.keyboard .key:text-is("ء")').click();
-      await page.waitForTimeout(25);
-    }
-    await page.locator('.keyboard .key:text-is("إدخال")').click();
-    await page.waitForTimeout(200);
-  }
-}
 
 async function runMatch(b, rounds, expectedBoq) {
   const page = await b.newPage({ viewport: { width: 390, height: 900 } });
@@ -34,6 +10,9 @@ async function runMatch(b, rounds, expectedBoq) {
   page.on("pageerror", (e) => errs.push(String(e)));
   await page.goto(BASE + "/wordle.html");
 
+  // فئة "حيوان" أقصر فئة بالبنك: مباراة ١٠ جولات تعني ٢٠ جولة تُخسَر صفاً صفاً،
+  // فطول الكلمة هو اللي يقرر الوقت
+  await pickOnlyCategory(page, "wordle", "حيوان");
   await page.selectOption("#wordle-round-count", String(rounds));
   await page.click("#wordle-start-btn");
   await page.waitForTimeout(400);
@@ -50,7 +29,7 @@ async function runMatch(b, rounds, expectedBoq) {
   for (let i = 0; i < rounds * 2 + 4; i++) {
     const over = await page.evaluate(() => !document.querySelector("#wordle-end-screen").classList.contains("hidden"));
     if (over) break;
-    await playRoundOut(page);
+    await loseRound(page, "wordle");
     played++;
     const nextVisible = await page.evaluate(() => !document.querySelector("#wordle-round-end").classList.contains("hidden"));
     if (nextVisible) {

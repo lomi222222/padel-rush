@@ -1,30 +1,7 @@
 // نتأكد إن احتفال الفوز (صوت + كونفيتي/ألعاب نارية) يشتغل مرة وحدة فقط، وما يكسر التخطيط.
-const { launch, BASE } = require("./_browser");
+const { launch, BASE, pickOnlyCategory, loseRound } = require("./_browser");
 let fail = 0;
 const check = (n, ok, x) => { console.log((ok ? "✅ " : "‼️ ") + n + (x ? "  " + x : "")); if (!ok) fail++; };
-
-async function playRoundOut(page, prefix) {
-  const endSel = prefix === "#wordle" ? "#wordle-end-screen" : "#online-end";
-  for (let guard = 0; guard < 40; guard++) {
-    const done = await page.evaluate(({ p, e }) =>
-      !document.querySelector(p + "-round-end").classList.contains("hidden") ||
-      !document.querySelector(e).classList.contains("hidden"), { p: prefix, e: endSel });
-    if (done) return;
-    const need = await page.evaluate(() => {
-      const row = [...document.querySelectorAll("#wordle-grid .wordle-row, #online-grid .wordle-row")]
-        .find((r) => ![...r.children].some((e) => /\b(green|yellow|gray)\b/.test(e.className)));
-      if (!row) return 0;
-      return [...row.children].filter((e) => !e.className.includes("gap")).length
-           - [...row.children].filter((e) => e.className.includes("filled")).length;
-    });
-    for (let i = 0; i < need; i++) {
-      await page.locator('.keyboard .key:text-is("ء")').first().click();
-      await page.waitForTimeout(20);
-    }
-    await page.locator('.keyboard .key:text-is("إدخال")').first().click();
-    await page.waitForTimeout(150);
-  }
-}
 
 (async () => {
   const browser = await launch();
@@ -37,6 +14,9 @@ async function playRoundOut(page, prefix) {
     page.on("pageerror", (e) => errs.push(String(e)));
     await page.goto(BASE + "/wordle.html");
     for (const inp of await page.$$("#wordle-team1-input, #wordle-team2-input")) await inp.fill("فريق");
+    // فئة "حيوان" أقصر فئة بالبنك (أقصى ٦ أحرف · متوسط ٤). خسارة الجولة تعني
+    // ملء كل صف بالكامل، فطول الكلمة هو اللي يحدد وقت الاختبار — مو عدد الجولات
+    await pickOnlyCategory(page, "wordle", "حيوان");
     await page.selectOption("#wordle-round-count", "3");
     await page.click("#wordle-start-btn");
     await page.waitForTimeout(300);
@@ -44,7 +24,7 @@ async function playRoundOut(page, prefix) {
     for (let i = 0; i < 6; i++) {
       const ended = await page.evaluate(() => !document.querySelector("#wordle-end-screen").classList.contains("hidden"));
       if (ended) break;
-      await playRoundOut(page, "#wordle");
+      await loseRound(page, "wordle");
       const nextVisible = await page.evaluate(() => !document.querySelector("#wordle-round-end").classList.contains("hidden"));
       if (nextVisible) { await page.click("#wordle-next-team-btn"); await page.waitForTimeout(250); }
     }
@@ -95,6 +75,7 @@ async function playRoundOut(page, prefix) {
     await host.locator('.online-team-pick[data-team="0"]').click();
     await foe.locator('.online-team-pick[data-team="1"]').click();
     await host.waitForTimeout(300);
+    await pickOnlyCategory(host, "online", "حيوان");
     await host.selectOption("#online-round-count", "3");
     await host.click("#online-start-btn");
     await host.waitForTimeout(500);
@@ -107,7 +88,7 @@ async function playRoundOut(page, prefix) {
         return k && !k.disabled;
       });
       const page = hostTurn ? host : foe;
-      await playRoundOut(page, "#online");
+      await loseRound(page, "online");
       await host.waitForTimeout(300);
       const nextVisible = await host.evaluate(() =>
         !document.querySelector("#online-round-end").classList.contains("hidden") &&

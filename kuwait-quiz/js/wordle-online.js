@@ -1154,8 +1154,12 @@
     // بعدها. بدون هذا الزميل يكتب فوق حروف الأول لأن مؤشره للحين على البداية
     if (cursor < 0 || cursor >= localBuffer.length) cursor = Core.firstWritable(localBuffer, sp);
     if (cursor >= 0 && (sp.includes(cursor) || localBuffer[cursor])) {
+      // **ما ننقل المؤشر إلا لخانة فاضية فعلاً.** لو الصف ممتلئ نخليه مكانه:
+      // كان يروح لآخر خانة، وهذي تعلّقه هناك بعد ما يتفرّج على صف اكتمل — فيجي
+      // دوره ويكتب كل حروفه بآخر خانة وحدة. والمسح يشتغل عند المؤشر بأي مكان،
+      // فما فيه داعي ننقله لما ما فيه فراغ
       const next = Core.nextEmpty(localBuffer, cursor, sp);
-      cursor = next >= 0 ? next : Core.prevWritable(localBuffer, localBuffer.length, sp);
+      if (next >= 0) cursor = next;
     }
   }
 

@@ -310,6 +310,14 @@ async function onlineMode(browser) {
   const foeFresh = await curRow(foe, "#online-grid");
   check("أونلاين: المؤشر رجع لأول خانة بالجولة الجديدة", cursorAt(foeFresh) === 0, "العمود " + cursorAt(foeFresh));
 
+  // المتفرّج شاف صفاً يمتلئ بالكامل بالجولة الماضية. لو المؤشر انسحب لآخر خانة
+  // وعلق هناك، أول ما يجي دوره راح تنزل كل حروفه بخانة وحدة. نكتب فعلاً بدل ما
+  // نكتفي بموضع علامة المؤشر — الكتابة هي الي تكشف العلّة
+  await key(foe, "س");
+  await foe.waitForTimeout(300);
+  const foeTyped = await curRow(foe, "#online-grid");
+  check("أونلاين: المتفرّج اللي جا دوره يكتب من أول خانة", letters(foeTyped).startsWith("س"), letters(foeTyped));
+
   check("أونلاين: ما صار أي خطأ JS", errs.length === 0, errs.join(" | "));
   await ctx.close();
 }
