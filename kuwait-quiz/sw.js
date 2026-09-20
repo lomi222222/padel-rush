@@ -4,7 +4,7 @@
 // رقم النسخة: **لازم يتغيّر مع أي تعديل على الملفات المخزّنة**، وإلا اللاعب يظل
 // عالق على النسخة القديمة بعد أي تحديث. تغييره يخلي المتصفح يخزّن من جديد ويمسح
 // المخزن القديم عند التفعيل.
-const VERSION = "v16";
+const VERSION = "v17";
 const CACHE = "saydha-" + VERSION;
 
 const SHELL = [
@@ -40,7 +40,14 @@ self.addEventListener("install", (e) => {
   e.waitUntil(
     caches.open(CACHE).then((c) => Promise.all(SHELL.map((u) => c.add(u).catch(() => {}))))
   );
-  self.skipWaiting();
+  // **ما نستلم لحالنا** (ولا skipWaiting هني): الصفحة هي اللي تقرر وقت التبديل
+  // عبر js/pwa.js، عشان ما نقطع لاعباً بنص جولة — حالة الجولة كلها بالذاكرة
+});
+
+// الإذن بالاستلام يجي من الصفحة. ولو ما وصل أبداً (pwa.js طاح مثلاً) النسخة
+// المنتظرة تتفعّل لما تنسكّر كل تبويبات الموقع — يعني أسوأ حالة سلوك اليوم
+self.addEventListener("message", (e) => {
+  if (e.data && e.data.type === "SKIP_WAITING") self.skipWaiting();
 });
 
 self.addEventListener("activate", (e) => {
