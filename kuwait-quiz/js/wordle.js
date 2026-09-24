@@ -18,6 +18,9 @@
   let wordBag = Core.makeWordBag(selectedCategories);
   let roundsPerTeam = Core.DEFAULT_ROUNDS;
   let boqLeft = [Core.boqForRounds(roundsPerTeam), Core.boqForRounds(roundsPerTeam)];
+  // العدد اللي بدأنا فيه — نميّز بيه «البوق مطفّي» (صفر من البداية) عن «خلصت
+  // بوقاتك» (صفر بعد استخدام). الأول يخفي الزر، والثاني يعطّله ويبيّن ٠
+  let boqPerTeam = boqLeft[0];
   let roundSeconds = 0;
 
   // ===== حالة الجولة الحالية =====
@@ -73,6 +76,7 @@
   const catAllCheckbox = document.getElementById("wordle-cat-all");
   const catListEl = document.getElementById("wordle-category-list");
   const catErrorEl = document.getElementById("wordle-category-error");
+  const boqCountSelect = document.getElementById("wordle-boq-count");
   const roundCountSelect = document.getElementById("wordle-round-count");
   const roundTimeSelect = document.getElementById("wordle-round-time");
   const roundTimeCustom = document.getElementById("wordle-round-time-custom");
@@ -116,6 +120,18 @@
   });
   // نحدد القيمة بعد ما تنضاف كل الخيارات (أثبت من selected أثناء الإنشاء)
   roundCountSelect.value = String(savedRoundCount);
+
+  // عدد البوق: «تلقائي» أولاً عشان يظل الافتراضي، ثم الأرقام الصريحة
+  const boqValues = [Core.BOQ_AUTO].concat(Core.BOQ_COUNT_OPTIONS.map(String));
+  boqValues.forEach((v) => {
+    const o = document.createElement("option");
+    o.value = v;
+    o.textContent = Core.boqCountLabel(v);
+    boqCountSelect.appendChild(o);
+  });
+  boqCountSelect.value = Settings
+    ? Settings.loadBoqCount(boqValues, Core.BOQ_AUTO)
+    : Core.BOQ_AUTO;
 
   // ===== مدة الجولة =====
   Core.ROUND_TIME_OPTIONS.forEach((opt) => {
@@ -161,11 +177,15 @@
     roundsPerTeam = Number(roundCountSelect.value) || Core.DEFAULT_ROUNDS;
     if (Settings) {
       Settings.saveRoundCount(roundsPerTeam);
+      Settings.saveBoqCount(boqCountSelect.value);
       Settings.saveRoundTime(roundTimeSelect.value, roundTimeCustom.value);
       Settings.saveCategories(selectedCategories);
     }
-    // البوق يتوسّع مع عدد الجولات عشان يظل معناه ثابتاً — شوف boqForRounds
-    boqLeft = [Core.boqForRounds(roundsPerTeam), Core.boqForRounds(roundsPerTeam)];
+    // «تلقائي» يتوسّع مع عدد الجولات عشان يظل معنى البوق ثابتاً — شوف
+    // boqForRounds؛ وإلا ناخذ رقم الهوست كما هو (والصفر يقفل البوق تماماً)
+    const boqs = Core.resolveBoqCount(boqCountSelect.value, roundsPerTeam);
+    boqLeft = [boqs, boqs];
+    boqPerTeam = boqs;
 
     teams = [
       { name: team1Input.value.trim() || Core.defaultTeamName(0), color: Core.TEAM_COLORS[0], score: 0 },
@@ -245,6 +265,10 @@
     }
     stealNoteEl.classList.add("hidden");
     const w = waitingTeam();
+    if (boqPerTeam <= 0) {
+      boqBtn.classList.add("hidden");
+      return;
+    }
     boqBtn.classList.remove("hidden");
     boqBtn.disabled = boqLeft[w] <= 0;
     View.setIconLabel(
@@ -434,15 +458,17 @@
 
   // تنادى بعد كل مساعدة وكل محاولة وعند بداية/نهاية السرقة، فهي المكان الطبيعي
   // اللي يخلي رقم النقاط متزامن مع حالة المساعدات
+  const hintUsesLeftEl = hintLetterBtn.querySelector(".uses-left");
+
   function updateHintButtons() {
+    if (hintUsesLeftEl) hintUsesLeftEl.textContent = Core.toArabicDigits(Core.revealLetterUsesLeft(hints));
     // أثناء السرقة ما فيه تلميحات — محاولتين وبس
     hintCategoryBtn.disabled = gameOver || !!steal || hints.categoryUsed;
     hintRepeatBtn.disabled = gameOver || !!steal || hints.repeatUsed;
 
-    // «اكشف حرف» تتكرر لحد MAX_REVEAL_LETTER_USES، وبعدها الزر ينقفل.
-    // ما نكتب الباقي على الزر عمداً: الثلاثة لازم يقعدون بسطر واحد (شوف
-    // .wordle-info .ability-btn بالـCSS)، وأي حرفين زيادة يلفّون السطر على
-    // ٣٧٥ بكسل وياكلون ~٣٠ بكسل من ارتفاع الشبكة
+    // «اكشف حرف» تتكرر لحد MAX_REVEAL_LETTER_USES، وبعدها الزر ينقفل. الباقي
+    // ينعرض برقم صغير داخل الزر (.uses-left) عشان اللاعب يعرف إن عنده مرتين بس
+    // — بحبّة ضيّقة مو بكلمة، لأن الثلاثة لازم يقعدون بسطر واحد على ٣٧٥ بكسل
     hintLetterBtn.disabled =
       gameOver ||
       !!steal ||

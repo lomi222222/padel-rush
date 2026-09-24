@@ -100,8 +100,8 @@ async function pickAndStart(page, category, targetWord) {
   await page.waitForTimeout(250);
   check("round end visible after win", await page.$eval("#wordle-round-end", (el) => !el.classList.contains("hidden")), true);
   check("message is win", await page.$eval("#wordle-message", (el) => el.className.includes("win")), true);
-  // فوز بالمحاولة ٢ مع تلميح الفئة: raw = 100*(6-2+1)=500، ثم نصف = 250
-  check("score after win w/ category hint", await page.$eval("#wordle-scoreboard .team-chip .score", (el) => el.textContent), "٢٥٠ نقطة");
+  // فوز بالمحاولة ٢ مع تلميح الفئة: raw = 100*(6-2+1)=500، ناقص ٢٥٪ = 375
+  check("score after win w/ category hint", await page.$eval("#wordle-scoreboard .team-chip .score", (el) => el.textContent), "٣٧٥ نقطة");
 
   // الدور التالي
   await page.click("#wordle-next-team-btn");
@@ -113,7 +113,7 @@ async function pickAndStart(page, category, targetWord) {
   await page.waitForTimeout(150);
   await page.locator("#wordle-scoreboard .team-chip").first().locator(".score-adjust-btn").last().click();
   await page.waitForTimeout(150);
-  check("plus 25 works", await page.$eval("#wordle-scoreboard .team-chip .score", (el) => el.textContent), "٢٧٥ نقطة");
+  check("plus 25 works", await page.$eval("#wordle-scoreboard .team-chip .score", (el) => el.textContent), "٤٠٠ نقطة");
 
   // إنهاء اللعبة يوصّل لشاشة النهاية
   await page.click("#wordle-end-match-btn");

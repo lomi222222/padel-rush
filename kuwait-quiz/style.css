@@ -2569,3 +2569,22 @@ button.cat-pill.more:hover {
   gap: 6px;
   flex-wrap: wrap;
 }
+
+/* عدّاد «اكشف حرف»: اللاعب لازم يعرف إن عنده مرتين بس، وقبل هذا ما كنا نكتب
+   الباقي لأن أي حرفين زيادة يلفّون صف المساعدات على ٣٧٥ بكسل. الحل رقم بخط
+   أصغر داخل حبّة ضيّقة — يوصّل المعلومة بأقل عرض ممكن، والهامش مقيس */
+.ability-btn .uses-left {
+  display: inline-block;
+  min-width: 1.05em;
+  padding: 0 0.15em;
+  margin-inline-start: 0.1em;
+  border-radius: 999px;
+  background: rgba(6, 38, 74, 0.12);
+  font-size: 0.78em;
+  font-weight: 700;
+  line-height: 1.25;
+  text-align: center;
+}
+.ability-btn:disabled .uses-left {
+  opacity: 0.55;
+}

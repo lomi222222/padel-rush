@@ -36,6 +36,24 @@
     return Math.max(1, Math.round(roundsPerTeam / 2.5));
   }
 
+  // الهوست يقدر يثبّت العدد بدل الحساب التلقائي. «تلقائي» هو الافتراضي عشان
+  // الي يبي يلعب بسرعة ما ينحبس بقرار خامس قبل البداية — والصفر يقفل البوق
+  // تماماً لمن ما يحب السرقة
+  const BOQ_AUTO = "auto";
+  const BOQ_COUNT_OPTIONS = [0, 1, 2, 3, 4, 5, 6, 7];
+
+  function resolveBoqCount(choice, roundsPerTeam) {
+    if (choice === BOQ_AUTO || choice == null || choice === "") return boqForRounds(roundsPerTeam);
+    const n = Number(choice);
+    if (!Number.isFinite(n)) return boqForRounds(roundsPerTeam);
+    return Math.max(0, Math.round(n));
+  }
+
+  function boqCountLabel(choice) {
+    if (choice === BOQ_AUTO) return "تلقائي";
+    return toArabicDigits(Number(choice));
+  }
+
   const BOQ_ATTEMPTS = 1;
 
   // مدة الجولة (بالثواني) — 0 يعني بدون وقت، و CUSTOM_TIME يفتح حقل رقم بالدقائق
@@ -270,12 +288,24 @@
     return 100 * (maxAttempts - attemptNumber + 1);
   }
 
+  // خصم المساعدات: الفئة نسبة، والباقي نقاط ثابتة.
+  //
+  // **الترتيب هني ليس اعتباطياً**: النسبة أولاً ثم الثابت. كل النقاط باللعبة
+  // لازم تكون من مضاعفات ٢٥ (ما يصير يطلع للاعب رقم مثل ١٨٨). الخام دايماً من
+  // مضاعفات ١٠٠، و×٠.٧٥ عليه يعطي مضاعف ٢٥، وطرح مضاعفات ٢٥ بعده يحافظ عليها.
+  // لو انعكس الترتيب (ثابت ثم نسبة) تطلع كسور — جرّبناه على كل الأطوال وكل
+  // المحاولات وكل تركيبات المساعدات فطلعت ٦٤٥ نتيجة مكسورة مثل ٥٨١.٢٥.
+  // يحرسها tests/test_score_grid.js
+  const HINT_CATEGORY_RATE = 0.25; // نسبة من نقاط الجولة
+  const HINT_REVEAL_LETTER_COST = 50; // نقاط ثابتة لكل كشف
+  const HINT_REPEAT_COST = 25; // نقاط ثابتة
+
   function finalScoreForAttempt(attemptNumber, maxAttempts, hints) {
     let score = rawScoreForAttempt(attemptNumber, maxAttempts);
-    const flatDeduction = (hints.repeatUsed ? 50 : 0) + hints.revealLetterUses * 100;
-    score = Math.max(0, score - flatDeduction);
-    if (hints.categoryUsed) score = Math.floor(score / 2);
-    return score;
+    if (hints.categoryUsed) score = score * (1 - HINT_CATEGORY_RATE);
+    const flatDeduction =
+      (hints.repeatUsed ? HINT_REPEAT_COST : 0) + hints.revealLetterUses * HINT_REVEAL_LETTER_COST;
+    return Math.max(0, score - flatDeduction);
   }
 
   function newHints() {
@@ -401,6 +431,10 @@
     EXCLUSIVE_CATEGORIES,
     SELECTABLE_CATEGORIES,
     boqForRounds,
+    BOQ_AUTO,
+    BOQ_COUNT_OPTIONS,
+    resolveBoqCount,
+    boqCountLabel,
     BOQ_ATTEMPTS,
     ROUND_TIME_OPTIONS,
     CUSTOM_TIME,

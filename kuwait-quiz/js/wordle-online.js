@@ -125,6 +125,7 @@
   const nextTeamBtn = el("online-next-team-btn");
   const roundEndWaitEl = el("online-round-end-wait");
   const roundCountSelect = el("online-round-count");
+  const boqCountSelect = el("online-boq-count");
   const roundTimeSelect = el("online-round-time");
   const roundTimeCustom = el("online-round-time-custom");
   const roundTimeHint = el("online-round-time-hint");
@@ -149,6 +150,16 @@
   });
   // نحدد القيمة بعد ما تنضاف كل الخيارات (أثبت من selected أثناء الإنشاء)
   roundCountSelect.value = String(savedRoundCount);
+
+  // عدد البوق: «تلقائي» أولاً عشان يظل الافتراضي، ثم الأرقام الصريحة
+  const boqValues = [Core.BOQ_AUTO].concat(Core.BOQ_COUNT_OPTIONS.map(String));
+  boqValues.forEach((v) => {
+    const o = document.createElement("option");
+    o.value = v;
+    o.textContent = Core.boqCountLabel(v);
+    boqCountSelect.appendChild(o);
+  });
+  boqCountSelect.value = Settings ? Settings.loadBoqCount(boqValues, Core.BOQ_AUTO) : Core.BOQ_AUTO;
 
   Core.ROUND_TIME_OPTIONS.forEach((opt) => {
     const o = document.createElement("option");
@@ -687,6 +698,7 @@
       players: {},
       roundsPerTeam: Core.DEFAULT_ROUNDS,
       boqLeft: [Core.boqForRounds(Core.DEFAULT_ROUNDS), Core.boqForRounds(Core.DEFAULT_ROUNDS)],
+      boqPerTeam: Core.boqForRounds(Core.DEFAULT_ROUNDS),
       steal: null,
       roundSeconds: 0,
       deadline: null,
@@ -754,12 +766,16 @@
     hostState.bag.refill();
     hostState.categories = [...selectedCategories];
     hostState.roundsPerTeam = Number(roundCountSelect.value) || Core.DEFAULT_ROUNDS;
-    // البوق يتوسّع مع عدد الجولات عشان يظل معناه ثابتاً — شوف boqForRounds
-    const boqs = Core.boqForRounds(hostState.roundsPerTeam);
+    // «تلقائي» يتوسّع مع عدد الجولات عشان يظل معنى البوق ثابتاً — شوف
+    // boqForRounds؛ وإلا ناخذ رقم الهوست كما هو (والصفر يقفل البوق تماماً).
+    // العدد يوصل أجهزة اللاعبين ضمن boqLeft المنشورة أصلاً — ما يحتاج حقلاً جديداً
+    const boqs = Core.resolveBoqCount(boqCountSelect.value, hostState.roundsPerTeam);
     hostState.boqLeft = [boqs, boqs];
+    hostState.boqPerTeam = boqs;
     hostState.roundSeconds = Core.readRoundSeconds(roundTimeSelect, roundTimeCustom);
     if (Settings) {
       Settings.saveRoundCount(hostState.roundsPerTeam);
+      Settings.saveBoqCount(boqCountSelect.value);
       Settings.saveRoundTime(roundTimeSelect.value, roundTimeCustom.value);
       Settings.saveCategories(selectedCategories);
     }
@@ -839,6 +855,9 @@
         // كتابة كل ثانية على الشبكة
         steal: h.steal,
         boqLeft: h.boqLeft,
+        // العدد الأصلي لازم يُنشر: من boqLeft وحدها ما يقدر جهاز اللاعب يفرّق
+        // بين «الهوست طفّى البوق» و«خلصت بوقاتنا» — الاثنان صفر
+        boqPerTeam: h.boqPerTeam,
         deadline: h.deadline,
         pausedRemainingMs: h.pausedRemainingMs,
       },
@@ -1362,7 +1381,9 @@
         " نقطة";
     } else {
       stealNoteEl.classList.add("hidden");
-      const showBoq = mine !== null && mine !== pub.teamIndex && !r.gameOver;
+      // boqPerTeam ممكن تكون ناقصة بحالة من نسخة أقدم، فنرجع للسلوك القديم
+      const boqOn = r.boqPerTeam == null || r.boqPerTeam > 0;
+      const showBoq = boqOn && mine !== null && mine !== pub.teamIndex && !r.gameOver;
       boqBtn.classList.toggle("hidden", !showBoq);
       if (showBoq) {
         const left = (r.boqLeft || [0, 0])[mine];
@@ -1411,6 +1432,10 @@
     // اللحظة. الباقي ما ينكتب على الزر — شوف التعليق بـwordle.js: الثلاثة لازم
     // يقعدون بسطر واحد
     hintLetterBtn.disabled = !hintsAllowed || Core.revealLetterUsesLeft(hints) === 0;
+    // الباقي برقم صغير داخل الزر — اللاعب لازم يعرف إن عنده مرتين بس، والحبّة
+    // الضيّقة توصّلها بلا ما يلف صف المساعدات على ٣٧٥ بكسل
+    const usesLeftEl = hintLetterBtn.querySelector(".uses-left");
+    if (usesLeftEl) usesLeftEl.textContent = Core.toArabicDigits(Core.revealLetterUsesLeft(hints));
 
     roundEndEl.classList.toggle("hidden", !r.gameOver);
     nextTeamBtn.classList.toggle("hidden", !isHost);

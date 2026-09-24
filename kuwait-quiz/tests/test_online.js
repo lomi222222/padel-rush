@@ -165,8 +165,8 @@ async function keys(page, word) {
   await p2.waitForTimeout(500);
   check("win message on host", await host.$eval("#online-message", (el) => el.className.includes("win")), true);
   check("win message on opponent too", await p3.$eval("#online-message", (el) => el.className.includes("win")), true);
-  // فوز بالمحاولة ١ مع تلميح الفئة: 200*6 = 1200، ثم نصف = 600
-  check("score synced", await p3.$eval("#online-scoreboard .team-chip .score", (el) => el.textContent), "٦٠٠ نقطة");
+  // فوز بالمحاولة ١ مع تلميح الفئة: 200*6 = 1200، ناقص ٢٥٪ = 900
+  check("score synced", await p3.$eval("#online-scoreboard .team-chip .score", (el) => el.textContent), "٩٠٠ نقطة");
   check("round-end row visible for all", await p3.$eval("#online-round-end", (el) => !el.classList.contains("hidden")), true);
   check("next button only for host", await host.$eval("#online-next-team-btn", (el) => !el.classList.contains("hidden")), true);
   check("player sees waiting-for-host", await p3.$eval("#online-round-end-wait", (el) => !el.classList.contains("hidden")), true);

@@ -83,15 +83,16 @@ const enter = (p) => p.locator('#online-keyboard .key:text-is("إدخال")').fi
   // مساعدة عند صاحب الدور ⇒ الرقم ينزل عند الطرفين
   await host.click("#online-hint-letter-btn");
   await host.waitForTimeout(500);
-  check("«اكشف حرف» ينقص ١٠٠ عند الهوست", num(await pts(host)) === hostStart - 100,
+  check("«اكشف حرف» ينقص ٥٠ عند الهوست", num(await pts(host)) === hostStart - 50,
     hostStart + " → " + num(await pts(host)));
-  check("والخصم يشوف نفس النزول", num(await pts(foe)) === hostStart - 100, "خصم=" + num(await pts(foe)));
+  check("والخصم يشوف نفس النزول", num(await pts(foe)) === hostStart - 50, "خصم=" + num(await pts(foe)));
 
   await host.click("#online-hint-category-btn");
   await host.waitForTimeout(500);
-  const halved = Math.floor((hostStart - 100) / 2);
-  check("«الفئة» تنصّف عند الطرفين", num(await pts(host)) === halved && num(await pts(foe)) === halved,
-    num(await pts(host)) + " / " + num(await pts(foe)) + " متوقع " + halved);
+  // الفئة تُطبّق على الخام قبل الخصم الثابت: ١٢٠٠×٠٫٧٥ = ٩٠٠، ثم −٥٠ للكشف
+  const afterCat = Math.round(hostStart * 0.75) - 50;
+  check("«الفئة» تنقص ٢٥٪ عند الطرفين", num(await pts(host)) === afterCat && num(await pts(foe)) === afterCat,
+    num(await pts(host)) + " / " + num(await pts(foe)) + " متوقع " + afterCat);
 
   // محاولة خاطئة ثم بوق: الرقم يثبت على قيمة السرقة
   await keys(host, "حصانة");

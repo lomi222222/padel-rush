@@ -29,13 +29,13 @@ const pts = (p, id) => p.$eval(id, (el) => el.textContent);
     await page.click("#wordle-hint-letter-btn");
     await page.waitForTimeout(150);
     const p1 = num(await pts(page, "#wordle-points"));
-    check("والنقاط نزلت ١٠٠", p1 === p0 - 100, p0 + " → " + p1);
+    check("والنقاط نزلت ٥٠", p1 === p0 - 50, p0 + " → " + p1);
     check("بعد كشف واحد الزر لسه شغال", !(await page.$eval("#wordle-hint-letter-btn", (e) => e.disabled)));
 
     await page.click("#wordle-hint-letter-btn");
     await page.waitForTimeout(150);
     const p2 = num(await pts(page, "#wordle-points"));
-    check("والنقاط نزلت ١٠٠ مرة ثانية", p2 === p1 - 100, p1 + " → " + p2);
+    check("والنقاط نزلت ٥٠ مرة ثانية", p2 === p1 - 50, p1 + " → " + p2);
     check("بعد كشفين الزر انقفل", await page.$eval("#wordle-hint-letter-btn", (e) => e.disabled));
 
     // الضغطة الثالثة: نجبرها بفك التعطيل، لازم ما تسوي شي (الحارس بالمعالج)

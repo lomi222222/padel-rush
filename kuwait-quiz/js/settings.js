@@ -24,6 +24,7 @@
     timeValue: "kw-settings-time-value",
     timeCustomMinutes: "kw-settings-time-custom-minutes",
     categories: "kw-settings-categories",
+    boq: "kw-settings-boq",
     tutorialSeen: "kw-tutorial-seen",
   };
 
@@ -42,6 +43,16 @@
   }
   function saveRoundCount(n) {
     safeSet(KEYS.rounds, String(n));
+  }
+
+  // اختيار عدد البوق: إما "auto" أو رقم كنص — نخزّنه كما هو ونتحقق منه عند
+  // القراءة، فأي قيمة قديمة أو مخربطة ترجع للتلقائي بدل ما تكسر البداية
+  function loadBoqCount(validValues, fallback) {
+    const saved = safeGet(KEYS.boq);
+    return validValues.includes(saved) ? saved : fallback;
+  }
+  function saveBoqCount(value) {
+    safeSet(KEYS.boq, String(value));
   }
 
   // value: نص قيمة <option> المختار. customMinutes: الرقم بالحقل المخصص لو استُخدم
@@ -73,6 +84,8 @@
   window.WordleSettings = {
     loadRoundCount,
     saveRoundCount,
+    loadBoqCount,
+    saveBoqCount,
     loadRoundTime,
     saveRoundTime,
     loadCategories,

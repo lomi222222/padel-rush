@@ -45,23 +45,24 @@ const num = (s) => {
       JSON.stringify(order)
     );
 
-    // اكشف حرف = −١٠٠
+    // اكشف حرف = −٥٠
     await page.click("#wordle-hint-letter-btn");
     await page.waitForTimeout(120);
     const afterLetter = num(await page.textContent("#wordle-points"));
-    check("«اكشف حرف» ينقص ١٠٠", afterLetter === start - 100, start + " → " + afterLetter);
+    check("«اكشف حرف» ينقص ٥٠", afterLetter === start - 50, start + " → " + afterLetter);
 
-    // حرف مكرر = −٥٠
+    // حرف مكرر = −٢٥
     await page.click("#wordle-hint-repeat-btn");
     await page.waitForTimeout(120);
     const afterRepeat = num(await page.textContent("#wordle-points"));
-    check("«حرف مكرر» ينقص ٥٠", afterRepeat === afterLetter - 50, afterLetter + " → " + afterRepeat);
+    check("«حرف مكرر» ينقص ٢٥", afterRepeat === afterLetter - 25, afterLetter + " → " + afterRepeat);
 
-    // الفئة = ÷٢
+    // الفئة = −٢٥٪ من الخام (تُطبّق قبل الخصم الثابت، فالفرق المعروض يعتمد على
+    // الخام مو على الرقم الحالي — شوف finalScoreForAttempt)
     await page.click("#wordle-hint-category-btn");
     await page.waitForTimeout(120);
     const afterCat = num(await page.textContent("#wordle-points"));
-    check("«الفئة» تنصّف الرقم", afterCat === Math.floor(afterRepeat / 2), afterRepeat + " → " + afterCat);
+    check("«الفئة» تنقص ٢٥٪ من الخام", afterCat === afterRepeat - Math.round(start * 0.25), afterRepeat + " → " + afterCat);
 
     // نحزر الكلمة ونقارن المقبوض بآخر رقم كان معروض
     const shown = afterCat;
