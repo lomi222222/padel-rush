@@ -79,6 +79,42 @@ function serve(dir) {
   });
 }
 
+// ينشر عنصر واجهة جديد **مع** الجافاسكربت اللي يعبّيه — هذا اللي يكشف الخليط:
+// لو وصل الـHTML بلا الـJS يطلع العنصر فاضياً. هذي بالضبط علّة «عدد البوق»
+// اللي شافها صاحب المشروع: القائمة موجودة وتعرض "No Options"
+function publishWidget(dir) {
+  const html = path.join(dir, "wordle.html");
+  const before = fs.readFileSync(html, "utf8");
+  const after = before.replace(
+    '<select id="wordle-round-count" class="round-time-select"></select>',
+    '<select id="wordle-round-count" class="round-time-select"></select>\n<select id="kw-probe" class="round-time-select"></select>'
+  );
+  if (after === before) throw new Error("ما انلقى مرساة الـHTML");
+  fs.writeFileSync(html, after);
+
+  const js = path.join(dir, "js", "wordle.js");
+  fs.writeFileSync(
+    js,
+    fs.readFileSync(js, "utf8") +
+      '\n;(function () { var s = document.getElementById("kw-probe");' +
+      ' if (s) { var o = document.createElement("option"); o.textContent = "جاهز"; s.appendChild(o); } })();\n'
+  );
+}
+
+// حالة العنصر كما يشوفها اللاعب: موجود؟ ومعبّأ؟
+// نتسامح مع انهيار السياق: تطبيق الترقية يعيد تحميل الصفحة، فأي قراءة تصادف
+// لحظة التنقّل تنفجر — وهذا مو فشل، هذا الترقية شغّالة
+const probeState = async (page) => {
+  try {
+    return await page.evaluate(() => {
+      const s = document.getElementById("kw-probe");
+      return { inHtml: !!s, filled: !!s && s.options.length > 0 };
+    });
+  } catch (e) {
+    return null;
+  }
+};
+
 // "ينشر" نسخة جديدة: يغيّر لوناً بـCSS ويرفع رقم نسخة الـSW — نفس اللي نسويه فعلاً
 function publish(dir, color, version) {
   const css = path.join(dir, "style.css");
@@ -146,6 +182,32 @@ async function settle(page) {
     check("المخزن القديم انمسح وما بقي غير الجديد", keys.length === 1 && keys[0] === "saydha-v900",
       JSON.stringify(keys));
 
+    // ===== الذرّية: ما يصير نص الصفحة جديد ونصها قديم =====
+    // ننشر عنصراً بالـHTML مع الـJS اللي يعبّيه بنفس النشرة. أي تحميل لازم يشوف
+    // الاثنين أو ولا واحد — لو شاف العنصر بلا تعبئة فهذا الخليط اللي كسر
+    // «عدد البوق» عند اللاعب
+    publishWidget(dir);
+    publish(dir, "#0000ff", "v950");
+    await page.goto(BASE + "/wordle.html");
+    await page.waitForTimeout(1200);
+    let mixed = null;
+    for (let i = 0; i < 15; i++) {
+      const st = await probeState(page);
+      if (st && st.inHtml && !st.filled) { mixed = st; break; }
+      if (st && st.inHtml && st.filled) break;
+      await page.waitForTimeout(400);
+    }
+    check("ما ظهرت صفحة نصها جديد ونصها قديم", mixed === null,
+      mixed ? "العنصر موجود بلا تعبئة — نفس No Options" : "");
+
+    let settled = null;
+    for (let i = 0; i < 15; i++) {
+      settled = await probeState(page);
+      if (settled && settled.inHtml && settled.filled) break;
+      await page.waitForTimeout(400);
+    }
+    check("وبالنهاية العنصر وصل معبّأ", !!settled && settled.inHtml && settled.filled, JSON.stringify(settled));
+
     // ===== حارس الجولة: ما نقطع لاعباً وهو يلعب =====
     await page.click("#wordle-start-btn");
     await page.waitForTimeout(400);
@@ -162,7 +224,8 @@ async function settle(page) {
     check("وسط الجولة: الصفحة ما أُعيد تحميلها", await page.evaluate(() => !!window.__aliveSince));
     check("وسط الجولة: الجولة قاعدة مكانها",
       await page.$eval("#wordle-play-screen", (el) => !el.classList.contains("hidden")));
-    check("وسط الجولة: النسخة الجديدة منتظرة مو مستلمة", await readGreen(page) === "#ff0000",
+    // #0000ff هي نشرة الذرّية (v950) — آخر وحدة انطبقت قبل الجولة
+    check("وسط الجولة: النسخة الجديدة منتظرة مو مستلمة", await readGreen(page) === "#0000ff",
       await readGreen(page));
 
     // ===== وبالفتحة الجاية تنطبق =====
@@ -178,9 +241,10 @@ async function settle(page) {
     }
     check("المؤجَّلة انطبقت بالفتحة الجاية", applied, await readGreen(page));
 
-    // تحديثان شرعيان بجلسة وحدة ⇒ إعادتا تحميل بالضبط. أكثر من كذا يعني حلقة
+    // ثلاث نشرات شرعية بجلسة وحدة (v900 · v950 · v901) ⇒ ثلاث إعادات بالضبط.
+    // أكثر من كذا يعني حلقة
     const reloads = await page.evaluate(() => Number(sessionStorage.getItem("kw-sw-reloads") || 0));
-    check("ما فيه حلقة إعادة تحميل", reloads === 2, "عدد الإعادات=" + reloads);
+    check("ما فيه حلقة إعادة تحميل", reloads === 3, "عدد الإعادات=" + reloads);
 
     check("ما صار أي خطأ JS", errs.length === 0, errs.join(" | "));
   } finally {

@@ -4,7 +4,7 @@
 // رقم النسخة: **لازم يتغيّر مع أي تعديل على الملفات المخزّنة**، وإلا اللاعب يظل
 // عالق على النسخة القديمة بعد أي تحديث. تغييره يخلي المتصفح يخزّن من جديد ويمسح
 // المخزن القديم عند التفعيل.
-const VERSION = "v19";
+const VERSION = "v20";
 const CACHE = "saydha-" + VERSION;
 
 const SHELL = [
@@ -66,30 +66,30 @@ self.addEventListener("fetch", (e) => {
   // بطبيعته، وتخزينه يخرّب المزامنة
   if (new URL(req.url).origin !== self.location.origin) return;
 
-  // الصفحات: الشبكة أولاً عشان أي تحديث يوصل فوراً، والمخزن احتياط لو ما فيه نت
-  if (req.mode === "navigate") {
-    e.respondWith(
-      fetch(req)
-        .then((res) => {
-          const copy = res.clone();
-          caches.open(CACHE).then((c) => c.put(req, copy));
-          return res;
-        })
-        .catch(() => caches.match(req).then((hit) => hit || caches.match("index.html")))
-    );
-    return;
-  }
-
-  // باقي الملفات: المخزن أولاً (أسرع)، ومع أول تحميل ناجح نحدّث النسخة المخزّنة
+  // **كل شي من نفس المخزن — الصفحات وباقي الملفات سواء.**
+  //
+  // كانت الصفحات «شبكة أولاً» عشان التحديث يوصل بسرعة، وباقي الملفات «مخزن
+  // أولاً». والنتيجة إن كل تحديث يمر بنافذة يحمّل فيها اللاعب **HTML جديد فوق
+  // JS قديم** — وهذا مو إزعاج، هذي صفحة مكسورة: أول ما أضفنا قائمة «عدد البوق»
+  // طلعت عند صاحب المشروع فاضية تقول No Options، لأن العنصر وصل والكود اللي
+  // يعبّيه لا.
+  //
+  // اسم المخزن (saydha-vN) هو وحدة الذرّية: كل شي من مخزن واحد ⇒ إما النسخة
+  // كاملة قديمة أو كاملة جديدة، ولا شي بينهما. وإيصال الجديد شغلة js/pwa.js
+  // (يفحص كل تحميل وعند رجوع الصفحة للظهور) — نسخة قديمة **شغّالة** أهون بكثير
+  // من نسخة نصها جديد ومكسورة
+  const fallback = () => (req.mode === "navigate" ? caches.match("index.html") : undefined);
   e.respondWith(
     caches.match(req).then(
       (hit) =>
         hit ||
-        fetch(req).then((res) => {
-          const copy = res.clone();
-          caches.open(CACHE).then((c) => c.put(req, copy));
-          return res;
-        })
+        fetch(req)
+          .then((res) => {
+            const copy = res.clone();
+            caches.open(CACHE).then((c) => c.put(req, copy));
+            return res;
+          })
+          .catch(() => fallback())
     )
   );
 });
