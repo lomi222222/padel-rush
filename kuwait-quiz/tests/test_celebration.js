@@ -37,8 +37,18 @@ const check = (n, ok, x) => { console.log((ok ? "✅ " : "‼️ ") + n + (x ? "
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
     check("محلي: بلا تجاوز أفقي أثناء الاحتفال", !overflow);
     check("محلي: ما صار خطأ JS", errs.length === 0, errs.join(" | "));
-    await page.waitForTimeout(3600);
-    const overlayAfter = await page.locator(".celebrate-overlay").count();
+    // ننتظر **زوالها** مو مدة ثابتة: النوم ٣٫٦ ثانية يفترض إن المؤقّتات تمشي
+    // بالوقت الحقيقي، وتحت ضغط المعالج (الطقم يشتغل ٤ بالتوازي) تتأخر فيطيح
+    // الفحص بلا علّة. طيحة كاذبة وحدة تكفي عشان تبطّل تثق بالطقم
+    let overlayAfter = -1;
+    try {
+      await page.waitForFunction(() => document.querySelectorAll(".celebrate-overlay").length === 0, {
+        timeout: 15000,
+      });
+      overlayAfter = 0;
+    } catch (e) {
+      overlayAfter = await page.locator(".celebrate-overlay").count();
+    }
     check("محلي: الطبقة تزول لحالها", overlayAfter === 0, "count=" + overlayAfter);
     await page.close();
   }
