@@ -15,6 +15,13 @@ const { launch, makeChecker } = require("./_browser");
 const check = makeChecker();
 const SRC = path.join(__dirname, "..");
 
+// نقرأ النسخة الحالية من sw.js بدل ما نكتبها بالنص: كانت مثبّتة "saydha-v17"
+// فطاح الاختبار أول ما ارتفعت النسخة لسبب ما له علاقة فيه — نفس فخ الأرقام
+// المشتقة من البنك اللي وقعنا فيه قبل
+const CURRENT_VERSION = (fs.readFileSync(path.join(SRC, "sw.js"), "utf8")
+  .match(/const VERSION = "([^"]+)"/) || [])[1];
+if (!CURRENT_VERSION) throw new Error("ما انلقى VERSION بـsw.js");
+
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const TYPES = {
@@ -117,7 +124,7 @@ async function settle(page) {
     await settle(page);
 
     const first = await readGreen(page);
-    check("الزيارة الأولى: الـSW اشتغل وخزّن", (await cacheNames(page)).includes("saydha-v17"),
+    check("الزيارة الأولى: الـSW اشتغل وخزّن", (await cacheNames(page)).includes("saydha-" + CURRENT_VERSION),
       JSON.stringify(await cacheNames(page)));
     check("الزيارة الأولى: ولا إعادة تحميل (ما فيه نسخة سابقة)", first === "#1fa363", first);
 
