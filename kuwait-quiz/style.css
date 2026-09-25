@@ -865,7 +865,73 @@ body.home-page .page {
   justify-content: center;
   width: 100%;
   padding: 7px 0 4px;
-  background: var(--surface-soft);
+  /* لون الشريط بمتغيّر عشان فتحات الرسمة (ca-knock) تاخذ نفس اللون — لو تغيّر
+     الشريط لحاله تطلع الفتحات بقع بلون ثاني */
+  --art-band: var(--surface-soft);
+  background: var(--art-band);
+}
+
+/* الفئة الحصرية (القرآن): شريط ذهبي بعرض القائمة كلها بآخرها — مو بطاقة وسط
+   البقية. من برا، وقبل ما تنختار، لازم يبان إنها فئة من نوع ثاني: تنلعب لحالها
+   وتلغي غيرها. كانت بطاقة ذهبية باهتة بين ٢٠ بطاقة، وما بانت.
+   - ذهبية دايماً: الرمادي علامة «غير مختار» للباقي، بس هني الذهبي هو الهوية
+   - order يوديها للآخر بالعرض بس — ترتيب الـDOM ما يتغيّر (الاختبارات تلقاها بالنص)
+   - السطر الثاني من ::after مو عقدة نصية: نص الـlabel لازم يساوي اسم الفئة حرفياً */
+#wordle-category-list .category-chip.exclusive,
+#online-category-list .category-chip.exclusive {
+  grid-column: 1 / -1;
+  order: 1;
+  flex-direction: row;
+  align-items: stretch;
+  opacity: 1;
+  filter: none;
+  border-color: var(--gold);
+  background: var(--gold-soft);
+  color: var(--gold);
+}
+
+#wordle-category-list .category-chip.exclusive .cat-art,
+#online-category-list .category-chip.exclusive .cat-art {
+  --art-band: var(--gold-soft);
+  width: auto;
+  padding: 6px 18px;
+}
+
+#wordle-category-list .category-chip.exclusive .cat-name,
+#online-category-list .category-chip.exclusive .cat-name {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  flex: 1;
+  width: auto;
+  padding: 6px 14px;
+  font-size: 14px;
+  font-weight: 800;
+  text-align: start;
+  border-top: 0;
+  border-inline-start: 1px solid var(--gold);
+}
+
+#wordle-category-list .category-chip.exclusive .cat-name::after,
+#online-category-list .category-chip.exclusive .cat-name::after {
+  content: "تنلعب لحالها — ما تنخلط مع غيرها";
+  font-size: 11px;
+  font-weight: 600;
+  opacity: 0.85;
+}
+
+/* مختارة: الشريط يتعبّى ذهبي والنص أبيض */
+#wordle-category-list .category-chip.exclusive:has(input:checked),
+#online-category-list .category-chip.exclusive:has(input:checked) {
+  background: var(--gold);
+  color: var(--white-fixed);
+}
+
+/* علامة ✓ ذهبية أصلاً — على الذهبي تختفي */
+#wordle-category-list .category-chip.exclusive:has(input:checked)::after,
+#online-category-list .category-chip.exclusive:has(input:checked)::after {
+  color: var(--white-fixed);
 }
 
 /* رسومات الفئات (js/category-art.js). overflow ظاهر عشان الظل ما ينقص عند حدود
@@ -882,7 +948,7 @@ body.home-page .page {
    شريط البطاقة نفسه. الأجسام «الواقعية» ألوانها بالرسمة، وتاخذ الظل بس */
 .ca-base { fill: url(#ca-ink-l); stroke: url(#ca-ink-l); }
 .ca-accent { fill: url(#ca-gold-l); stroke: url(#ca-gold-l); }
-.ca-knock { fill: var(--surface-soft); stroke: var(--surface-soft); }
+.ca-knock { fill: var(--art-band, var(--surface-soft)); stroke: var(--art-band, var(--surface-soft)); }
 .ca-sh { filter: url(#ca-sh-l); }
 :root[data-theme="dark"] .ca-base { fill: url(#ca-ink-d); stroke: url(#ca-ink-d); }
 :root[data-theme="dark"] .ca-accent { fill: url(#ca-gold-d); stroke: url(#ca-gold-d); }

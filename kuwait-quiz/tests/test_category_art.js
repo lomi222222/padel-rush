@@ -8,7 +8,7 @@
 // - **الرسمة مرسومة فعلاً بالبكسل** بالفاتح والداكن: التدرّجات والظلال بـsvg
 //   تعريفات منفصل، ولو انكسر (مخفي بـdisplay:none، أو id غلط) الرسمة تطلع فاضية
 //   وما يطيح أي خطأ. فنصوّر كل رسمة ونعد البكسلات الملوّنة
-// - غير المختارة رمادية، والمختارة ملوّنة
+// - غير المختارة رمادية، والمختارة ملوّنة — إلا الحصرية (القرآن) تظل ذهبية
 // - الملف ضمن مخزن sw.js — وإلا الصفحة بلا نت تطلع بلا رسومات
 const { launch, BASE, makeChecker } = require("./_browser");
 
@@ -122,6 +122,16 @@ async function analyse(page, png) {
     }
     check("كل الرسومات مرسومة بالبكسل — " + tag, blank.length === 0,
       blank.join("، ") || "أقل تغطية " + (minRatio * 100).toFixed(1) + "٪");
+
+    // الحصرية (القرآن) لازم تبان «فئة من نوع ثاني» من برا وهي غير مختارة. انكسرت
+    // مرتين وبلّغ عنها صاحب المشروع: الرمادي مسح ذهبها (صفر بكسل)، ثم كانت بطاقة
+    // ذهبية باهتة ما تبين (~٢٥٠). الشريط العريض ~٢٩٠٠ — والحد ١٠٠٠ يمسك الحالتين
+    const excl = page.locator("#wordle-category-list label.category-chip.exclusive").first();
+    await excl.scrollIntoViewIfNeeded();
+    const exclOff = await excl.evaluate((l) => !l.querySelector("input").checked);
+    const exclGold = await analyse(page, await excl.screenshot());
+    check("الفئة الحصرية ذهبية وهي غير مختارة — " + tag, exclOff && exclGold.gold > 1000,
+      "بكسلات ذهبية " + exclGold.gold);
 
     // المختار ملوّن، وغير المختار رمادي — نفس الرسمة
     // القائمة تنرسم من جديد مع كل ضغطة، فنستخدم locator يرجع يدوّر على العنصر
