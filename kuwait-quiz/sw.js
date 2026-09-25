@@ -4,7 +4,7 @@
 // رقم النسخة: **لازم يتغيّر مع أي تعديل على الملفات المخزّنة**، وإلا اللاعب يظل
 // عالق على النسخة القديمة بعد أي تحديث. تغييره يخلي المتصفح يخزّن من جديد ويمسح
 // المخزن القديم عند التفعيل.
-const VERSION = "v20";
+const VERSION = "v21";
 const CACHE = "saydha-" + VERSION;
 
 const SHELL = [
@@ -18,6 +18,7 @@ const SHELL = [
   "audio/win.mp3",
   "js/words.js",
   "js/wordle-core.js",
+  "js/category-art.js",
   "js/wordle-view.js",
   "js/sound.js",
   "js/howto.js",

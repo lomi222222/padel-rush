@@ -50,79 +50,6 @@
     // المؤقّت: شغّال / موقوف
     clock: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
     pause: '<circle cx="12" cy="12" r="8.5"/><path d="M10 9v6M14 9v6"/>',
-
-    // ===== رموز الفئات =====
-    // كلها بنفس أسلوب البقية (إطار ٢٤ · خطوط مو تعبئة · سماكة ٢) عشان تطلع
-    // متجانسة، ومرسومة بأقل عدد خطوط ممكن لأنها تُعرض بحجم صغير داخل البطاقة
-    globe:
-      '<circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17"/>' +
-      '<path d="M12 3.5c2.5 2.3 3.8 5.3 3.8 8.5S14.5 18.2 12 20.5c-2.5-2.3-3.8-5.3-3.8-8.5S9.5 5.8 12 3.5z"/>',
-    column: '<path d="M4 20.5h16"/><path d="M4 8h16"/><path d="M5.5 8V5h13v3"/><path d="M7.5 8v12.5M12 8v12.5M16.5 8v12.5"/>',
-    paw:
-      '<ellipse cx="12" cy="16" rx="4.3" ry="3.6"/><circle cx="6.4" cy="10.6" r="1.9"/>' +
-      '<circle cx="9.8" cy="6.8" r="1.9"/><circle cx="14.2" cy="6.8" r="1.9"/><circle cx="17.6" cy="10.6" r="1.9"/>',
-    utensils:
-      '<path d="M6.5 3v7.5M4.5 3v4.2a2 2 0 0 0 4 0V3"/><path d="M6.5 10.5V21"/>' +
-      '<path d="M17 3c-1.6 1.6-2.2 3.2-2.2 5.2 0 1.7.7 2.6 2.2 2.6s2.2-.9 2.2-2.6c0-2-.6-3.6-2.2-5.2z"/><path d="M17 10.8V21"/>',
-    briefcase:
-      '<rect x="2.5" y="7" width="19" height="12.5" rx="2.5"/>' +
-      '<path d="M9 7V5.6a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2V7"/><path d="M2.5 12.5h19"/>',
-    pin: '<path d="M12 21s7-6.2 7-11a7 7 0 1 0-14 0c0 4.8 7 11 7 11z"/><circle cx="12" cy="10" r="2.7"/>',
-    spark: '<path d="M12 2.5l2.6 6 6.4.6-4.9 4.3 1.5 6.3-5.6-3.4-5.6 3.4 1.5-6.3-4.9-4.3 6.4-.6z"/>',
-    monitor: '<rect x="2.5" y="4" width="19" height="13" rx="2.5"/><path d="M12 17v3.5"/><path d="M8.5 20.5h7"/>',
-    retroTv:
-      '<rect x="2.5" y="8.5" width="14.5" height="11" rx="2.5"/><path d="M6.8 8.5l3-4.2M13 8.5l-3.2-4.2"/>' +
-      '<path d="M20.5 10v8.5"/><path d="M19 12.5h3M19 16h3"/>',
-    badge:
-      '<rect x="4" y="3" width="16" height="18" rx="2.5"/><path d="M9.5 3v2.4h5V3"/>' +
-      '<circle cx="12" cy="11" r="2.4"/><path d="M8 17.2c0-2.1 1.8-3.1 4-3.1s4 1 4 3.1"/>',
-    stage: '<path d="M2.5 4h19"/><path d="M5 4v10.5c2.6 0 4.2-1.6 4.2-4.2V4"/><path d="M19 4v10.5c-2.6 0-4.2-1.6-4.2-4.2V4"/><path d="M3.5 20.5h17"/>',
-    book:
-      '<path d="M12 6.4C10.4 4.9 8 4.1 4 4.1v13c4 0 6.4.8 8 2.3 1.6-1.5 4-2.3 8-2.3v-13c-4 0-6.4.8-8 2.3z"/>' +
-      '<path d="M12 6.4v13"/>',
-    palette:
-      '<path d="M12 3a9 9 0 0 0 0 18c1.2 0 1.8-.8 1.8-1.7 0-.9-.7-1.4-.7-2.2 0-.9.7-1.6 1.6-1.6h1.5A5.2 5.2 0 0 0 21 10.3C21 6.2 16.9 3 12 3z"/>' +
-      '<circle cx="7.4" cy="10.6" r="1"/><circle cx="10.8" cy="7.4" r="1"/><circle cx="15.4" cy="8.4" r="1"/>',
-    towers:
-      '<path d="M8.5 21V9.5"/><ellipse cx="8.5" cy="9.5" rx="4" ry="2.5"/><ellipse cx="8.5" cy="4.6" rx="1.9" ry="1.3"/>' +
-      '<path d="M16.5 21v-8.5"/><ellipse cx="16.5" cy="12.5" rx="2.8" ry="1.8"/><path d="M3.5 21h17"/>',
-    car:
-      '<path d="M3 16.6v-3.3l2-4.6A2 2 0 0 1 6.9 7.4h10.2a2 2 0 0 1 1.9 1.3l2 4.6v3.3"/>' +
-      '<path d="M3 13.3h18"/><circle cx="7" cy="16.9" r="1.7"/><circle cx="17" cy="16.9" r="1.7"/>',
-    shield: '<path d="M12 2.6l7.5 2.8v6.1c0 4.5-3.2 8.3-7.5 9.5-4.3-1.2-7.5-5-7.5-9.5V5.4z"/>',
-    jersey: '<path d="M8.6 3.4L4 6l1.6 4 2-.7V20.6h8.8V9.3l2 .7L20 6l-4.6-2.6a3.4 3.4 0 0 1-6.8 0z"/>',
-    mushaf:
-      '<path d="M6 3h11.5A1.5 1.5 0 0 1 19 4.5v15a1.5 1.5 0 0 1-1.5 1.5H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/>' +
-      '<path d="M4 17.8h15"/><path d="M9.5 7.5h5M9.5 10.5h5"/>',
-    gamepad:
-      '<rect x="2.5" y="7.5" width="19" height="10" rx="4.5"/>' +
-      '<path d="M7 10.8v3.4M5.3 12.5h3.4"/><circle cx="16.2" cy="11.6" r="1"/><circle cx="18.4" cy="14" r="1"/>',
-  };
-
-  // كل فئة ورمزها. الأسماء مفاتيح حرفية من البنك — لو انضافت فئة بلا رمز
-  // تطلع البطاقة بلا صورة، وفحص الاختبار يمسكها
-  const CATEGORY_ICONS = {
-    دولة: "globe",
-    تاريخ: "column",
-    حيوان: "paw",
-    طعام: "utensils",
-    مهنة: "briefcase",
-    مكان: "pin",
-    عام: "bulb",
-    أنميات: "spark",
-    مسلسلات: "monitor",
-    "كرتون قديم": "retroTv",
-    أسماء: "badge",
-    مسرحيات: "stage",
-    روايات: "book",
-    رياضة: "trophy",
-    ألوان: "palette",
-    "مناطق الكويت": "towers",
-    سيارات: "car",
-    "أندية كرة قدم": "shield",
-    "لاعبين كرة قدم": "jersey",
-    "سور القرآن الكريم": "mushaf",
-    ألعاب: "gamepad",
   };
 
   function iconSvg(name) {
@@ -588,11 +515,12 @@
         onChange(Core.applyCategoryToggle(selectedCategories, cat, box.checked));
       });
 
+      // الرسمة من js/category-art.js. فئة بلا رسمة تطلع بشريط فاضي،
+      // وtest_category_art يمسكها
       const art = document.createElement("span");
       art.className = "cat-art";
       art.setAttribute("aria-hidden", "true");
-      const icon = CATEGORY_ICONS[cat];
-      if (icon) art.innerHTML = iconSvg(icon);
+      art.innerHTML = window.CategoryArt ? CategoryArt.svg(cat) : "";
 
       const name = document.createElement("span");
       name.className = "cat-name";

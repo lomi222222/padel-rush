@@ -830,14 +830,17 @@ body.home-page .page {
   padding: 0;
   overflow: hidden;
   border-radius: 14px;
-  /* غير المختارة تبهت — الفرق لازم يبان من نظرة وحدة لأن الاختيار متعدد */
-  opacity: 0.55;
-  transition: opacity 0.15s, border-color 0.15s;
+  /* غير المختارة رمادية وباهتة — الملوّن = مختار. الفرق لازم يبان من نظرة وحدة
+     لأن الاختيار متعدد، والبهتان لحاله ما كان يكفي مع رسومات ملوّنة */
+  opacity: 0.6;
+  filter: grayscale(1);
+  transition: opacity 0.15s, border-color 0.15s, filter 0.15s;
 }
 
 #wordle-category-list .category-chip:has(input:checked),
 #online-category-list .category-chip:has(input:checked) {
   opacity: 1;
+  filter: none;
   border-color: var(--gold);
 }
 
@@ -861,16 +864,29 @@ body.home-page .page {
   align-items: center;
   justify-content: center;
   width: 100%;
-  padding: 10px 0 6px;
-  color: var(--navy);
+  padding: 7px 0 4px;
   background: var(--surface-soft);
 }
 
-#wordle-category-list .cat-art .ui-icon,
-#online-category-list .cat-art .ui-icon {
-  width: 26px;
-  height: 26px;
+/* رسومات الفئات (js/category-art.js). overflow ظاهر عشان الظل ما ينقص عند حدود
+   الرسمة */
+#wordle-category-list .ca-svg,
+#online-category-list .ca-svg {
+  display: block;
+  width: 44px;
+  height: 44px;
+  overflow: visible;
 }
+
+/* ألوان الرموز من الوضع: الكحلي ينقلب فاتح بالداكن عشان ينقرأ، والفتحات بلون
+   شريط البطاقة نفسه. الأجسام «الواقعية» ألوانها بالرسمة، وتاخذ الظل بس */
+.ca-base { fill: url(#ca-ink-l); stroke: url(#ca-ink-l); }
+.ca-accent { fill: url(#ca-gold-l); stroke: url(#ca-gold-l); }
+.ca-knock { fill: var(--surface-soft); stroke: var(--surface-soft); }
+.ca-sh { filter: url(#ca-sh-l); }
+:root[data-theme="dark"] .ca-base { fill: url(#ca-ink-d); stroke: url(#ca-ink-d); }
+:root[data-theme="dark"] .ca-accent { fill: url(#ca-gold-d); stroke: url(#ca-gold-d); }
+:root[data-theme="dark"] .ca-sh { filter: url(#ca-sh-d); }
 
 #wordle-category-list .cat-name,
 #online-category-list .cat-name {
