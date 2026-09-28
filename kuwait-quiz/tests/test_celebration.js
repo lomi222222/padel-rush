@@ -98,7 +98,7 @@ const check = (n, ok, x) => { console.log((ok ? "✅ " : "‼️ ") + n + (x ? "
         return k && !k.disabled;
       });
       const page = hostTurn ? host : foe;
-      await loseRound(page, "online");
+      await loseRound(hostTurn ? [host, foe] : [foe, host], "online");
       await host.waitForTimeout(300);
       const nextVisible = await host.evaluate(() =>
         !document.querySelector("#online-round-end").classList.contains("hidden") &&

@@ -56,6 +56,27 @@
 
   const BOQ_ATTEMPTS = 1;
 
+  // ===== أدوات الخصم غير البوق =====
+  //
+  // «غيّر السؤال»: الفريق المنتظر يبدّل كلمة اللي يلعب — يمسح تقدّمهم عليها.
+  // مرة وحدة باللعبة كلها لكل فريق (قرار صاحب المشروع: جوكر، مو بكل جولة).
+  // التعويض: محاولة زيادة، والنقاط تكمل نفس سلّم الجولة — شوف changedAttempts
+  const CHANGE_WORD_PER_MATCH = 1;
+
+  // «الفرصة الأخيرة»: كل ما فشل الفريق (خلصت محاولاته أو وقته) ياخذ الخصم محاولة
+  // وحدة تلقائياً — مو زر. وقتها ثابت حتى لو اللعبة بدون وقت، عشان الجولة ما
+  // تتعلّق على فريق يفكّر للأبد. قيمتها صغيرة لأن الخصم يشوف كل ألوان الصفوف
+  const REBOUND_ATTEMPTS = 1;
+  const REBOUND_SECONDS = 15;
+  const REBOUND_POINTS = 50;
+
+  // عدد المحاولات الكلي بعد تغيير السؤال. الباقي يزيد وحدة — بس لو ما حاولوا ولا
+  // مرة ما خسروا شي فما فيه تعويض (نص قرار صاحب المشروع). والعدد يظل هو حتى لو
+  // الكلمة الجديدة أطول: هذا ثمن الأداة على اللي انضرب فيها
+  function changedAttempts(maxAttempts, used) {
+    return maxAttempts + (used > 0 ? 1 : 0);
+  }
+
   // مدة الجولة (بالثواني) — 0 يعني بدون وقت، و CUSTOM_TIME يفتح حقل رقم بالدقائق
   const CUSTOM_TIME = -1;
   const ROUND_TIME_OPTIONS = [
@@ -335,6 +356,18 @@
     return finalScoreForAttempt(opts.attemptsMade + 1, opts.maxAttempts, h);
   }
 
+  // بعد «غيّر السؤال» الصفوف القديمة تنمسح بس المحاولات اللي انصرفت عليها تظل
+  // محسوبة (attemptOffset) — عشان النقاط تكمل نفس سلّم الجولة ما ترجع لأول محاولة
+  // المضاعفة. هالدالتين المكان الوحيد اللي يجمعهم، فالمحلي والأونلاين ما يختلفون
+  function attemptsMade(guesses, attemptOffset) {
+    return (attemptOffset || 0) + (guesses || []).filter((g) => !g.steal).length;
+  }
+
+  // صفوف الشبكة = المحاولات الباقية للكلمة الحالية، مو العدد الكلي
+  function boardRows(maxAttempts, attemptOffset) {
+    return Math.max(1, maxAttempts - (attemptOffset || 0));
+  }
+
   // نص الرقم زي ما ينعرض جنب المحاولات: «٦٠٠ نقطة» — نفس صيغة رسالة الفوز
   function potentialScoreLabel(opts) {
     return toArabicDigits(potentialScore(opts)) + " نقطة";
@@ -436,6 +469,13 @@
     resolveBoqCount,
     boqCountLabel,
     BOQ_ATTEMPTS,
+    CHANGE_WORD_PER_MATCH,
+    REBOUND_ATTEMPTS,
+    REBOUND_SECONDS,
+    REBOUND_POINTS,
+    changedAttempts,
+    attemptsMade,
+    boardRows,
     ROUND_TIME_OPTIONS,
     CUSTOM_TIME,
     readRoundSeconds,

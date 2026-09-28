@@ -99,7 +99,9 @@ const enter = (page) => page.locator('.key:text-is("إدخال")').first().click
 
   check("6-letter word now gets 6 rows", await page.$$eval(".wordle-row", (e) => e.length), 6);
   check("boq button visible", await page.$eval("#wordle-boq-btn", (el) => !el.classList.contains("hidden")), true);
-  check("boq labelled for the waiting team", (await page.$eval("#wordle-boq-btn", (el) => el.textContent)).includes("الثاني"), true);
+  // اسم الفريق بالـtitle مو بالنص: الزر صار حبّة قصيرة جنب «غيّر السؤال» عشان
+  // الصف ما يلف
+  check("boq labelled for the waiting team", (await page.$eval("#wordle-boq-btn", (el) => el.title)).includes("الثاني"), true);
   check("boq shows 2 left", (await page.$eval("#wordle-boq-btn", (el) => el.textContent)).includes("٢"), true);
 
   // الفريق الأصلي يحاول محاولة خاطئة أول
@@ -146,7 +148,7 @@ const enter = (page) => page.locator('.key:text-is("إدخال")').first().click
   // الجولة الجديدة: عدّاد البوق نقص للفريق الثاني
   await page.click("#wordle-next-team-btn");
   await page.waitForTimeout(300);
-  check("now team2's turn so team1 can boq", (await page.$eval("#wordle-boq-btn", (el) => el.textContent)).includes("الأول"), true);
+  check("now team2's turn so team1 can boq", (await page.$eval("#wordle-boq-btn", (el) => el.title)).includes("الأول"), true);
   check("team1 still has 2 boqs", (await page.$eval("#wordle-boq-btn", (el) => el.textContent)).includes("٢"), true);
 
   check("no page errors", errors, []);

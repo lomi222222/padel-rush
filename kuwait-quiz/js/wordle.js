@@ -21,6 +21,8 @@
   // العدد اللي بدأنا فيه — نميّز بيه «البوق مطفّي» (صفر من البداية) عن «خلصت
   // بوقاتك» (صفر بعد استخدام). الأول يخفي الزر، والثاني يعطّله ويبيّن ٠
   let boqPerTeam = boqLeft[0];
+  // «غيّر السؤال» الباقي لكل فريق — مرة باللعبة كلها
+  let changeLeft = [Core.CHANGE_WORD_PER_MATCH, Core.CHANGE_WORD_PER_MATCH];
   let roundSeconds = 0;
 
   // ===== حالة الجولة الحالية =====
@@ -29,6 +31,9 @@
   let spaceIndexes = [];
   let wordLength = 5;
   let maxAttempts = 6;
+  // محاولات انصرفت على كلمة قبل «غيّر السؤال» — صفوفها انمسحت بس تظل محسوبة
+  // بالنقاط وبحد المحاولات. شوف Core.attemptsMade
+  let attemptOffset = 0;
   let category = "";
   let currentGuess = [];
   // موضع الكتابة الحالي بالصف. اللاعب يحرّكه بضغط أي خانة
@@ -40,7 +45,9 @@
   let hintLog = [];
   // خريطة {موضع: حرف} من تلميح "حرف موجود" بعد ما يتأكد موضعه — تتصفّر كل جولة
   let hintedLetters = {};
-  // السرقة (البوق): null أو { team, attemptsLeft, value }
+  // السرقة: null أو { team, attemptsLeft, value, rebound? }. البوق والفرصة الأخيرة
+  // نفس الآلة (محاولة للخصم بقيمة ثابتة) — الفرق إن الفرصة تبدأ لحالها لما يفشل
+  // الفريق، ولو فشلت تنتهي الجولة بدل ما يرجع الدور
   let steal = null;
   let deadline = null; // ختم زمني مطلق لنهاية الجولة، أو null بدون وقت
   let pausedRemainingMs = null; // المتبقي وقت إيقاف المؤقّت أثناء السرقة
@@ -83,6 +90,7 @@
   const roundTimeHint = document.getElementById("wordle-round-time-hint");
   const timerEl = document.getElementById("wordle-timer");
   const boqBtn = document.getElementById("wordle-boq-btn");
+  const changeBtn = document.getElementById("wordle-change-btn");
   const stealNoteEl = document.getElementById("wordle-steal-note");
 
   // ===== اختيار الفئات =====
@@ -186,6 +194,7 @@
     const boqs = Core.resolveBoqCount(boqCountSelect.value, roundsPerTeam);
     boqLeft = [boqs, boqs];
     boqPerTeam = boqs;
+    changeLeft = [Core.CHANGE_WORD_PER_MATCH, Core.CHANGE_WORD_PER_MATCH];
 
     teams = [
       { name: team1Input.value.trim() || Core.defaultTeamName(0), color: Core.TEAM_COLORS[0], score: 0 },
@@ -225,7 +234,7 @@
       guesses,
       currentGuess,
       wordLength,
-      maxAttempts,
+      maxAttempts: Core.boardRows(maxAttempts, attemptOffset),
       spaceIndexes,
       hintedLetters,
       stealActive: !!steal,
@@ -239,43 +248,38 @@
     return (teamIndex + 1) % 2;
   }
 
-  // عدد محاولات الفريق الأصلي (بدون صفوف السرقة)
+  // عدد محاولات الفريق الأصلي (بدون صفوف السرقة، ومع اللي انصرفت قبل تغيير السؤال)
   function ownAttemptCount() {
-    return guesses.filter((g) => !g.steal).length;
+    return Core.attemptsMade(guesses, attemptOffset);
   }
 
+  // أدوات الفريق المنتظر: البوق و«غيّر السؤال». الليبل قصير بعدّاد صغير بدل
+  // «بوق — اسم الفريق (باقي ٢)»: الزرين يقعدون بسطر واحد مع زر السجل، والاسم
+  // الطويل كان يلفّه وياكل من ارتفاع الشبكة. اسم الفريق صار بالتلميح (title)
   function updateBoqUi() {
     if (gameOver || matchOver) {
       boqBtn.classList.add("hidden");
+      changeBtn.classList.add("hidden");
       stealNoteEl.classList.add("hidden");
       return;
     }
     if (steal) {
       boqBtn.classList.add("hidden");
+      changeBtn.classList.add("hidden");
       stealNoteEl.classList.remove("hidden");
-      stealNoteEl.textContent =
-        "🥷 بوق! دور " +
-        teams[steal.team].name +
-        " — " +
-        Core.stealAttemptsLabel(steal.attemptsLeft) +
-        " على " +
-        Core.toArabicDigits(steal.value) +
-        " نقطة";
+      stealNoteEl.textContent = View.stealNoteText(steal, teams);
       return;
     }
     stealNoteEl.classList.add("hidden");
     const w = waitingTeam();
-    if (boqPerTeam <= 0) {
-      boqBtn.classList.add("hidden");
-      return;
-    }
-    boqBtn.classList.remove("hidden");
+    boqBtn.classList.toggle("hidden", boqPerTeam <= 0);
     boqBtn.disabled = boqLeft[w] <= 0;
-    View.setIconLabel(
-      boqBtn,
-      "thief",
-      "بوق — " + teams[w].name + " (باقي " + Core.toArabicDigits(boqLeft[w]) + ")"
-    );
+    View.setIconLabelCount(boqBtn, "thief", "بوق", boqLeft[w]);
+    boqBtn.title = "بوق — " + teams[w].name;
+    changeBtn.classList.remove("hidden");
+    changeBtn.disabled = changeLeft[w] <= 0;
+    View.setIconLabelCount(changeBtn, "swap", "غيّر السؤال", changeLeft[w]);
+    changeBtn.title = "غيّر السؤال — " + teams[w].name;
   }
 
   // ===== المؤقّت =====
@@ -311,11 +315,42 @@
 
   function timeUp() {
     if (gameOver) return;
-    gameOver = true;
-    steal = null;
-    showMessage("⏰ انتهى الوقت! الكلمة كانت: " + target + " (٠ نقطة)", "lose");
+    if (steal && steal.rebound) {
+      loseRound("⏰ خلص وقت الفرصة!");
+      return;
+    }
+    startRebound("⏰ انتهى الوقت!");
+  }
+
+  // الفريق فشل (خلصت محاولاته أو وقته): الخصم ياخذ محاولة وحدة تلقائياً بوقت
+  // ثابت — حتى لو اللعبة بدون وقت، عشان الجولة ما تتعلّق
+  function startRebound(reason) {
+    steal = {
+      team: waitingTeam(),
+      attemptsLeft: Core.REBOUND_ATTEMPTS,
+      value: Core.REBOUND_POINTS,
+      rebound: true,
+    };
+    currentGuess = Core.makeGuessBuffer(wordLength, spaceIndexes);
+    cursor = Core.firstWritable(currentGuess, spaceIndexes);
+    pausedRemainingMs = null;
+    deadline = Date.now() + Core.REBOUND_SECONDS * 1000;
+    View.renderTimer(timerEl, deadline, null);
+    startTicking();
+    showMessage(reason + " فرصة أخيرة: " + teams[steal.team].name, "");
     updateHintButtons();
     updateBoqUi();
+    renderGrid();
+    renderKeyboard();
+  }
+
+  function loseRound(reason) {
+    gameOver = true;
+    steal = null;
+    showMessage(reason + " الكلمة كانت: " + target + " (٠ نقطة)", "lose");
+    updateHintButtons();
+    updateBoqUi();
+    renderGrid();
     renderKeyboard();
     resolveRoundEnd();
   }
@@ -330,7 +365,7 @@
       // المقاس عليها تصغر الخلايا فجأة وسط الجولة. المقاس يثبت والصفوف الزايدة
       // تنمرّر داخل صندوق الشبكة
       wordLength,
-      maxAttempts,
+      maxAttempts: Core.boardRows(maxAttempts, attemptOffset),
       spaceCount: spaceIndexes.length,
     });
   }
@@ -357,6 +392,44 @@
     renderGrid();
   });
 
+  // «غيّر السؤال»: كلمة جديدة بدل اللي يشتغلون عليها. الوقت يكمل، والمحاولات
+  // المصروفة تظل محسوبة (attemptOffset) مع وحدة زيادة تعويض — Core.changedAttempts.
+  // المساعدات تنفتح من جديد بلا خصم: كانت للكلمة القديمة
+  changeBtn.addEventListener("click", () => {
+    if (gameOver || steal) return;
+    const w = waitingTeam();
+    if (changeLeft[w] <= 0) return;
+    changeLeft[w]--;
+
+    const used = ownAttemptCount();
+    maxAttempts = Core.changedAttempts(maxAttempts, used);
+    attemptOffset = used;
+    loadWord(wordBag.pick(target));
+    guesses = [];
+    keyStatus = {};
+    hints = Core.newHints();
+    hintLog = [];
+    hintedLetters = {};
+    currentGuess = Core.makeGuessBuffer(wordLength, spaceIndexes);
+    cursor = Core.firstWritable(currentGuess, spaceIndexes);
+
+    renderRoundLine();
+    View.renderHintLog(hintLogEl, hintLog);
+    syncHintLogBtn(hintLog);
+    showMessage(
+      "🔄 غيّر " +
+        teams[w].name +
+        " السؤال! باقي لكم " +
+        Core.stealAttemptsLabel(Core.boardRows(maxAttempts, attemptOffset)),
+      ""
+    );
+    updateHintButtons();
+    updateBoqUi();
+    applyTileSize();
+    renderGrid();
+    renderKeyboard();
+  });
+
   function showMessage(text, kind) {
     View.showMessage(messageEl, text, kind);
   }
@@ -367,14 +440,35 @@
     syncHintLogBtn(hintLog);
   }
 
-  function startRound() {
-    const entry = wordBag.pick(target);
+  function loadWord(entry) {
     target = entry.word;
     category = entry.category;
     targetChars = Array.from(target);
     spaceIndexes = Core.spaceIndexesOf(targetChars);
     wordLength = targetChars.length;
+  }
+
+  // العنوان يقول الصفوف الباقية للكلمة الحالية، مو العدد الكلي — بعد تغيير
+  // السؤال الكلي يشمل صفوفاً انمسحت
+  function renderRoundLine() {
+    View.renderRoundLine(
+      subtitleEl,
+      attemptsEl,
+      Core.roundSubtitle(
+        teams[teamIndex].name,
+        roundsPlayed[teamIndex] + 1,
+        wordLength,
+        Core.boardRows(maxAttempts, attemptOffset),
+        spaceIndexes,
+        roundsPerTeam
+      )
+    );
+  }
+
+  function startRound() {
+    loadWord(wordBag.pick(target));
     maxAttempts = Core.attemptsForLength(wordLength);
+    attemptOffset = 0;
 
     currentGuess = [];
     guesses = [];
@@ -392,18 +486,7 @@
     startTicking();
     updateBoqUi();
 
-    View.renderRoundLine(
-      subtitleEl,
-      attemptsEl,
-      Core.roundSubtitle(
-        teams[teamIndex].name,
-        roundsPlayed[teamIndex] + 1,
-        wordLength,
-        maxAttempts,
-        spaceIndexes,
-        roundsPerTeam
-      )
-    );
+    renderRoundLine();
     View.renderCategoryPills(activeCategoriesEl, selectedCategories);
     showMessage("", "");
     View.renderHintLog(hintLogEl, hintLog);
@@ -570,7 +653,7 @@
     renderKeyboard();
     updateHintButtons();
 
-    // ===== مسار السرقة (البوق) =====
+    // ===== مسار السرقة (البوق أو الفرصة الأخيرة) =====
     if (steal) {
       if (won) {
         gameOver = true;
@@ -578,7 +661,12 @@
         const earned = steal.value;
         teams[stealingTeam].score += earned;
         showMessage(
-          "🥷 سرقها " + teams[stealingTeam].name + "! ربحوا " + Core.toArabicDigits(earned) + " نقطة",
+          (steal.rebound ? "🎯 صادها " : "🥷 سرقها ") +
+            teams[stealingTeam].name +
+            (steal.rebound ? " بالفرصة الأخيرة" : "") +
+            "! ربحوا " +
+            Core.toArabicDigits(earned) +
+            " نقطة",
           "win"
         );
         steal = null;
@@ -597,7 +685,13 @@
         return;
       }
 
-      // فشلت السرقة: ينحرق البوق ويكمل الفريق الأصلي محاولاته كاملة
+      // فشلت الفرصة الأخيرة: ما فيه دور يرجع له — الجولة تنتهي
+      if (steal.rebound) {
+        loseRound("😔 راحت الفرصة!");
+        return;
+      }
+
+      // فشل البوق: ينحرق ويكمل الفريق الأصلي محاولاته كاملة
       steal = null;
       resumeTimer();
       showMessage("🥷 راحت عليهم! يكمل " + teams[teamIndex].name, "");
@@ -626,12 +720,7 @@
     }
 
     if (ownAttemptCount() >= maxAttempts) {
-      gameOver = true;
-      showMessage("😔 انتهت المحاولات! الكلمة كانت: " + target + " (٠ نقطة)", "lose");
-      stopTicking();
-      updateHintButtons();
-      updateBoqUi();
-      resolveRoundEnd();
+      startRebound("😔 انتهت المحاولات!");
       return;
     }
 

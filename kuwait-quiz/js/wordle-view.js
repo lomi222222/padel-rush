@@ -47,6 +47,8 @@
     moon: '<path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"/>',
     // صح — تأكيد نجاح عملية (مثلاً: اننسخ الرابط)
     check: '<path d="M4.5 12.5l5 5 10-11"/>',
+    // سهمان يدوران — «غيّر السؤال»
+    swap: '<path d="M4.5 10a7.5 7.5 0 0 1 13.4-3.6L20 8.5"/><path d="M20 3.5v5h-5"/><path d="M19.5 14a7.5 7.5 0 0 1-13.4 3.6L4 15.5"/><path d="M4 20.5v-5h5"/>',
     // المؤقّت: شغّال / موقوف
     clock: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
     pause: '<circle cx="12" cy="12" r="8.5"/><path d="M10 9v6M14 9v6"/>',
@@ -68,6 +70,30 @@
     el.appendChild(document.createTextNode(" " + text));
   }
 
+  // نص الشريط الذهبي وقت السرقة — مشترك عشان المحلي والأونلاين يقولون نفس الشي.
+  // الفرصة الأخيرة عدّادها ظاهر بالمؤقّت، فما نكرّر الثواني هني
+  function stealNoteText(steal, teams) {
+    const team = teams[steal.team] ? teams[steal.team].name : "";
+    return (
+      (steal.rebound ? "⏳ فرصة أخيرة: " + team : "🥷 بوق! دور " + team) +
+      " — " +
+      Core.stealAttemptsLabel(steal.attemptsLeft) +
+      " على " +
+      Core.toArabicDigits(steal.value) +
+      " نقطة"
+    );
+  }
+
+  // نفس setIconLabel مع عدّاد صغير (حبّة .uses-left) بدل ما نكتب «باقي ٢» كلمات —
+  // أدوات الخصم تقعد بسطر واحد مع زر السجل، والكلمات تلفّه
+  function setIconLabelCount(el, name, text, count) {
+    setIconLabel(el, name, text);
+    const b = document.createElement("b");
+    b.className = "uses-left";
+    b.textContent = Core.toArabicDigits(count);
+    el.appendChild(b);
+  }
+
   function renderGrid(gridEl, opts) {
     const { guesses, currentGuess, wordLength, maxAttempts } = opts;
     const spaces = opts.spaceIndexes instanceof Set ? opts.spaceIndexes : new Set(opts.spaceIndexes || []);
@@ -76,11 +102,11 @@
     const hinted = opts.hintedLetters || {};
 
     // صفوف السرقة (البوق) تنضاف فوق العدد الأصلي عشان الفريق الأصلي ما يخسر محاولاته.
-    // ملاحظة: guesses.length ما يتجاوز maxAttempts+stealRows أبداً بالتصميم الحالي
-    // (الجولة تنتهي بمجرد الوصول للحد، وزر البوق ينقفل بمجرد gameOver) — فما نحتاج
-    // أي هامش زيادة، وأي هامش كان يطلع صف فاضي زيادة بعد آخر محاولة
+    // و«الفرصة الأخيرة» تبدأ **بعد** ما خلصت كل الصفوف، فصفها الحالي يطلع برّا
+    // العدد — نضيفه بس وقت سرقة جارية. بدون هالشرط أي هامش كان يطلع صف فاضي زيادة
+    // بعد آخر محاولة بجولة عادية
     const stealRows = guesses.filter((g) => g && g.steal).length;
-    const totalRows = maxAttempts + stealRows;
+    const totalRows = Math.max(maxAttempts + stealRows, guesses.length + (opts.stealActive ? 1 : 0));
 
     // كشف الصف المُرسَل حديثاً: الشبكة تُرسم من الصفر مع كل ضغطة حرف، فلو علّقنا
     // الحركة على كل الصفوف المُرسلة راح تنعاد بكل ضغطة. نتذكّر عدد التخمينات على
@@ -633,6 +659,8 @@
   window.WordleView = {
     iconSvg,
     setIconLabel,
+    setIconLabelCount,
+    stealNoteText,
     renderGrid,
     renderKeyboard,
     applyTileSize,

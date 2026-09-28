@@ -2670,3 +2670,24 @@ button.cat-pill.more:hover {
 .ability-btn:disabled .uses-left {
   opacity: 0.55;
 }
+
+/* أدوات الخصم: نفس حبّة العدّاد على الزر الذهبي. والخلفية فاتحة مو كحلية لأن
+   الزر نفسه ملوّن */
+.boq-btn .uses-left {
+  display: inline-block;
+  min-width: 1.1em;
+  padding: 0 0.2em;
+  margin-inline-start: 0.2em;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.28);
+  font-size: 0.82em;
+  /* ‎١٫٢٥ مثل حبّة المساعدات كبّرت الزر ‎٠٫٣ بكسل وأكلت من الشبكة — الهامش صفر */
+  line-height: 1.1;
+  text-align: center;
+}
+
+/* «غيّر السؤال» كحلي عشان ما يلتبس بالبوق الذهبي جنبه — الاثنين للخصم بس
+   أثرهم مختلف تماماً */
+.change-btn {
+  background: var(--blue-700);
+}

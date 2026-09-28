@@ -73,7 +73,10 @@ const num = (s) => {
     // نكتب حروف عشوائية لين تخلص الجولة، وناخذ الرقم المعروض قبل كل إدخال
     let lastShown = shown;
     let won = false;
-    for (let guard = 0; guard < 12 && !won; guard++) {
+    // الحد سخي عمداً: الخسارة صارت فيها «فرصة أخيرة» (صف زيادة)، وتحت ضغط الطقم
+    // بالتوازي ممكن تضيع ضغطة وسط إعادة بناء الكيبورد فتروح لفّة كاملة. الحلقة
+    // تطلع أول ما تنتهي الجولة، فالحد الكبير ما يكلّف وقت
+    for (let guard = 0; guard < 30 && !won; guard++) {
       const ended = await page.evaluate(() => !document.querySelector("#wordle-round-end").classList.contains("hidden"));
       if (ended) break;
       lastShown = num(await page.textContent("#wordle-points"));

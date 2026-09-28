@@ -149,6 +149,18 @@ const enter = (page) => page.locator('.key:text-is("إدخال")').first().click
   });
   await page.waitForTimeout(700);
   check("round lost when the clock runs out", (await page.$eval("#wordle-message", (el) => el.textContent)).includes("انتهى الوقت"), true);
+  // خلوص الوقت ما ينهي الجولة: الخصم ياخذ فرصة أخيرة أول — والكلمة لازم تظل
+  // مخفية وقتها، وإلا الفرصة تصير نسخ
+  check("timeout opens the rebound", await page.$eval("#wordle-steal-note", (el) => !el.classList.contains("hidden") && el.textContent.includes("فرصة أخيرة")), true);
+  check("word stays hidden during the rebound", (await page.$eval("#wordle-message", (el) => el.textContent)).includes("سلحفاة"), false);
+  check("round not over during the rebound", await page.$eval("#wordle-round-end", (el) => el.classList.contains("hidden")), true);
+
+  // وقت الفرصة (١٥ ثانية) يخلص هو بعد
+  await page.evaluate(() => {
+    const base = Date.now;
+    Date.now = () => base() + 16000;
+  });
+  await page.waitForTimeout(700);
   check("timeout message reveals the word", (await page.$eval("#wordle-message", (el) => el.textContent)).includes("سلحفاة"), true);
   check("round-end shown after timeout", await page.$eval("#wordle-round-end", (el) => !el.classList.contains("hidden")), true);
   const scores2 = await page.$$eval("#wordle-scoreboard .team-chip .score", (els) => els.map((e) => e.textContent));

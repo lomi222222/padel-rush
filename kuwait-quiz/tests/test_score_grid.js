@@ -24,7 +24,9 @@ const check = makeChecker();
     const bad = [];
     let checked = 0;
     for (let len = 3; len <= 21; len++) {
-      const max = C.attemptsForLength(len);
+      // ‎+١: بعد «غيّر السؤال» المحاولات الكلية تزيد وحدة (Core.changedAttempts)
+      // والنقاط تكمل على هالعدد — فهو بعد لازم يطلع مضاعفات ٢٥
+      for (const max of [C.attemptsForLength(len), C.changedAttempts(C.attemptsForLength(len), 1)])
       for (let k = 1; k <= max; k++) {
         for (const cat of [false, true]) {
           for (const rev of [0, 1, 2]) {

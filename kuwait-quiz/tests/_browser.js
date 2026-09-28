@@ -90,12 +90,32 @@ async function pickOnlyCategory(page, prefix, name) {
 //
 // كيبورد الشاشة نفسه مغطّى بعمق بـtest_cursor و test_online و test_new_keyboard،
 // فهالدالة أداة لحرق الجولات مو الشي المُختبَر.
-async function loseRound(page, prefix) {
+//
+// الخسارة ما تنهي الجولة فوراً: الخصم ياخذ «فرصة أخيرة» (محاولة وحدة). بالمحلي
+// نفس الجهاز يكتبها فتنحرق عادي. بالأونلاين الفرصة على جهاز الخصم، فمرّر
+// الأجهزة كلها (مصفوفة) والدالة تكتب على اللي عليه الدور — وإلا تنتظر ١٥ ثانية
+// لين يخلص وقت الفرصة بكل جولة
+async function loseRound(pageOrPages, prefix) {
+  const pages = Array.isArray(pageOrPages) ? pageOrPages : [pageOrPages];
   const sel = {
     grid: "#" + prefix + "-grid",
     roundEnd: "#" + prefix + "-round-end",
     end: prefix === "wordle" ? "#wordle-end-screen" : "#online-end",
   };
+
+  // اللي عليه الدور: بالأونلاين الكيبورد مقفول عند غيره. بالمحلي جهاز واحد
+  const turnPage = async () => {
+    if (pages.length === 1) return pages[0];
+    for (const p of pages) {
+      const mine = await p.evaluate(() => {
+        const k = document.querySelector("#online-keyboard .key");
+        return !!k && !k.disabled;
+      });
+      if (mine) return p;
+    }
+    return pages[0];
+  };
+  let page = pages[0];
 
   const read = () =>
     page.evaluate((s) => {
@@ -114,6 +134,7 @@ async function loseRound(page, prefix) {
     }, sel);
 
   for (let attempt = 0; attempt < 40; attempt++) {
+    page = await turnPage();
     const before = await read();
     if (before.done) return;
     if (!before.cells) {

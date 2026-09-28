@@ -131,6 +131,7 @@
   const roundTimeHint = el("online-round-time-hint");
   const timerEl = el("online-timer");
   const boqBtn = el("online-boq-btn");
+  const changeBtn = el("online-change-btn");
   const stealNoteEl = el("online-steal-note");
 
   const Settings = window.WordleSettings;
@@ -683,6 +684,8 @@
       spaceIndexes: [],
       wordLength: 0,
       maxAttempts: 0,
+      // محاولات انصرفت على كلمة قبل «غيّر السؤال» — شوف Core.attemptsMade
+      attemptOffset: 0,
       category: "",
       currentGuess: [],
       guesses: [],
@@ -699,6 +702,7 @@
       roundsPerTeam: Core.DEFAULT_ROUNDS,
       boqLeft: [Core.boqForRounds(Core.DEFAULT_ROUNDS), Core.boqForRounds(Core.DEFAULT_ROUNDS)],
       boqPerTeam: Core.boqForRounds(Core.DEFAULT_ROUNDS),
+      changeLeft: [Core.CHANGE_WORD_PER_MATCH, Core.CHANGE_WORD_PER_MATCH],
       steal: null,
       roundSeconds: 0,
       deadline: null,
@@ -712,7 +716,7 @@
   }
 
   function hostOwnAttemptCount() {
-    return hostState.guesses.filter((g) => !g.steal).length;
+    return Core.attemptsMade(hostState.guesses, hostState.attemptOffset);
   }
 
   // ===== ساعة الهوست =====
@@ -737,10 +741,37 @@
   function hostTimeUp() {
     const h = hostState;
     if (h.gameOver || h.phase !== "playing") return;
+    if (h.steal && h.steal.rebound) {
+      hostLoseRound("⏰ خلص وقت الفرصة!");
+      return;
+    }
+    hostStartRebound("⏰ انتهى الوقت!");
+  }
+
+  // الفريق فشل: الخصم ياخذ محاولة وحدة تلقائياً بوقت ثابت — نفس الوضع المحلي.
+  // الهوست وحده يبدأها وساعته هي اللي تحسم الـ١٥ ثانية
+  function hostStartRebound(reason) {
+    const h = hostState;
+    h.steal = {
+      team: hostWaitingTeam(),
+      attemptsLeft: Core.REBOUND_ATTEMPTS,
+      value: Core.REBOUND_POINTS,
+      rebound: true,
+    };
+    h.currentGuess = Core.makeGuessBuffer(h.wordLength, h.spaceIndexes);
+    h.ack = null;
+    h.pausedRemainingMs = null;
+    h.deadline = Date.now() + Core.REBOUND_SECONDS * 1000;
+    h.message = { text: reason + " فرصة أخيرة: " + h.teams[h.steal.team].name, kind: "" };
+    hostStartClock();
+    publishState();
+  }
+
+  function hostLoseRound(reason) {
+    const h = hostState;
     h.gameOver = true;
     h.steal = null;
-    h.deadline = null;
-    h.message = { text: "⏰ انتهى الوقت! الكلمة كانت: " + h.target + " (٠ نقطة)", kind: "lose" };
+    h.message = { text: reason + " الكلمة كانت: " + h.target + " (٠ نقطة)", kind: "lose" };
     hostResolveRoundEnd();
   }
 
@@ -772,6 +803,7 @@
     const boqs = Core.resolveBoqCount(boqCountSelect.value, hostState.roundsPerTeam);
     hostState.boqLeft = [boqs, boqs];
     hostState.boqPerTeam = boqs;
+    hostState.changeLeft = [Core.CHANGE_WORD_PER_MATCH, Core.CHANGE_WORD_PER_MATCH];
     hostState.roundSeconds = Core.readRoundSeconds(roundTimeSelect, roundTimeCustom);
     if (Settings) {
       Settings.saveRoundCount(hostState.roundsPerTeam);
@@ -784,15 +816,19 @@
     hostStartRound();
   }
 
-  function hostStartRound() {
-    hostState.rev++;
-    const entry = hostState.bag.pick(hostState.target);
+  function hostLoadWord(entry) {
     hostState.target = entry.word;
     hostState.category = entry.category;
     hostState.targetChars = Array.from(entry.word);
     hostState.spaceIndexes = Core.spaceIndexesOf(hostState.targetChars);
     hostState.wordLength = hostState.targetChars.length;
+  }
+
+  function hostStartRound() {
+    hostState.rev++;
+    hostLoadWord(hostState.bag.pick(hostState.target));
     hostState.maxAttempts = Core.attemptsForLength(hostState.wordLength);
+    hostState.attemptOffset = 0;
 
     hostState.hintedLetters = {};
     hostState.currentGuess = Core.makeGuessBuffer(hostState.wordLength, hostState.spaceIndexes);
@@ -827,6 +863,7 @@
       round: {
         wordLength: h.wordLength,
         maxAttempts: h.maxAttempts,
+        attemptOffset: h.attemptOffset,
         spaceIndexes: h.spaceIndexes,
         guesses: h.guesses,
         keyStatus: h.keyStatus,
@@ -844,7 +881,7 @@
               h.teams[h.teamIndex].name,
               h.roundNumber,
               h.wordLength,
-              h.maxAttempts,
+              Core.boardRows(h.maxAttempts, h.attemptOffset),
               h.spaceIndexes,
               h.roundsPerTeam
             )
@@ -858,6 +895,7 @@
         // العدد الأصلي لازم يُنشر: من boqLeft وحدها ما يقدر جهاز اللاعب يفرّق
         // بين «الهوست طفّى البوق» و«خلصت بوقاتنا» — الاثنان صفر
         boqPerTeam: h.boqPerTeam,
+        changeLeft: h.changeLeft,
         deadline: h.deadline,
         pausedRemainingMs: h.pausedRemainingMs,
       },
@@ -919,6 +957,17 @@
       return;
     }
 
+    // «غيّر السؤال»: نفس حرّاس البوق — الفريق المنتظر بس، وما فيه سرقة ولا فرصة،
+    // وباقي له مرة. الهوست هو الحكم، زر اللاعب لحاله ما يكفي
+    if (input.action === "change") {
+      if (hostState.steal) return;
+      const w = hostWaitingTeam();
+      if (player.team !== w) return;
+      if (!hostState.changeLeft || hostState.changeLeft[w] <= 0) return;
+      hostChangeWord(w);
+      return;
+    }
+
     // اللي يكتب لازم يكون: صاحب الدور، أو الفريق السارق لو فيه سرقة جارية
     const allowedTeam = hostState.steal ? hostState.steal.team : hostState.teamIndex;
     if (player.team !== allowedTeam) return;
@@ -956,6 +1005,35 @@
     h.message = { text: "", kind: "" };
     // نوقف المؤقّت طول السرقة
     if (h.deadline) h.pausedRemainingMs = Math.max(0, h.deadline - Date.now());
+    publishState();
+  }
+
+  // الوقت يكمل، والمحاولات المصروفة تظل محسوبة مع وحدة زيادة، والمساعدات تنفتح
+  // من جديد — نفس الوضع المحلي. rev يزيد: الصف الجديد طوله غير، فأي live قديم
+  // لازم ينرمى، والمقاس ينحسب من جديد عند الكل
+  function hostChangeWord(teamIdx) {
+    const h = hostState;
+    h.changeLeft[teamIdx]--;
+    const used = hostOwnAttemptCount();
+    h.maxAttempts = Core.changedAttempts(h.maxAttempts, used);
+    h.attemptOffset = used;
+    h.rev++;
+    hostLoadWord(h.bag.pick(h.target));
+    h.guesses = [];
+    h.keyStatus = {};
+    h.hints = Core.newHints();
+    h.hintLog = [];
+    h.hintedLetters = {};
+    h.currentGuess = Core.makeGuessBuffer(h.wordLength, h.spaceIndexes);
+    h.ack = null;
+    h.message = {
+      text:
+        "🔄 غيّر " +
+        h.teams[teamIdx].name +
+        " السؤال! باقي لكم " +
+        Core.stealAttemptsLabel(Core.boardRows(h.maxAttempts, h.attemptOffset)),
+      kind: "",
+    };
     publishState();
   }
 
@@ -1004,7 +1082,7 @@
     const won = statuses.every((s) => s === "green");
     h.currentGuess = Core.makeGuessBuffer(h.wordLength, h.spaceIndexes);
 
-    // ===== مسار السرقة =====
+    // ===== مسار السرقة (البوق أو الفرصة الأخيرة) =====
     if (h.steal) {
       if (won) {
         h.gameOver = true;
@@ -1012,7 +1090,13 @@
         const earned = h.steal.value;
         h.teams[stealingTeam].score += earned;
         h.message = {
-          text: "🥷 سرقها " + h.teams[stealingTeam].name + "! ربحوا " + Core.toArabicDigits(earned) + " نقطة",
+          text:
+            (h.steal.rebound ? "🎯 صادها " : "🥷 سرقها ") +
+            h.teams[stealingTeam].name +
+            (h.steal.rebound ? " بالفرصة الأخيرة" : "") +
+            "! ربحوا " +
+            Core.toArabicDigits(earned) +
+            " نقطة",
           kind: "win",
         };
         h.steal = null;
@@ -1030,7 +1114,13 @@
         return;
       }
 
-      // فشلت السرقة: يرجع الدور للفريق الأصلي بمحاولاته كاملة والمؤقّت يكمل
+      // فشلت الفرصة الأخيرة: ما فيه دور يرجع له — الجولة تنتهي
+      if (h.steal.rebound) {
+        hostLoseRound("😔 راحت الفرصة!");
+        return;
+      }
+
+      // فشل البوق: يرجع الدور للفريق الأصلي بمحاولاته كاملة والمؤقّت يكمل
       h.steal = null;
       if (h.pausedRemainingMs != null) {
         h.deadline = Date.now() + h.pausedRemainingMs;
@@ -1058,11 +1148,7 @@
     }
 
     if (hostOwnAttemptCount() >= h.maxAttempts) {
-      h.gameOver = true;
-      h.message = { text: "😔 انتهت المحاولات! الكلمة كانت: " + h.target + " (٠ نقطة)", kind: "lose" };
-      hostStopClock();
-      h.deadline = null;
-      hostResolveRoundEnd();
+      hostStartRebound("😔 انتهت المحاولات!");
       return;
     }
 
@@ -1144,6 +1230,21 @@
     sendInput("boq");
   });
 
+  // نفس شروط البوق بس بعدّاده — والهوست يعيد الفحص
+  function canChange() {
+    if (!pub || pub.phase !== "playing") return false;
+    const r = pub.round || {};
+    if (r.gameOver || r.steal) return false;
+    const mine = myTeam();
+    if (mine === null || mine === pub.teamIndex) return false;
+    return ((r.changeLeft || [0, 0])[mine] || 0) > 0;
+  }
+
+  changeBtn.addEventListener("click", () => {
+    if (!canChange()) return;
+    sendInput("change");
+  });
+
   function adoptServerBuffer() {
     if (!pub || !pub.round || !live) return;
     // العقدتين توصل كل وحدة بحدها، فلو الـlive من جولة سابقة نتجاهله لين يوصل اللي بعده
@@ -1159,7 +1260,9 @@
 
     // صف جديد (إرسال أو جولة جديدة) ⇒ المؤشر يرجع لأول خانة. بدون هذا يظل عند
     // آخر موضع بالصف السابق وكل الحروف الجديدة تتكدّس بخانة وحدة
-    const rowKey = [r.roundNumber, pub.teamIndex, (r.guesses || []).length].join(":");
+    // rev بالبصمة: «غيّر السؤال» قبل أي تخمين يخلي الجولة والفريق وعدد التخمينات
+    // نفسها، بس الصف صار كلمة ثانية بطول ثاني — والمؤشر لازم يرجع لأوله
+    const rowKey = [pub.rev, r.roundNumber, pub.teamIndex, (r.guesses || []).length].join(":");
     if (rowKey !== lastRowKey) {
       lastRowKey = rowKey;
       cursor = Core.firstWritable(localBuffer, sp);
@@ -1305,7 +1408,7 @@
       guesses: r.guesses || [],
       currentGuess: localBuffer,
       wordLength: r.wordLength,
-      maxAttempts: r.maxAttempts,
+      maxAttempts: Core.boardRows(r.maxAttempts, r.attemptOffset),
       spaceIndexes: r.spaceIndexes || [],
       hintedLetters: r.hintedLetters || {},
       stealActive: !!r.steal,
@@ -1349,7 +1452,7 @@
     pointsEl.textContent = r.gameOver
       ? ""
       : Core.potentialScoreLabel({
-          attemptsMade: (r.guesses || []).filter((g) => !g.steal).length,
+          attemptsMade: Core.attemptsMade(r.guesses, r.attemptOffset),
           maxAttempts: r.maxAttempts,
           hints: r.hints || Core.newHints(),
           steal: r.steal,
@@ -1367,28 +1470,27 @@
       turnNoteEl.className = "online-turn-note watching";
     }
 
-    // ===== البوق =====
+    // ===== أدوات الخصم (البوق + غيّر السؤال) =====
     if (r.steal) {
       boqBtn.classList.add("hidden");
+      changeBtn.classList.add("hidden");
       stealNoteEl.classList.remove("hidden");
-      stealNoteEl.textContent =
-        "🥷 بوق! دور " +
-        (teams[r.steal.team] ? teams[r.steal.team].name : "") +
-        " — " +
-        Core.stealAttemptsLabel(r.steal.attemptsLeft) +
-        " على " +
-        Core.toArabicDigits(r.steal.value) +
-        " نقطة";
+      stealNoteEl.textContent = View.stealNoteText(r.steal, teams);
     } else {
       stealNoteEl.classList.add("hidden");
+      const rival = mine !== null && mine !== pub.teamIndex && !r.gameOver;
       // boqPerTeam ممكن تكون ناقصة بحالة من نسخة أقدم، فنرجع للسلوك القديم
       const boqOn = r.boqPerTeam == null || r.boqPerTeam > 0;
-      const showBoq = boqOn && mine !== null && mine !== pub.teamIndex && !r.gameOver;
-      boqBtn.classList.toggle("hidden", !showBoq);
-      if (showBoq) {
+      boqBtn.classList.toggle("hidden", !(rival && boqOn));
+      // changeLeft ناقصة = هوست بنسخة قبل الأداة، فما نعرض زراً ما بيفهمه
+      changeBtn.classList.toggle("hidden", !(rival && r.changeLeft));
+      if (rival) {
         const left = (r.boqLeft || [0, 0])[mine];
         boqBtn.disabled = left <= 0;
-        View.setIconLabel(boqBtn, "thief", "بوق (باقي " + Core.toArabicDigits(left) + ")");
+        View.setIconLabelCount(boqBtn, "thief", "بوق", left);
+        const changes = (r.changeLeft || [0, 0])[mine] || 0;
+        changeBtn.disabled = changes <= 0;
+        View.setIconLabelCount(changeBtn, "swap", "غيّر السؤال", changes);
       }
     }
 
@@ -1402,7 +1504,7 @@
       lastTileRev = pub.rev;
       View.applyTileSize(gridEl, {
         wordLength: r.wordLength,
-        maxAttempts: r.maxAttempts,
+        maxAttempts: Core.boardRows(r.maxAttempts, r.attemptOffset),
         spaceCount: (r.spaceIndexes || []).length,
       });
     }
