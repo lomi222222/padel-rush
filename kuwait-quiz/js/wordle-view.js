@@ -250,6 +250,21 @@
   // **القرار يُقاس دائماً من الحالة الضيّقة** — نشيل الراية ونقيس ثم نقرر. لو
   // قِسنا من الحالة الحالية لتذبذب: بالعريض العرض كبير فالجواب "لا نحتاج"، وأول
   // ما نرجع ضيّق يصير "نحتاج"، وهكذا مع كل تغيير مقاس.
+  // لازم تطابق استعلامات style.css حرفياً: التخطيط الثلاثي (جوال وشاشات كبيرة)،
+  // والشاشات الكبيرة لحالها
+  const LANDSCAPE_3COL =
+    "(orientation: landscape) and (max-height: 600px), (orientation: landscape) and (min-width: 1000px)";
+  const BIG_LANDSCAPE = "(orientation: landscape) and (min-width: 1000px) and (min-height: 601px)";
+
+  // أكبر خانة يسمح فيها العرض والارتفاع الحاليين (بدون السقف)
+  function fitTile(container, opts) {
+    const cs = getComputedStyle(container);
+    const { gapPx } = spacingFor(opts.wordLength);
+    const availableY = container.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+    const byHeight = (availableY - gapPx * (opts.maxAttempts - 1)) / opts.maxAttempts;
+    return Math.min(widthPerTile(container, opts), byHeight);
+  }
+
   function decideWideGrid(gridEl, opts) {
     const wrap = gridEl.closest(".wordle-wrap");
     if (!wrap) return;
@@ -257,7 +272,20 @@
     // الراية ما تنحط إلا لما تخطيطها موجود فعلاً. قواعدها داخل استعلام الوضع
     // العرضي، فلو حطيناها بالطولي صارت تدّعي تخطيطاً ما ينطبق — والطولي أصلاً
     // ما يحتاجها لأن الكيبورد تحت فيه من البداية
-    if (!matchMedia("(orientation: landscape) and (max-height: 600px)").matches) return;
+    if (!matchMedia(LANDSCAPE_3COL).matches) return;
+
+    // الشاشات الكبيرة: نقيس التخطيطين ونختار اللي خانته أكبر. هناك فيه ارتفاع
+    // يكفي للكيبورد تحت، فالكلمة الطويلة (٩ خانات) تطلع ٥٢ بدل ٤١ على آيباد.
+    // القياس حتمي (الحالتين كل مرة) فما يتذبذب، ولو تساووا (السقف) يظل الثلاثي
+    if (matchMedia(BIG_LANDSCAPE).matches) {
+      const container = gridEl.parentElement;
+      const narrow = fitTile(container, opts);
+      wrap.setAttribute("data-wide-grid", "");
+      if (fitTile(container, opts) <= Math.min(narrow, tileCap())) wrap.removeAttribute("data-wide-grid");
+      return;
+    }
+
+    // الجوال: القاعدة القديمة كما هي — العريض بس لما الحرف ما ينقرا
     // قراءة clientWidth بعد الشيل تجبر إعادة تخطيط، فالقياس يطلع للحالة الضيّقة
     if (widthPerTile(gridEl.parentElement, opts) < WIDE_GRID_BELOW) {
       wrap.setAttribute("data-wide-grid", "");
@@ -269,7 +297,8 @@
   // الجوال أصغر بُعد ~٣٩٠ فالحساب يطلع أقل من ٧٢ ويظل السقف ٧٢ — ما يتغيّر شي
   function tileCap() {
     const short = Math.min(window.innerWidth, window.innerHeight);
-    return Math.max(72, Math.min(120, Math.round(short * 0.12)));
+    // ١٦٠ لا ١٢٠: على التلفزيون (١٠٨٠) الناس قاعدين بعيد، والمكان يسمح
+    return Math.max(72, Math.min(160, Math.round(short * 0.12)));
   }
 
   function sizeTiles(gridEl, allowed) {

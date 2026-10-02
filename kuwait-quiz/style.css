@@ -1863,6 +1863,15 @@ body.home-page .page {
     gap: 6px;
   }
 
+}
+
+/* ===== التخطيط الثلاثي بالعرضي: للجوال وللشاشات الكبيرة (آيباد، تلفزيون، لابتوب) =====
+   الهيكل بس هني — بلوك الجوال (فوق وتحت) يصغّر الخطوط والأزرار لأن ارتفاعه
+   قليل، وبلوك الشاشات الكبيرة (تحت) يكبّرها. كان كله داخل max-height:600 فالآيباد
+   والتلفزيون بالعرض يطيحون على تخطيط الطول: الشبكة محشورة بين المعلومات فوق
+   والكيبورد تحت، والخانة ٤٧ بكسل بس على آيباد (مقيس). والترتيب محفوظ عمداً:
+   نفس مكان القواعد بالملف، فالجوال يطلع نفس ما كان بالضبط */
+@media (orientation: landscape) and (max-height: 600px), (orientation: landscape) and (min-width: 1000px) {
   /* ثلاث أعمدة: الكيبورد | المعلومات | الشبكة. كانت عمودين (لوح+أدوات) وعمود
      اللوح يحجز عرض أوسع من الشبكة الفعلية فيصير فراغ فاضي بينه وبين الكيبورد —
      الحين المعلومات (الفئات/الجولة/البوق/الدليل/المساعدات/السجل) تملأ هالفراغ
@@ -1979,6 +1988,9 @@ body.home-page .page {
   #online-hint-log {
     max-height: 34px;
   }
+}
+
+@media (orientation: landscape) and (max-height: 600px) {
 
   /* ما نخلي القائمة حاوية تمرير: بقواعد الفلكس، أي عنصر يصير حاوية تمرير يفقد حده
      الأدنى التلقائي (min-height:auto يصير صفر)، فينسحق تحت flex-shrink — وهذا اللي
@@ -2195,6 +2207,96 @@ body.home-page .page {
   .boq-btn {
     padding: 4px 10px;
     font-size: 11px;
+  }
+}
+
+/* ===== عرضي كبير (آيباد، تلفزيون، لابتوب): نفس التخطيط الثلاثي بأحجام كبيرة =====
+   صاحب المشروع يلعب بالعرض ويحطه على التلفزيون. min-height:601 عشان ما يلمس
+   الجوال (بلوكه فوق)، والصفحة تاخذ عرضاً أكثر من ١١٠٠ لأن الأعمدة الثلاثة تتقاسمه */
+@media (orientation: landscape) and (min-width: 1000px) and (min-height: 601px) {
+  .page {
+    max-width: 1800px;
+  }
+
+  /* الكيبورد أعرض شوي من الشبكة (١٫١): بعرض متساوي طلعت أزراره ٣٠×٨٤ على
+     آيباد — رفيعة وطويلة. وأكثر من ١٫١ ياخذ من الخانات، وهي الأهم عند صاحب
+     المشروع (١٫٢٥ نزّلت الآيباد من ٩٣ لـ٨٤). والكلمات الطويلة تنزّل الكيبورد تحت
+     (data-wide-grid) أصلاً */
+  .wordle-wrap {
+    grid-template-columns: minmax(0, 1fr) minmax(220px, 280px) minmax(0, 1.1fr);
+    gap: 10px 18px;
+  }
+
+  .wordle-wrap[data-wide-grid] {
+    grid-template-columns: minmax(0, 1fr) minmax(220px, 280px);
+    grid-template-rows: auto minmax(0, 1fr) clamp(150px, 30vh, 260px);
+  }
+
+  /* الكيبورد يملأ عموده: حد الـ٥٦٠ للطول بالجوال، وعلى التلفزيون كان يحشره
+     بربع الشاشة. والارتفاع محدود عشان الأزرار ما تطلع أعمدة طويلة */
+  .wordle-controls .keyboard {
+    max-width: none;
+    max-height: min(38vh, 380px);
+  }
+
+  /* حد الزر (٤٢) للجوال بالطول؛ هني الكيبورد عموده عريض فنخليه يتمدد */
+  .key {
+    max-width: 72px;
+    font-size: clamp(16px, 2.4vh, 28px);
+  }
+
+  .key.wide {
+    font-size: clamp(13px, 1.8vh, 20px);
+  }
+
+  /* نصوص العمود الأوسط تكبر مع ارتفاع الشاشة — على التلفزيون بأحجام الجوال
+     (١١–١٣ بكسل) ما تنقرا من الكنبة */
+  .wordle-info {
+    gap: 8px;
+  }
+
+  .wordle-info #wordle-subtitle,
+  .wordle-info #online-subtitle,
+  .wordle-info .round-tail {
+    font-size: clamp(14px, 2vh, 24px);
+  }
+
+  .wordle-info .ability-btn {
+    padding: 6px 10px;
+    font-size: clamp(12px, 1.6vh, 19px);
+  }
+
+  .wordle-info .boq-btn,
+  .wordle-info .steal-note {
+    font-size: clamp(14px, 1.9vh, 22px);
+  }
+
+  .wordle-info .wordle-legend,
+  .wordle-info .cat-pill {
+    font-size: clamp(12px, 1.5vh, 17px);
+  }
+
+  .wordle-info .round-timer {
+    font-size: clamp(18px, 2.6vh, 30px);
+  }
+
+  .wordle-controls .wordle-message {
+    font-size: clamp(17px, 2.2vh, 26px);
+  }
+
+  #wordle-play-screen .team-chip .name,
+  #online-play .team-chip .name {
+    font-size: clamp(12px, 1.6vh, 18px);
+  }
+
+  #wordle-play-screen .team-chip .score,
+  #online-play .team-chip .score {
+    font-size: clamp(15px, 2vh, 24px);
+  }
+
+  #wordle-hint-log,
+  #online-hint-log {
+    max-height: 120px;
   }
 }
 
