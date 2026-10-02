@@ -60,7 +60,7 @@
   //
   // «غيّر السؤال»: الفريق المنتظر يبدّل كلمة اللي يلعب — يمسح تقدّمهم عليها.
   // مرة وحدة باللعبة كلها لكل فريق (قرار صاحب المشروع: جوكر، مو بكل جولة).
-  // التعويض: محاولة زيادة، والنقاط تكمل نفس سلّم الجولة — شوف changedAttempts
+  // والكلمة الجديدة بمحاولة أقل من عددها العادي — شوف changedRound
   const CHANGE_WORD_PER_MATCH = 1;
 
   // «الفرصة الأخيرة»: كل ما فشل الفريق (خلصت محاولاته أو وقته) ياخذ الخصم محاولة
@@ -70,11 +70,17 @@
   const REBOUND_SECONDS = 15;
   const REBOUND_POINTS = 50;
 
-  // عدد المحاولات الكلي بعد تغيير السؤال. الباقي يزيد وحدة — بس لو ما حاولوا ولا
-  // مرة ما خسروا شي فما فيه تعويض (نص قرار صاحب المشروع). والعدد يظل هو حتى لو
-  // الكلمة الجديدة أطول: هذا ثمن الأداة على اللي انضرب فيها
-  function changedAttempts(maxAttempts, used) {
-    return maxAttempts + (used > 0 ? 1 : 0);
+  // جولة الكلمة الجديدة بعد «غيّر السؤال»: عددها العادي ناقص وحدة، مهما صرفوا
+  // على القديمة. نص صاحب المشروع: «كلمة ٤ محاولات… عشان سويت غير سؤال تصير ٣».
+  //
+  // الناقصة نحسبها كأنها انصرفت (attemptOffset = 1): الصفوف تطلع واحد أقل،
+  // والتخمين الأول على الجديدة ينحسب «ثاني محاولة» — يعني يفقد مضاعفة المحاولة
+  // الأولى. هذا ثمن التغيير على اللي انضرب فيه، والنقاط تظل مضاعفات ٢٥ لأنها
+  // نفس السلّم العادي
+  const CHANGE_ATTEMPT_PENALTY = 1;
+
+  function changedRound(newWordLength) {
+    return { maxAttempts: attemptsForLength(newWordLength), attemptOffset: CHANGE_ATTEMPT_PENALTY };
   }
 
   // مدة الجولة (بالثواني) — 0 يعني بدون وقت، و CUSTOM_TIME يفتح حقل رقم بالدقائق
@@ -473,7 +479,7 @@
     REBOUND_ATTEMPTS,
     REBOUND_SECONDS,
     REBOUND_POINTS,
-    changedAttempts,
+    changedRound,
     attemptsMade,
     boardRows,
     ROUND_TIME_OPTIONS,

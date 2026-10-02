@@ -405,19 +405,17 @@
     renderGrid();
   });
 
-  // «غيّر السؤال»: كلمة جديدة بدل اللي يشتغلون عليها. الوقت يكمل، والمحاولات
-  // المصروفة تظل محسوبة (attemptOffset) مع وحدة زيادة تعويض — Core.changedAttempts.
-  // المساعدات تنفتح من جديد بلا خصم: كانت للكلمة القديمة
+  // «غيّر السؤال»: كلمة جديدة بدل اللي يشتغلون عليها. الوقت يكمل، والكلمة
+  // الجديدة بعددها العادي ناقص وحدة — Core.changedRound. المساعدات تنفتح من جديد
+  // بلا خصم: كانت للكلمة القديمة
   changeBtn.addEventListener("click", () => {
     if (gameOver || steal) return;
     const w = waitingTeam();
     if (changeLeft[w] <= 0) return;
     changeLeft[w]--;
 
-    const used = ownAttemptCount();
-    maxAttempts = Core.changedAttempts(maxAttempts, used);
-    attemptOffset = used;
     loadWord(wordBag.pick(target));
+    ({ maxAttempts, attemptOffset } = Core.changedRound(wordLength));
     guesses = [];
     keyStatus = {};
     hints = Core.newHints();

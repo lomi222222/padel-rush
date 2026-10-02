@@ -133,6 +133,21 @@ function publish(dir, color, version) {
 const readGreen = (page) =>
   page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--green").trim());
 
+// ننتظر اللون يوصل بالاستطلاع مو بـwaitForFunction: الترقية تعيد تحميل الصفحة،
+// وwaitForFunction ينفجر لو انهدم السياق وسط الانتظار فيحسبها فشل وهي نجاح
+async function waitGreen(page, color, ms) {
+  const until = Date.now() + ms;
+  while (Date.now() < until) {
+    try {
+      if ((await readGreen(page)) === color) return true;
+    } catch (e) {
+      /* لحظة التنقّل — نكمل */
+    }
+    await sleep(250);
+  }
+  return false;
+}
+
 const cacheNames = (page) => page.evaluate(() => caches.keys());
 
 // ننتظر الـSW يخلص تخزين الشِل قبل ما نعتبر الزيارة "مكتملة"
@@ -231,15 +246,11 @@ async function settle(page) {
 
     // ===== وبالفتحة الجاية تنطبق =====
     await page.goto(BASE + "/wordle.html");
-    let applied = true;
-    try {
-      await page.waitForFunction(
-        () => getComputedStyle(document.documentElement).getPropertyValue("--green").trim() === "#00ff00",
-        { timeout: 15000 }
-      );
-    } catch (e) {
-      applied = false;
-    }
+    // ٤٥ ثانية مو ١٥: الصفحة ترسل الإذن فوراً، بس Chrome أحياناً يمسك التفعيل
+    // لين يخمل العامل القديم (~٣٠ ثانية بالضبط، قسناها) — الصفحة اللي قبل كانت
+    // بنص جولة وهو للحين ماسكها. التحديث يوصل بنفس الفتحة، بس متأخر. كان يطيح
+    // بهالسباق مرة من أربع تقريباً
+    const applied = await waitGreen(page, "#00ff00", 45000);
     check("المؤجَّلة انطبقت بالفتحة الجاية", applied, await readGreen(page));
 
     // ثلاث نشرات شرعية بجلسة وحدة (v900 · v950 · v901) ⇒ ثلاث إعادات بالضبط.

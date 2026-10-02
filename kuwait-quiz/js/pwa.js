@@ -26,8 +26,17 @@
   // atOpen: لحظة فتح الصفحة نأذن حتى لو رجعت جولة — المباراة صارت محفوظة
   // (js/wordle.js وjs/wordle-online.js) فإعادة التحميل ما تضيّع شي، واللاعب للحين
   // ما بدأ يكتب. بدونه الجولة المسترجعة تأجّل التحديث للأبد: كل فتحة تلقاها شغالة
+  //
+  // «لحظة الفتح» نافذة مو لحظة: من التحميل لين أول لمسة. النسخة الجديدة ممكن
+  // تخلص تثبيت بعد load بشوي (تجي عن طريق updatefound) — لو حسبنا load بس،
+  // هالسباق يأجّلها للأبد (طلع بالاختبار مرة من أربع)
+  let untouched = true;
+  ["pointerdown", "keydown"].forEach((ev) =>
+    window.addEventListener(ev, () => (untouched = false), { once: true, capture: true })
+  );
+
   function activate(reg, atOpen) {
-    if (reg && reg.waiting && (atOpen || !inRound())) reg.waiting.postMessage({ type: "SKIP_WAITING" });
+    if (reg && reg.waiting && (atOpen || untouched || !inRound())) reg.waiting.postMessage({ type: "SKIP_WAITING" });
   }
 
   // حزام أمان: سقف لعدد مرات إعادة التحميل بالجلسة الوحدة. لو صار خلل بالنشر
@@ -61,13 +70,17 @@
       .then((reg) => {
         // نسخة منتظرة من زيارة سابقة (مثلاً وصلت وهو بنص جولة أمس)
         activate(reg, true);
-        reg.addEventListener("updatefound", () => {
-          const fresh = reg.installing;
+        const watch = (fresh) => {
           if (!fresh) return;
           fresh.addEventListener("statechange", () => {
             if (fresh.state === "installed") activate(reg);
           });
-        });
+        };
+        // نسخة **للحين تتثبّت** لحظة الفتح: updatefound حقها انطلق بالصفحة
+        // اللي قبل، فهني ما بيجي أبداً — بدون هالسطر ما نسمع خلوص تثبيتها، فتقعد
+        // منتظرة لين الفتحة اللي بعدها. هذا اللي كان يطيّح test_update نص المرات
+        watch(reg.installing);
+        reg.addEventListener("updatefound", () => watch(reg.installing));
         // التطبيق المثبّت يرجع من الخلفية بلا تنقّل، فما يفحص التحديث لحاله —
         // بدون هذا يظل على النسخة القديمة بلا سقف زمني
         document.addEventListener("visibilitychange", () => {

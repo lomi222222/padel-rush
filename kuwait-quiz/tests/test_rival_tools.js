@@ -1,9 +1,9 @@
 // أدوات الفريق الخصم: «غيّر السؤال» و«الفرصة الأخيرة» — محلي وأونلاين.
 //
 // القواعد (قرارات صاحب المشروع):
-// - غيّر السؤال: مرة وحدة باللعبة كلها لكل فريق. الوقت يكمل، والصفوف = الباقي + ١
-//   (بس لو ما حاولوا ولا مرة ما تزيد)، والنقاط تكمل نفس سلّم الجولة، والمساعدات
-//   تنفتح من جديد بلا خصم
+// - غيّر السؤال: مرة وحدة باللعبة كلها لكل فريق. الوقت يكمل، والكلمة الجديدة
+//   بعددها العادي ناقص وحدة (مهما صرفوا على القديمة)، وأول تخمين عليها ينحسب
+//   «ثاني محاولة». والمساعدات تنفتح من جديد بلا خصم
 // - الفرصة الأخيرة: تلقائية كل ما فشل الفريق (محاولات أو وقت)، محاولة وحدة بـ١٥
 //   ثانية، والصح = ٥٠. ولو فشلت الجولة تنتهي
 //
@@ -75,6 +75,9 @@ const text = (page, sel) => page.$eval(sel, (e) => e.textContent);
 const visible = (page, sel) => page.$eval(sel, (e) => !e.classList.contains("hidden"));
 const scores = (page, prefix) =>
   page.$$eval("#" + prefix + "-scoreboard .team-chip .score", (els) => els.map((e) => e.textContent));
+// صفوف الكلمة الجديدة بعد التغيير: عددها العادي ناقص وحدة
+const changedRows = (page, word) =>
+  page.evaluate((w) => WordleCore.attemptsForLength(Array.from(w).length) - 1, word);
 const expected = (page, attempt, max) =>
   page.evaluate(({ a, m }) => WordleCore.finalScoreForAttempt(a, m, WordleCore.newHints()), { a: attempt, m: max });
 
@@ -111,7 +114,7 @@ async function local(browser) {
   await page.click("#wordle-change-btn");
   await page.waitForTimeout(200);
 
-  eq("محلي: الصفوف = الباقي + ١", await rows(page, "wordle"), rows0 - 2 + 1);
+  eq("محلي: صفوف الكلمة الجديدة = عددها العادي − ١", await rows(page, "wordle"), await changedRows(page, W[1]));
   eq("محلي: الشبكة انمسحت", await graded(page, "wordle"), 0);
   eq("محلي: ألوان الكيبورد تصفّرت",
     await page.$$eval("#keyboard .key.green, #keyboard .key.yellow, #keyboard .key.gray", (e) => e.length), 0);
@@ -122,7 +125,8 @@ async function local(browser) {
   eq("محلي: الزر انقفل للفريق اللي استخدمه", await page.$eval("#wordle-change-btn", (b) => b.disabled), true);
 
   // النقاط تكمل السلّم: المحاولة الجاية رقم ٣ من (الأصل + ١)، وبلا خصم الفئة
-  const want1 = await expected(page, 3, rows0 + 1);
+  // أول تخمين على الجديدة = «ثاني محاولة» من عددها العادي
+  const want1 = await expected(page, 2, (await changedRows(page, W[1])) + 1);
   eq("محلي: النقاط المعروضة تكمل السلّم بلا خصم المساعدات",
     num(await text(page, "#wordle-points")), want1);
   await typeWord(page, W[1]);
@@ -132,14 +136,14 @@ async function local(browser) {
   // ===== الجولة ٢: الفريق الثاني يلعب، والأول يغيّر قبل أي محاولة =====
   await page.click("#wordle-next-team-btn");
   await page.waitForTimeout(250);
-  const rowsR2 = await rows(page, "wordle");
   await page.click("#wordle-change-btn");
   await page.waitForTimeout(200);
-  eq("محلي: التغيير قبل أي محاولة ما يزيد صفوف", await rows(page, "wordle"), rowsR2);
+  eq("محلي: حتى قبل أي محاولة تنقص وحدة", await rows(page, "wordle"), await changedRows(page, W[3]));
 
   // نخلّص محاولاتهم ⇒ فرصة أخيرة للفريق الأول
   const len2 = Array.from(W[3]).length;
-  for (let i = 0; i < rowsR2; i++) await wrongGuess(page, "wordle", len2);
+  const rowsAfter = await rows(page, "wordle");
+  for (let i = 0; i < rowsAfter; i++) await wrongGuess(page, "wordle", len2);
   eq("محلي: الفرصة الأخيرة بدأت لحالها",
     (await visible(page, "#wordle-steal-note")) && (await text(page, "#wordle-steal-note")).includes("فرصة أخيرة"), true);
   eq("محلي: الجولة ما انتهت وقت الفرصة", await visible(page, "#wordle-round-end"), false);
@@ -239,8 +243,9 @@ async function online(browser) {
   await wrongGuess(host, "online", len1);
   await foe.click("#online-change-btn");
   await host.waitForFunction(() => document.querySelector("#online-message").textContent.includes("غيّر"), null, { timeout: 5000 });
-  eq("أونلاين: الصفوف عند الهوست = الباقي + ١", await rows(host, "online"), rows0 - 2 + 1);
-  eq("أونلاين: ونفسها عند الخصم", await rows(foe, "online"), rows0 - 2 + 1);
+  const wantRows = await changedRows(host, W[1]);
+  eq("أونلاين: صفوف الكلمة الجديدة عند الهوست = عددها العادي − ١", await rows(host, "online"), wantRows);
+  eq("أونلاين: ونفسها عند الخصم", await rows(foe, "online"), wantRows);
   await foe.waitForTimeout(200);
   eq("أونلاين: زر الخصم انقفل بعد مرته", await foe.$eval("#online-change-btn", (b) => b.disabled), true);
 
@@ -249,7 +254,7 @@ async function online(browser) {
   await host.waitForTimeout(500);
   eq("أونلاين: الهوست يرفض المرة الثانية", await rows(host, "online"), rowsNow);
 
-  const want = await expected(host, 3, rows0 + 1);
+  const want = await expected(host, 2, wantRows + 1);
   await typeWord(host, W[1], "online");
   await host.waitForFunction(() => !document.querySelector("#online-round-end").classList.contains("hidden"), null, { timeout: 5000 });
   eq("أونلاين: الفوز بعد التغيير يكمل السلّم", num((await scores(foe, "online"))[0]), want);

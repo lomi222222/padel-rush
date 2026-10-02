@@ -1062,17 +1062,17 @@
     publishState();
   }
 
-  // الوقت يكمل، والمحاولات المصروفة تظل محسوبة مع وحدة زيادة، والمساعدات تنفتح
-  // من جديد — نفس الوضع المحلي. rev يزيد: الصف الجديد طوله غير، فأي live قديم
+  // الوقت يكمل، والكلمة الجديدة بعددها العادي ناقص وحدة (Core.changedRound)،
+  // والمساعدات تنفتح من جديد — نفس الوضع المحلي. rev يزيد: الصف الجديد طوله غير، فأي live قديم
   // لازم ينرمى، والمقاس ينحسب من جديد عند الكل
   function hostChangeWord(teamIdx) {
     const h = hostState;
     h.changeLeft[teamIdx]--;
-    const used = hostOwnAttemptCount();
-    h.maxAttempts = Core.changedAttempts(h.maxAttempts, used);
-    h.attemptOffset = used;
     h.rev++;
     hostLoadWord(h.bag.pick(h.target));
+    const round = Core.changedRound(h.wordLength);
+    h.maxAttempts = round.maxAttempts;
+    h.attemptOffset = round.attemptOffset;
     h.guesses = [];
     h.keyStatus = {};
     h.hints = Core.newHints();
