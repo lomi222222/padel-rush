@@ -1,6 +1,6 @@
 // يتأكد إن استخدام البوق (اللي يضيف صف سرقة فوق العدد الأصلي) ما يصغّر الخلايا،
 // وإن صف النتائج ما يتداخل مع عمود الأدوات بأي مقاس.
-const { launch, BASE } = require("./_browser");
+const { launch, BASE, clearCategories } = require("./_browser");
 
 let failures = 0;
 function check(label, actual, expected) {
@@ -41,7 +41,7 @@ const overlap = (page) =>
 
 async function startRound(page, word, category) {
   await page.goto(BASE + "/wordle.html");
-  await page.click("#wordle-cat-all");
+  await clearCategories(page, "wordle");
   const texts = await page.$$eval("#wordle-category-list label", (e) => e.map((x) => x.textContent.trim()));
   const inputs = await page.$$("#wordle-category-list input");
   const state = await page.$$eval("#wordle-category-list input", (e) => e.map((x) => x.checked));

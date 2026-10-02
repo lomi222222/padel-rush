@@ -1,5 +1,5 @@
 // يتأكد إن الوضع المحلي ما انكسر بعد فصل المنطق عن الرسم
-const { launch, BASE } = require("./_browser");
+const { launch, BASE, clearCategories } = require("./_browser");
 
 let failures = 0;
 function check(label, actual, expected) {
@@ -9,7 +9,7 @@ function check(label, actual, expected) {
 }
 
 async function pickAndStart(page, category, targetWord) {
-  await page.click("#wordle-cat-all");
+  await clearCategories(page, "wordle");
   const catTexts = await page.$$eval("#wordle-category-list label", (els) => els.map((e) => e.textContent));
   const inputs = await page.$$("#wordle-category-list input");
   await inputs[catTexts.indexOf(category)].click();

@@ -7,7 +7,7 @@
 //
 // وكان يطبع نتائجه بلا فحص (process.exit(1) الوحيد داخل catch) — يعني يطلع
 // أخضر حتى لو الجولة ما انتهت. صار يفحص فعلاً.
-const { launch, BASE, makeChecker } = require("./_browser");
+const { launch, BASE, makeChecker, clearCategories } = require("./_browser");
 
 const CAT = "مناطق الكويت";
 const check = makeChecker();
@@ -28,7 +28,7 @@ const check = makeChecker();
   for (const inp of await page.$$("#wordle-team1-input, #wordle-team2-input")) await inp.fill("فريق");
 
   // نختار الفئة وحدها
-  await page.click("#wordle-cat-all");
+  await clearCategories(page, "wordle");
   let picked = false;
   for (const label of await page.$$("label.category-chip")) {
     if ((await label.textContent()).includes(CAT)) {

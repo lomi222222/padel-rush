@@ -1,5 +1,5 @@
 // التثبيت (PWA) + العمل بلا نت + وسوم المشاركة.
-const { launch, BASE } = require("./_browser");
+const { launch, BASE, selectAllCategories } = require("./_browser");
 const fs = require("fs");
 const path = require("path");
 const DIR = path.join(__dirname, "..");
@@ -106,6 +106,7 @@ function pngSize(p) {
 
     // نلعب جولة كاملة وإحنا بلا نت
     for (const inp of await p.$$("#wordle-team1-input, #wordle-team2-input")) await inp.fill("فريق");
+    await selectAllCategories(p, "wordle");
     await p.click("#wordle-start-btn");
     await p.waitForTimeout(500);
     const playing = await p.evaluate(() => ({

@@ -1,5 +1,5 @@
 // نافذة سجل التلميحات + نافذة «+٧» للفئات
-const { launch, BASE } = require("./_browser");
+const { launch, BASE, clearCategories, selectAllCategories } = require("./_browser");
 let fail = 0;
 const check = (n, ok, x) => { console.log((ok ? "✅ " : "‼️ ") + n + (x ? "  " + x : "")); if (!ok) fail++; };
 const vis = (p, sel) => p.$$eval(sel, (els) => els.some((e) => {
@@ -30,6 +30,7 @@ const inViewport = (p, sel) => p.$$eval(sel, (els) => {
     await page.route("**://*.googleapis.com/**", (r) => r.abort());
     await page.goto(BASE + "/wordle.html");
     for (const i of await page.$$("#wordle-team1-input, #wordle-team2-input")) await i.fill("الأزرق");
+    await selectAllCategories(page, "wordle");
     await page.click("#wordle-start-btn");
     await page.waitForTimeout(450);
 
@@ -102,7 +103,7 @@ const inViewport = (p, sel) => p.$$eval(sel, (els) => {
     await page.addInitScript(() => { try { localStorage.setItem("kw-tutorial-seen", "1"); } catch (e) {} });
     await page.route("**://*.googleapis.com/**", (r) => r.abort());
     await page.goto(BASE + "/wordle.html");
-    await page.click("#wordle-cat-all"); await page.waitForTimeout(150);
+    await clearCategories(page, "wordle");
     for (let i = 0; i < 11; i++) {
       const ins = await page.$$("#wordle-category-list input");
       if (i >= ins.length) break;
@@ -160,6 +161,7 @@ const inViewport = (p, sel) => p.$$eval(sel, (els) => {
     await foe.waitForTimeout(300);
     await foe.locator('.online-team-pick[data-team="1"]').click();
     await foe.waitForTimeout(300);
+    await selectAllCategories(host, "online");
     await host.click("#online-start-btn");
     await host.waitForTimeout(800);
 

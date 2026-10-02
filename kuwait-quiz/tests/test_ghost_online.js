@@ -1,4 +1,4 @@
-const { launch, BASE } = require("./_browser");
+const { launch, BASE, clearCategories } = require("./_browser");
 const url = (pid) => BASE + "/wordle-online.html?net=local&pid=" + pid;
 let fail = 0;
 const check = (n, ok, x) => { console.log((ok ? "✅ " : "‼️ ") + n + (x ? "  " + x : "")); if (!ok) fail++; };
@@ -51,7 +51,7 @@ async function key(page, ch) {
   await host.waitForTimeout(300);
 
   // نثبّت الكلمة: "سلحفاة" من فئة حيوان
-  await host.click("#online-cat-all");
+  await clearCategories(host, "online");
   const labels = await host.$$eval("#online-category-list label", (e) => e.map((x) => x.textContent.trim()));
   const ins = await host.$$("#online-category-list input");
   await ins[labels.findIndex((x) => x.includes("حيوان"))].click();

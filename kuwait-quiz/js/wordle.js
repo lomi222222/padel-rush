@@ -13,8 +13,9 @@
   let teamIndex = 0;
   let roundsPlayed = [0, 0];
   let matchOver = false;
-  let selectedCategories =
-    (Settings && Settings.loadCategories(Core.ALL_CATEGORIES)) || new Set(Core.SELECTABLE_CATEGORIES);
+  // الفئات تبدأ فاضية دايماً — قرار صاحب المشروع: اللاعب يختار بنفسه كل مرة،
+  // حتى لو لعب قبل (كنا نرجّع آخر اختيار، وانشال)
+  let selectedCategories = new Set();
   let wordBag = Core.makeWordBag(selectedCategories);
   let roundsPerTeam = Core.DEFAULT_ROUNDS;
   let boqLeft = [Core.boqForRounds(roundsPerTeam), Core.boqForRounds(roundsPerTeam)];
@@ -113,7 +114,7 @@
     renderCategoryChecklist();
   });
 
-  syncAllCheckbox(); // الفئات المسترجعة ممكن تكون غير "الكل" — نطابق شكل الدقّة قبل أول رسم
+  syncAllCheckbox(); // نطابق «الكل» مع الاختيار الفعلي قبل أول رسم (يبدأ فاضي)
   renderCategoryChecklist();
 
   // ===== عدد الجولات =====
@@ -187,7 +188,6 @@
       Settings.saveRoundCount(roundsPerTeam);
       Settings.saveBoqCount(boqCountSelect.value);
       Settings.saveRoundTime(roundTimeSelect.value, roundTimeCustom.value);
-      Settings.saveCategories(selectedCategories);
     }
     // «تلقائي» يتوسّع مع عدد الجولات عشان يظل معنى البوق ثابتاً — شوف
     // boqForRounds؛ وإلا ناخذ رقم الهوست كما هو (والصفر يقفل البوق تماماً)

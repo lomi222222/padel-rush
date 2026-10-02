@@ -3,7 +3,7 @@
 //
 // كان هذا الملف يطبع النتيجة بس ولا يفشل أبداً — يعني «نجاح» كاذب بكل تشغيلة.
 // صار يفحص فعلاً.
-const { launch, BASE, makeChecker } = require("./_browser");
+const { launch, BASE, makeChecker, selectAllCategories } = require("./_browser");
 
 const check = makeChecker();
 
@@ -21,6 +21,7 @@ const check = makeChecker();
 
   await page.goto(BASE + "/wordle.html");
   for (const inp of await page.$$("#wordle-team1-input, #wordle-team2-input")) await inp.fill("فريق");
+  await selectAllCategories(page, "wordle");
   await page.click("#wordle-start-btn");
   await page.waitForTimeout(300);
 

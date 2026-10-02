@@ -1,5 +1,5 @@
 // حد «اكشف حرف»: مرتين بالجولة، والهوست يرفض أي طلب زايد حتى لو تجاوز اللاعب الزر
-const { launch, BASE } = require("./_browser");
+const { launch, BASE, selectAllCategories } = require("./_browser");
 let fail = 0;
 const check = (n, ok, x) => { console.log((ok ? "✅ " : "‼️ ") + n + (x ? "  " + x : "")); if (!ok) fail++; };
 const num = (s) => {
@@ -20,6 +20,7 @@ const pts = (p, id) => p.$eval(id, (el) => el.textContent);
     await page.route("**://*.googleapis.com/**", (r) => r.abort());
     await page.goto(BASE + "/wordle.html");
     for (const i of await page.$$("#wordle-team1-input, #wordle-team2-input")) await i.fill("فريق");
+    await selectAllCategories(page, "wordle");
     await page.click("#wordle-start-btn");
     await page.waitForTimeout(400);
 
@@ -77,6 +78,7 @@ const pts = (p, id) => p.$eval(id, (el) => el.textContent);
     );
 
     for (const i of await page.$$("#wordle-team1-input, #wordle-team2-input")) await i.fill("فريق");
+    await selectAllCategories(page, "wordle");
     await page.click("#wordle-start-btn");
     await page.waitForTimeout(400);
     const rows = await page.$$eval("#wordle-grid .wordle-row", (e) => e.length);
@@ -126,6 +128,7 @@ const pts = (p, id) => p.$eval(id, (el) => el.textContent);
     await foe.locator('.online-team-pick[data-team="1"]').click();
     await foe.waitForTimeout(250);
 
+    await selectAllCategories(host, "online");
     await host.click("#online-start-btn");
     await host.waitForTimeout(700);
 
@@ -172,6 +175,7 @@ const pts = (p, id) => p.$eval(id, (el) => el.textContent);
     await page.route("**://*.googleapis.com/**", (r) => r.abort());
     await page.goto(BASE + "/wordle.html");
     for (const i of await page.$$("#wordle-team1-input, #wordle-team2-input")) await i.fill("الفريق الأول");
+    await selectAllCategories(page, "wordle");
     await page.click("#wordle-start-btn");
     await page.waitForTimeout(450);
     const m = await page.evaluate(() => {

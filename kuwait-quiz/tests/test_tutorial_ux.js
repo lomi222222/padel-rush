@@ -1,5 +1,5 @@
 // التجربة التوجيهية + ترتيب الشريط العلوي + إخفاء أزرار ±٢٥
-const { launch, BASE } = require("./_browser");
+const { launch, BASE, selectAllCategories } = require("./_browser");
 let fail = 0;
 const check = (n, ok, x) => { console.log((ok ? "✅ " : "‼️ ") + n + (x ? "  " + x : "")); if (!ok) fail++; };
 const vis = (p, sel) => p.$eval(sel, (e) => {
@@ -101,6 +101,7 @@ const vis = (p, sel) => p.$eval(sel, (e) => {
       await page.$eval(".topbar-actions", (e) => !!e.querySelector(".theme-toggle-inline")));
 
     for (const i of await page.$$("#wordle-team1-input, #wordle-team2-input")) await i.fill("الأزرق");
+    await selectAllCategories(page, "wordle");
     await page.click("#wordle-start-btn");
     await page.waitForTimeout(500);
 
@@ -169,6 +170,7 @@ const vis = (p, sel) => p.$eval(sel, (e) => {
     check("أونلاين/لوبي: رابط الرئيسية ظاهر", await vis(host, ".topbar .home-link"));
     check("أونلاين/لوبي: «إنهاء اللعبة» مخفي", !(await vis(host, "#online-end-match-btn")));
 
+    await selectAllCategories(host, "online");
     await host.click("#online-start-btn");
     await host.waitForTimeout(800);
 

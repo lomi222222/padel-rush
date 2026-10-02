@@ -264,6 +264,14 @@
     }
   }
 
+  // سقف الخانة يكبر مع الشاشة. كان ٧٢ ثابت، فالآيباد يطلع نفس الآيفون بالضبط
+  // (٧٢) مع إن مكانه يسمح بالضعف، وصاحب المشروع لقى المربعات صغيرة عليه. على
+  // الجوال أصغر بُعد ~٣٩٠ فالحساب يطلع أقل من ٧٢ ويظل السقف ٧٢ — ما يتغيّر شي
+  function tileCap() {
+    const short = Math.min(window.innerWidth, window.innerHeight);
+    return Math.max(72, Math.min(120, Math.round(short * 0.12)));
+  }
+
   function sizeTiles(gridEl, allowed) {
     const opts = gridEl._tileOpts;
     if (!opts || !allowed) return;
@@ -301,7 +309,7 @@
     const isWide = gridEl.closest(".wordle-wrap")?.hasAttribute("data-wide-grid");
     const READABLE = isWide ? 40 : 26;
     const byHeight = Math.max(READABLE, rawHeight);
-    const size = Math.max(13, Math.min(72, Math.floor(Math.min(rawWidth, byHeight))));
+    const size = Math.max(13, Math.min(tileCap(), Math.floor(Math.min(rawWidth, byHeight))));
 
     // ما نكتب إلا لو تغيّر فعلاً — يقطع أي دورة بين المراقب وتغيّر المقاس
     if (gridEl._tileSize === size) return;

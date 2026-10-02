@@ -1,6 +1,6 @@
 // يثبت إن ضغطة الحرف ما تنشر الحالة كاملة: state ما يتغيّر أبداً أثناء الكتابة،
 // وبس عقدة live الصغيرة اللي تتحدّث — مع بقاء المزامنة بين الأجهزة شغّالة.
-const { launch, BASE } = require("./_browser");
+const { launch, BASE, clearCategories } = require("./_browser");
 
 let failures = 0;
 function check(label, actual, expected) {
@@ -70,7 +70,7 @@ async function tap(page, ch) {
   await host.waitForTimeout(250);
 
   // فئة وكلمة مثبّتة: "سلحفاة"
-  await host.click("#online-cat-all");
+  await clearCategories(host, "online");
   const catTexts = await host.$$eval("#online-category-list label", (e) => e.map((x) => x.textContent));
   const catInputs = await host.$$("#online-category-list input");
   await catInputs[catTexts.indexOf("حيوان")].click();

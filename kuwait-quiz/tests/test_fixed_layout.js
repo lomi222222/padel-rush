@@ -1,6 +1,6 @@
 // يتأكد إن شاشة اللعب ثابتة: ما تنزل وتصعد، الشبكة كاملة تبين، والكيبورد كامل
 // يبين — بالوضع الطولي والعرضي، ومع أقصر وأطول كلمة بالبنك.
-const { launch, BASE } = require("./_browser");
+const { launch, BASE, clearCategories } = require("./_browser");
 
 let failures = 0;
 function check(label, actual, expected) {
@@ -76,7 +76,7 @@ const isKnownIssue = (vp, role) => KNOWN_ISSUES.some(([v, r]) => vp === v && rol
 
 async function startRound(page, word, category) {
   await page.goto(BASE + "/wordle.html");
-  await page.click("#wordle-cat-all");
+  await clearCategories(page, "wordle");
   const texts = await page.$$eval("#wordle-category-list label", (e) => e.map((x) => x.textContent.trim()));
   const inputs = await page.$$("#wordle-category-list input");
   const state = await page.$$eval("#wordle-category-list input", (e) => e.map((x) => x.checked));

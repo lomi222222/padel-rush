@@ -80,7 +80,9 @@ body {
   height: 100dvh;
   display: flex;
   flex-direction: column;
-  /* يمنع تكبير الضغطتين بسفاري — user-scalable=no لحاله ما يكفي هناك */
+  /* يمنع تكبير الضغطتين وقت الكتابة السريعة، وقرصة الإصبعين تظل تشتغل. الزوم
+     صار مسموح (شلنا user-scalable=no) لأن المربعات صغيرة على الآيباد، وهذي
+     اللي تمنعه يتكبّر بالغلط مع كل ضغطتين ورا بعض */
   touch-action: manipulation;
   -webkit-text-size-adjust: 100%;
 }
@@ -906,7 +908,7 @@ body.home-page .page {
   flex: 1;
   width: auto;
   padding: 6px 14px;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 800;
   text-align: start;
   border-top: 0;
@@ -959,7 +961,9 @@ body.home-page .page {
   display: block;
   width: 100%;
   padding: 5px 4px 6px;
-  font-size: 11px;
+  /* ١٣ مو ١١: صاحب المشروع لقاه صغير. أطول اسم «لاعبين كرة قدم» يقعد بسطر
+     واحد على ٣٧٥ (مقيس)؛ «سور القرآن الكريم» بالشريط العريض فما يتأثر */
+  font-size: 13px;
   line-height: 1.25;
   text-align: center;
   border-top: 1px solid var(--border-soft);
@@ -2416,7 +2420,9 @@ body.home-page .page {
 
 .round-time-select {
   font-family: inherit;
-  font-size: 15px;
+  /* ١٦ مو ١٥: الزوم صار مسموح، وسفاري يكبّر الصفحة لحاله لما تنضغط أي خانة
+     كتابة أو قائمة خطها أصغر من ١٦ */
+  font-size: 16px;
   font-weight: 700;
   padding: 10px 12px;
   /* مساحة لسهم القائمة على اليسار (نهاية السطر بالعربي) */

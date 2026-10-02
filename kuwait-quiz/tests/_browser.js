@@ -64,12 +64,28 @@ function makeChecker() {
 // يختار فئة وحدة بس. رقصة "الكل": نتأكد إنه مؤشَّر ثم نلغيه فتنفك كل الفئات،
 // وبعدها نأشّر اللي نبي. كانت مكرّرة نصاً بستة اختبارات.
 // prefix = "wordle" أو "online"
-async function pickOnlyCategory(page, prefix, name) {
+// يلغي كل الفئات مهما كانت البداية. الشاشة تبدأ فاضية الحين، فضغطة «الكل» وحدة
+// صارت **تختار** الكل بدل ما تلغيه — وكانت مكررة بعشر اختبارات على الافتراض
+// القديم. رقصة «الكل»: نتأكد إنه مؤشَّر ثم نلغيه فتنفك كل الفئات (حتى الحصرية)
+async function clearCategories(page, prefix) {
   const all = "#" + prefix + "-cat-all";
-  const list = "#" + prefix + "-category-list";
   if (!(await page.$eval(all, (el) => el.checked))) await page.click(all);
   await page.click(all);
   await page.waitForTimeout(80);
+}
+
+// يختار كل الفئات العادية — اللي كان الافتراضي قبل. اختبارات كثيرة تبدأ لعبة وما
+// يهمها الفئة، فكانت تضغط «ابدأ» على طول؛ الحين الشاشة تبدأ فاضية وبدون فئة
+// البداية تنرفض
+async function selectAllCategories(page, prefix) {
+  const all = "#" + prefix + "-cat-all";
+  if (!(await page.$eval(all, (el) => el.checked))) await page.click(all);
+  await page.waitForTimeout(60);
+}
+
+async function pickOnlyCategory(page, prefix, name) {
+  const list = "#" + prefix + "-category-list";
+  await clearCategories(page, prefix);
   const labels = await page.$$eval(list + " label", (els) => els.map((x) => x.textContent.trim()));
   const inputs = await page.$$(list + " input");
   const i = labels.findIndex((t) => t === name);
@@ -163,5 +179,5 @@ async function loseRound(pageOrPages, prefix) {
   }
 }
 
-module.exports = { BASE, launch, makeChecker, requirePlaywright, pickOnlyCategory, loseRound };
+module.exports = { BASE, launch, makeChecker, requirePlaywright, clearCategories, selectAllCategories, pickOnlyCategory, loseRound };
 

@@ -1,4 +1,4 @@
-// حفظ إعدادات آخر مباراة (عدد الجولات، مدة الجولة، الفئات المختارة) محلياً على
+// حفظ إعدادات آخر مباراة (عدد الجولات، مدة الجولة، عدد البوق) محلياً على
 // الجهاز — تُقرأ عند فتح شاشة الإعداد وتُكتب لما المباراة تبدأ فعلياً. يشترك فيه
 // الوضعان المحلي والأونلاين (بالأونلاين: الهوست بس هو اللي يقرأ/يكتب).
 (function () {
@@ -23,7 +23,6 @@
     rounds: "kw-settings-rounds",
     timeValue: "kw-settings-time-value",
     timeCustomMinutes: "kw-settings-time-custom-minutes",
-    categories: "kw-settings-categories",
     boq: "kw-settings-boq",
     tutorialSeen: "kw-tutorial-seen",
   };
@@ -65,21 +64,6 @@
   }
 
   // نتجاهل أي اسم فئة محفوظ ما عاد موجود بالبنك (فئة انحذفت أو تغيّر اسمها)
-  function loadCategories(allCategoryNames) {
-    const raw = safeGet(KEYS.categories);
-    if (!raw) return null;
-    try {
-      const names = JSON.parse(raw);
-      if (!Array.isArray(names)) return null;
-      const valid = names.filter((n) => allCategoryNames.includes(n));
-      return valid.length ? new Set(valid) : null;
-    } catch (e) {
-      return null;
-    }
-  }
-  function saveCategories(set) {
-    safeSet(KEYS.categories, JSON.stringify([...set]));
-  }
 
   window.WordleSettings = {
     loadRoundCount,
@@ -88,8 +72,6 @@
     saveBoqCount,
     loadRoundTime,
     saveRoundTime,
-    loadCategories,
-    saveCategories,
     tutorialSeen,
     markTutorialSeen,
   };

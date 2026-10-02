@@ -66,7 +66,10 @@ const enter = (page) => page.locator('.key:text-is("إدخال")').first().click
   check("exclusive chip is gold-styled", await page.$eval(
     "#wordle-category-list label.exclusive", (el) => el.textContent), "سور القرآن الكريم");
 
-  // "الكل" ما يشمل الحصرية
+  // "الكل" ما يشمل الحصرية — نضغطه بنفسنا: الشاشة تبدأ فاضية الحين، فكان
+  // يفحص الافتراض بدل الزر
+  if (!(await page.$eval("#wordle-cat-all", (el) => el.checked))) await page.click("#wordle-cat-all");
+  await page.waitForTimeout(80);
   const allChecked = await page.$$eval("#wordle-category-list input", (els) => els.map((e) => e.checked));
   const labels = await page.$$eval("#wordle-category-list label", (els) => els.map((e) => e.textContent));
   const surahIdx = labels.indexOf("سور القرآن الكريم");

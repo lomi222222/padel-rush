@@ -4,7 +4,7 @@ const { execFileSync } = require("child_process");
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
-const { launch, makeChecker } = require("./_browser");
+const { launch, makeChecker, selectAllCategories } = require("./_browser");
 
 const check = makeChecker();
 const REPO = path.join(__dirname, "..", "..");
@@ -63,6 +63,7 @@ const OUT = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "kw-standalone-")), 
 
   // ===== دور كامل =====
   for (const i of await page.$$("#wordle-team1-input, #wordle-team2-input")) await i.fill("الأزرق");
+  await selectAllCategories(page, "wordle");
   await page.click("#wordle-start-btn");
   await page.waitForTimeout(500);
 

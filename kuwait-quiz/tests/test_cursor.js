@@ -3,7 +3,7 @@
 // الفحص الحاسم هنا هو الأونلاين: الحرف المكتوب بخانة ٣ لازم **يظل بخانة ٣** بعد ما
 // يمر على الهوست ويرجع منشوراً. النسخة القديمة من sanitizeBuffer كانت ترصّ الحروف
 // من البداية، فحرف بخانة ٣ يوصل الأجهزة بخانة ٠ — والعلة تمر بلا رسالة خطأ.
-const { launch, BASE } = require("./_browser");
+const { launch, BASE, clearCategories } = require("./_browser");
 const { makeChecker } = require("./_browser");
 
 const check = makeChecker();
@@ -206,7 +206,7 @@ async function onlineMode(browser) {
   await foe.locator('.online-team-pick[data-team="1"]').click();
   await host.waitForTimeout(300);
 
-  await host.click("#online-cat-all");
+  await clearCategories(host, "online");
   const cats = await host.$$eval("#online-category-list label", (e) => e.map((x) => x.textContent.trim()));
   const ins = await host.$$("#online-category-list input");
   await ins[cats.findIndex((x) => x === CAT)].click();

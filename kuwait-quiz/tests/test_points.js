@@ -1,5 +1,5 @@
 // النقاط المتوقّعة: تطلع جنب المحاولات، تنقص مع كل مساعدة، والرقم الأخير = المقبوض
-const { launch, BASE } = require("./_browser");
+const { launch, BASE, selectAllCategories } = require("./_browser");
 let fail = 0;
 const check = (n, ok, x) => { console.log((ok ? "✅ " : "‼️ ") + n + (x ? "  " + x : "")); if (!ok) fail++; };
 
@@ -19,6 +19,7 @@ const num = (s) => {
     await page.route("**://*.googleapis.com/**", (r) => r.abort());
     await page.goto(BASE + "/wordle.html");
     for (const inp of await page.$$("#wordle-team1-input, #wordle-team2-input")) await inp.fill("فريق");
+    await selectAllCategories(page, "wordle");
     await page.click("#wordle-start-btn");
     await page.waitForTimeout(400);
 
@@ -110,6 +111,7 @@ const num = (s) => {
     await page.route("**://*.googleapis.com/**", (r) => r.abort());
     await page.goto(BASE + "/wordle.html");
     for (const inp of await page.$$("#wordle-team1-input, #wordle-team2-input")) await inp.fill("الفريق الأول");
+    await selectAllCategories(page, "wordle");
     await page.click("#wordle-start-btn");
     await page.waitForTimeout(400);
     // الأساس: نفس الصفحة بدون النقاط — عشان نثبت إن الزيادة ما ضافت سطر

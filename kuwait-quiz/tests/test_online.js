@@ -1,6 +1,6 @@
 // اختبار الوضع الأونلاين كامل عبر النقل المحلي (?net=local) بثلاث تبويبات:
 // هوست + لاعب بنفس فريقه + لاعب بالفريق الخصم
-const { launch, BASE } = require("./_browser");
+const { launch, BASE, clearCategories } = require("./_browser");
 
 let failures = 0;
 function check(label, actual, expected) {
@@ -87,7 +87,7 @@ async function keys(page, word) {
   check("no player left without a team", teamsInLobby.filter((t) => t === "بدون فريق").length, 0);
 
   // ===== الهوست يبدأ اللعبة بفئة وكلمة معروفة =====
-  await host.click("#online-cat-all"); // إلغاء الكل
+  await clearCategories(host, "online");
   const catTexts = await host.$$eval("#online-category-list label", (els) => els.map((e) => e.textContent));
   const catInputs = await host.$$("#online-category-list input");
   await catInputs[catTexts.indexOf("حيوان")].click();

@@ -1,5 +1,5 @@
 // الهوست يختار عدد الجولات، واللاعب يشوف نفس العدد بالعنوان المنشور.
-const { launch, BASE } = require("./_browser");
+const { launch, BASE, selectAllCategories } = require("./_browser");
 const url = (pid) => BASE + "/wordle-online.html?net=local&pid=" + pid;
 let fail = 0;
 const check = (n, ok, x) => { console.log((ok ? "✅ " : "‼️ ") + n + (x ? "  " + x : "")); if (!ok) fail++; };
@@ -46,6 +46,7 @@ const check = (n, ok, x) => { console.log((ok ? "✅ " : "‼️ ") + n + (x ? "
   check("قائمة عدد الجولات مخفية عن غير الهوست", !foeHasSelect);
 
   await host.selectOption("#online-round-count", "7");
+  await selectAllCategories(host, "online");
   await host.click("#online-start-btn");
   await host.waitForTimeout(800);
 

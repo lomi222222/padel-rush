@@ -1,6 +1,6 @@
 // اختبارات إضافية: رابط الدعوة، التوزيع التلقائي، تبديل الفريق من الهوست،
 // إعادة الدخول بعد تحديث الصفحة، ورسالة غياب إعداد Firebase
-const { launch, BASE } = require("./_browser");
+const { launch, BASE, selectAllCategories } = require("./_browser");
 
 let failures = 0;
 function check(label, actual, expected) {
@@ -109,6 +109,7 @@ async function newTab(context, query) {
     new BroadcastChannel("kw-net-local").postMessage({ path: "rooms/" + code + "/players" });
   });
   await host.waitForTimeout(400);
+  await selectAllCategories(host, "online");
   await host.click("#online-start-btn");
   await host.waitForTimeout(300);
   check("start blocked with an empty team", await host.$eval("#online-lobby-error", (el) => !el.classList.contains("hidden")), true);
@@ -117,6 +118,7 @@ async function newTab(context, query) {
   // نرجّع التوزيع ونبدأ
   await host.click("#online-auto-assign-btn");
   await host.waitForTimeout(400);
+  await selectAllCategories(host, "online");
   await host.click("#online-start-btn");
   await host.waitForTimeout(600);
   check("match started", await host.$eval("#online-play", (el) => !el.classList.contains("hidden")), true);

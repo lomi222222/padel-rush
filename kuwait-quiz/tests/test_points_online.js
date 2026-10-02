@@ -1,6 +1,6 @@
 // النقاط المتوقّعة بالوضع الأونلاين: تظهر عند الكل، تنزل لما صاحب الدور يستخدم
 // مساعدة، وتثبت على قيمة السرقة أثناء البوق
-const { launch, BASE } = require("./_browser");
+const { launch, BASE, clearCategories } = require("./_browser");
 let fail = 0;
 const check = (n, ok, x) => { console.log((ok ? "✅ " : "‼️ ") + n + (x ? "  " + x : "")); if (!ok) fail++; };
 const num = (s) => {
@@ -53,7 +53,7 @@ const enter = (p) => p.locator('#online-keyboard .key:text-is("إدخال")').fi
 
   // كلمة مثبّتة عشان النتيجة تكون قابلة للتوقّع
   const catLabels = await host.$$eval("#online-category-list label", (els) => els.map((e) => e.textContent));
-  await host.click("#online-cat-all");
+  await clearCategories(host, "online");
   await host.waitForTimeout(120);
   const catInputs = await host.$$("#online-category-list input");
   await catInputs[catLabels.indexOf("حيوان")].click();

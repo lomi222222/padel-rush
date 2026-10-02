@@ -135,8 +135,9 @@
   const stealNoteEl = el("online-steal-note");
 
   const Settings = window.WordleSettings;
-  let selectedCategories =
-    (Settings && Settings.loadCategories(Core.ALL_CATEGORIES)) || new Set(Core.SELECTABLE_CATEGORIES);
+  // الفئات تبدأ فاضية دايماً — قرار صاحب المشروع: اللاعب يختار بنفسه كل مرة،
+  // حتى لو لعب قبل (كنا نرجّع آخر اختيار، وانشال)
+  let selectedCategories = new Set();
   let tickTimer = null; // عدّاد العرض عند الجميع
   let hostClockTimer = null; // عدّاد الهوست اللي يحسم انتهاء الوقت
 
@@ -447,7 +448,7 @@
     syncTopbar(!playScreen.classList.contains("hidden"));
 
     if (isHost) {
-      syncAllCheckbox(); // الفئات المسترجعة ممكن تكون غير "الكل" — نطابق شكل الدقّة قبل أول رسم
+      syncAllCheckbox(); // نطابق «الكل» مع الاختيار الفعلي قبل أول رسم (يبدأ فاضي)
       renderCategoryChecklist();
     }
 
@@ -809,7 +810,6 @@
       Settings.saveRoundCount(hostState.roundsPerTeam);
       Settings.saveBoqCount(boqCountSelect.value);
       Settings.saveRoundTime(roundTimeSelect.value, roundTimeCustom.value);
-      Settings.saveCategories(selectedCategories);
     }
 
     roomRef("meta/status").set("playing");

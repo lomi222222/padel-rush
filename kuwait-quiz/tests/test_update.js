@@ -10,7 +10,7 @@ const fs = require("fs");
 const os = require("os");
 const path = require("path");
 const http = require("http");
-const { launch, makeChecker } = require("./_browser");
+const { launch, makeChecker, selectAllCategories } = require("./_browser");
 
 const check = makeChecker();
 const SRC = path.join(__dirname, "..");
@@ -209,6 +209,7 @@ async function settle(page) {
     check("وبالنهاية العنصر وصل معبّأ", !!settled && settled.inHtml && settled.filled, JSON.stringify(settled));
 
     // ===== حارس الجولة: ما نقطع لاعباً وهو يلعب =====
+    await selectAllCategories(page, "wordle");
     await page.click("#wordle-start-btn");
     await page.waitForTimeout(400);
     check("دخلنا جولة", await page.$eval("#wordle-play-screen", (el) => !el.classList.contains("hidden")));

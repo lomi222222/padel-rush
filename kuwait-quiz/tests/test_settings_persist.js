@@ -1,6 +1,6 @@
 // إعدادات آخر مباراة (عدد الجولات، وقت الجولة، الفئات) تبقى بعد إغلاق وإعادة فتح
 // الصفحة — محلي وأونلاين (الهوست بس بالأونلاين).
-const { launch, BASE } = require("./_browser");
+const { launch, BASE, clearCategories, pickOnlyCategory } = require("./_browser");
 let fail = 0;
 const check = (n, ok, x) => { console.log((ok ? "✅ " : "‼️ ") + n + (x ? "  " + x : "")); if (!ok) fail++; };
 
@@ -23,7 +23,7 @@ const check = (n, ok, x) => { console.log((ok ? "✅ " : "‼️ ") + n + (x ? "
     await page.selectOption("#wordle-round-count", "7");
     await page.selectOption("#wordle-round-time", String(-1)); // CUSTOM_TIME
     await page.fill("#wordle-round-time-custom", "12");
-    await page.click("#wordle-cat-all"); // يلغي الكل
+    await clearCategories(page, "wordle");
     const labels = await page.$$("label.category-chip:not(.exclusive):not(.all)");
     let picked = "";
     for (const label of labels) {
@@ -54,14 +54,13 @@ const check = (n, ok, x) => { console.log((ok ? "✅ " : "‼️ ") + n + (x ? "
     const customVal = await page2.$eval("#wordle-round-time-custom", (e) => e.value);
     check("محلي: قيمة الدقائق المخصصة = ١٢", customVal === "12", "قيمة=" + customVal);
 
+    // الفئات **ما تنحفظ** — قرار صاحب المشروع: تبدأ فاضية دايماً، حتى بعد ما
+    // لعب بفئة. باقي الإعدادات فوق تظل ترجع
     const allChecked = await page2.$eval("#wordle-cat-all", (e) => e.checked);
-    check('محلي: "الكل" مو محدد (فئة وحدة بس محفوظة)', !allChecked);
+    check('محلي: "الكل" مو محدد بعد إعادة الفتح', !allChecked);
 
-    const checkedCount = await page2.$$eval(
-      "label.category-chip:not(.exclusive):not(.all) input:checked",
-      (els) => els.length
-    );
-    check("محلي: فئة وحدة بس محددة", checkedCount === 1, "عدد=" + checkedCount);
+    const checkedCount = await page2.$$eval("#wordle-category-list input:checked", (els) => els.length);
+    check("محلي: الفئات ترجع فاضية (ما تنحفظ)", checkedCount === 0, "عدد=" + checkedCount);
 
     check("محلي: ما صار خطأ JS", errs.length === 0, errs.join(" | "));
     await ctx.close();
@@ -102,8 +101,10 @@ const check = (n, ok, x) => { console.log((ok ? "✅ " : "‼️ ") + n + (x ? "
     await host.locator('.online-team-pick[data-team="0"]').click();
     await foe.locator('.online-team-pick[data-team="1"]').click();
     await host.waitForTimeout(300);
+    // لازم فئة: الشاشة تبدأ فاضية، وبدون فئة البداية تنرفض فما ينحفظ شي
+    await pickOnlyCategory(host, "online", "دولة");
     await host.click("#online-start-btn");
-    await host.waitForTimeout(500);
+    await host.waitForSelector("#online-play:not(.hidden)", { timeout: 5000 });
 
     // صفحة جديدة تماماً على نفس المتصفح (localStorage مشترك بالسياق)
     const host2 = await ctx.newPage();
@@ -116,6 +117,13 @@ const check = (n, ok, x) => { console.log((ok ? "✅ " : "‼️ ") + n + (x ? "
     check("أونلاين: عدد الجولات رجع ٣", roundVal === "3", "قيمة=" + roundVal);
     const timeVal = await host2.$eval("#online-round-time", (e) => e.value);
     check("أونلاين: وقت الجولة رجع دقيقة", timeVal === "60", "قيمة=" + timeVal);
+    // قائمة الفئات تنرسم للهوست بس، وهي داخل الغرفة — فنفتح غرفة جديدة ونتأكد
+    // إنها تبدأ فاضية مثل المحلي
+    await host2.fill("#online-name-input", "هوست");
+    await host2.click("#online-create-btn");
+    await host2.waitForSelector("#online-category-list .category-chip");
+    const onlineChecked = await host2.$$eval("#online-category-list input:checked", (els) => els.length);
+    check("أونلاين: الفئات تبدأ فاضية", onlineChecked === 0, "عدد=" + onlineChecked);
 
     check("أونلاين: ما صار خطأ JS", errs.length === 0, errs.join(" | "));
     await ctx.close();
