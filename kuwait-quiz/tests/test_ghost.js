@@ -1,4 +1,4 @@
-const { launch, BASE, selectAllCategories } = require("./_browser");
+const { launch, BASE, selectAllCategories, openFreshLocal } = require("./_browser");
 const OUT = "/tmp/claude-0/-home-user-padel-rush/55c4bca1-66a2-5e7c-94f5-390441a85d62/scratchpad/";
 let fail = 0;
 const check = (n, ok, x) => { console.log((ok ? "✅ " : "‼️ ") + n + (x ? "  " + x : "")); if (!ok) fail++; };
@@ -93,7 +93,7 @@ const rowState = (page) =>
 
   // الوضع الغامق للقطة
   await page.evaluate(() => { localStorage.setItem("kw-theme", "dark"); document.documentElement.setAttribute("data-theme", "dark"); });
-  await page.goto(BASE + "/wordle.html");
+  await openFreshLocal(page, BASE + "/wordle.html");
   await selectAllCategories(page, "wordle");
   await page.click("#wordle-start-btn");
   await page.waitForTimeout(400);

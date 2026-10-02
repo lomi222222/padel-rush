@@ -123,12 +123,10 @@ async function newTab(context, query) {
   await host.waitForTimeout(600);
   check("match started", await host.$eval("#online-play", (el) => !el.classList.contains("hidden")), true);
 
-  // ===== إعادة تحميل صفحة لاعب: يرجع لنفس مقعده ويشوف اللعبة =====
+  // ===== إعادة تحميل صفحة لاعب: يرجع لنفس مقعده **لحاله** ويشوف اللعبة =====
+  // كان لازم يكتب اسمه ويضغط دخول؛ الحين الجلسة محفوظة فيرجع بدون ما يسوي شي
   await p4.reload();
-  await p4.waitForTimeout(300);
-  await p4.fill("#online-name-input", "فهد");
-  await p4.click("#online-join-btn");
-  await p4.waitForTimeout(600);
+  await p4.waitForSelector("#online-play:not(.hidden)", { timeout: 5000 });
   check("rejoined player lands straight in the game", await p4.$eval("#online-play", (el) => !el.classList.contains("hidden")), true);
   check("rejoined player sees the scoreboard", await p4.$$eval("#online-scoreboard .team-chip", (e) => e.length), 2);
 

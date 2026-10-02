@@ -17,14 +17,17 @@
   const hadController = !!sw.controller;
   let reloading = false;
 
-  // جولة شغّالة؟ كل حالتها بالذاكرة، فإعادة التحميل تضيّعها. قرار صاحب المشروع:
-  // ما نزعج اللاعب — النسخة الجديدة تقعد منتظرة وتنطبق بالفتحة الجاية
+  // جولة شغّالة؟ إعادة التحميل وسط الكتابة تقطع اللاعب (حتى لو المباراة محفوظة).
+  // قرار صاحب المشروع: ما نزعجه — النسخة الجديدة تقعد منتظرة وتنطبق بالفتحة الجاية
   const inRound = () =>
     !!document.querySelector("#wordle-play-screen:not(.hidden), #online-play:not(.hidden)");
 
-  // النسخة المنتظرة ما تستلم إلا لما نأذن لها. الإذن من هني عشان نقدر نأجّله
-  function activate(reg) {
-    if (reg && reg.waiting && !inRound()) reg.waiting.postMessage({ type: "SKIP_WAITING" });
+  // النسخة المنتظرة ما تستلم إلا لما نأذن لها. الإذن من هني عشان نقدر نأجّله.
+  // atOpen: لحظة فتح الصفحة نأذن حتى لو رجعت جولة — المباراة صارت محفوظة
+  // (js/wordle.js وjs/wordle-online.js) فإعادة التحميل ما تضيّع شي، واللاعب للحين
+  // ما بدأ يكتب. بدونه الجولة المسترجعة تأجّل التحديث للأبد: كل فتحة تلقاها شغالة
+  function activate(reg, atOpen) {
+    if (reg && reg.waiting && (atOpen || !inRound())) reg.waiting.postMessage({ type: "SKIP_WAITING" });
   }
 
   // حزام أمان: سقف لعدد مرات إعادة التحميل بالجلسة الوحدة. لو صار خلل بالنشر
@@ -57,7 +60,7 @@
     sw.register("sw.js")
       .then((reg) => {
         // نسخة منتظرة من زيارة سابقة (مثلاً وصلت وهو بنص جولة أمس)
-        activate(reg);
+        activate(reg, true);
         reg.addEventListener("updatefound", () => {
           const fresh = reg.installing;
           if (!fresh) return;

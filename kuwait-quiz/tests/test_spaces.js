@@ -1,4 +1,4 @@
-const { launch, BASE } = require("./_browser");
+const { launch, BASE, openFreshLocal } = require("./_browser");
 let failures = 0;
 const check = (l, a, e) => {
   const ok = JSON.stringify(a) === JSON.stringify(e);
@@ -7,7 +7,7 @@ const check = (l, a, e) => {
 };
 
 async function playWord(page, category, word) {
-  await page.goto(BASE + "/wordle.html");
+  await openFreshLocal(page, BASE + "/wordle.html");
   await page.waitForTimeout(300);
   await page.fill("#wordle-team1-input", "أ");
   await page.fill("#wordle-team2-input", "ب");

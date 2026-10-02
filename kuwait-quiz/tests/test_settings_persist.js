@@ -34,6 +34,10 @@ const check = (n, ok, x) => { console.log((ok ? "✅ " : "‼️ ") + n + (x ? "
 
     await page.click("#wordle-start-btn");
     await page.waitForTimeout(300);
+    // ننهي المباراة: لو ظلت شغالة، الصفحة الجديدة ترجّعها بدل شاشة الإعداد
+    // (حفظ المباراة) — وهني نبي نشوف الإعدادات المحفوظة
+    await page.click("#wordle-end-match-btn");
+    await page.waitForTimeout(200);
 
     // نعيد فتح صفحة الإعداد من جديد (صفحة جديدة تماماً، بلا أي حالة بالذاكرة)
     const page2 = await ctx.newPage();

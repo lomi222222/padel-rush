@@ -68,6 +68,33 @@
   let lastTileRev = null;
   let hasCelebratedEnd = false; // يمنع تكرار صوت/حركة الفوز مع كل إعادة رسم من Firebase
 
+  // ===== حفظ المباراة (طلب صاحب المشروع: طلع ورد يلقاها) =====
+  // اللاعب: آخر غرفة واسمه — يرجع لها لحاله لين تخلص المباراة.
+  // الهوست: حالته الخاصة كاملة (الكلمة والكيس وآخر رقم عالجه لكل لاعب)، لأنها
+  // بذاكرته بس — لو حدّث الصفحة بدونها، الغرفة تعلق: الكلمة راحت ومحد يحكم.
+  // المفاتيح بالـpid/الغرفة: بالاختبارات لاعبين كثير يتشاركون نفس localStorage
+  const SESSION_KEY = "kw-online-session-" + playerId;
+  const hostSaveKey = (code) => "kw-online-host-" + code;
+  const HOST_SAVE_SCHEMA = 1;
+
+  function readJSON(key) {
+    try {
+      return JSON.parse(localStorage.getItem(key) || "null");
+    } catch (e) {
+      return null;
+    }
+  }
+  function writeJSON(key, value) {
+    try {
+      localStorage.setItem(key, JSON.stringify(value));
+    } catch (e) {}
+  }
+  function forget(key) {
+    try {
+      localStorage.removeItem(key);
+    } catch (e) {}
+  }
+
   // حالة الهوست الخاصة (ما تُنشر أبداً كاملة)
   let hostState = null;
   let lastSeqByPlayer = {};
@@ -433,12 +460,16 @@
       lastSeen: Date.now(),
     });
 
-    if (isHost) initHostEngine();
+    if (isHost) {
+      initHostEngine();
+      restoreHostState();
+    }
     enterRoom();
   });
 
   // ===== الدخول للغرفة =====
   function enterRoom() {
+    writeJSON(SESSION_KEY, { room: roomCode, name: myName });
     showError(homeErrorEl, "");
     roomCodeEl.textContent = roomCode;
     waBtn.href = "https://wa.me/?text=" + encodeURIComponent("تعال العب وياي 🔤 " + joinUrl());
@@ -712,6 +743,27 @@
     lastSeqByPlayer = {};
   }
 
+  // الكيس يتحوّل لمصفوفة كلمات تلقائياً (toJSON)، فنرجّعه كيساً هني
+  function saveHostState() {
+    if (!isHost || !hostState || !roomCode) return;
+    writeJSON(hostSaveKey(roomCode), { schema: HOST_SAVE_SCHEMA, state: hostState, seqs: lastSeqByPlayer });
+  }
+
+  function restoreHostState() {
+    const saved = readJSON(hostSaveKey(roomCode));
+    if (!saved || saved.schema !== HOST_SAVE_SCHEMA || !saved.state) return;
+    const st = saved.state;
+    if (st.phase === "playing" && !WORDS.some((w) => w.word === st.target)) return;
+    const bagWords = Array.isArray(st.bag) ? st.bag : [];
+    Object.assign(hostState, st);
+    hostState.bag = Core.makeWordBag(new Set(st.categories || []));
+    hostState.bag.restore(bagWords);
+    // آخر رقم عالجناه لكل لاعب: بدونه آخر إدخال بالقاعدة (مثلاً «أرسل») يتعالج
+    // مرة ثانية أول ما نرجع نسمع — تخمين مكرر بدون ما أحد ضغط شي
+    lastSeqByPlayer = saved.seqs || {};
+    if (hostState.phase === "playing" && !hostState.gameOver) hostStartClock();
+  }
+
   function hostWaitingTeam() {
     return (hostState.teamIndex + 1) % 2;
   }
@@ -911,11 +963,13 @@
   // تغيّر بطيء: نكتب العقدتين بكتابة ذرّية وحدة عشان ما تنفصل الحالة عن الحروف
   function publishState() {
     roomRef().update({ state: buildState(), live: buildLive() });
+    saveHostState();
   }
 
   // تغيّر سريع (ضغطة حرف): العقدة الصغيرة بس
   function publishLive() {
     roomRef("live").set(buildLive());
+    saveHostState();
   }
 
   // يعيد بناء المخزن المؤقت من الحروف اللي وصلت، ويتجاهل أي شي غير صالح، ويحط
@@ -1191,6 +1245,8 @@
     hostState.gameOver = true;
     publishState();
     roomRef("meta/status").set("ended");
+    // خلصت — ما فيه شي يرجع له
+    forget(hostSaveKey(roomCode));
   }
 
   function hostAdjustScore(i, delta) {
@@ -1250,11 +1306,15 @@
     // العقدتين توصل كل وحدة بحدها، فلو الـlive من جولة سابقة نتجاهله لين يوصل اللي بعده
     if (live.rev !== pub.rev) return;
     const ack = live.ack || null;
-    // لو آخر إدخال عالجه الهوست هو إدخالي وأنا كتبت بعده، نخلي المحلي عشان ما ترجع
-    // الحروف اللي كتبتها للحين ما وصلت
-    if (ack && ack.pid === playerId && ack.seq < mySeq) return;
-    localBuffer = (live.currentGuess || []).slice();
     const r = pub.round || {};
+    // لو آخر إدخال عالجه الهوست هو إدخالي وأنا كتبت بعده، نخلي المحلي عشان ما ترجع
+    // الحروف اللي كتبتها للحين ما وصلت.
+    // **بس لو عندي صف محلي أصلاً**: بعد تحديث الصفحة المحلي فاضي ([])، والإيصال
+    // الأخير لي من قبل التحديث (والترقيم الجديد أكبر منه) — فكان الحارس يمنع
+    // أخذ الصف من الهوست، وكل الكتابة تروح على مصفوفة فاضية بلا ولا حرف
+    const haveRow = localBuffer.length === (r.wordLength || 0);
+    if (haveRow && ack && ack.pid === playerId && ack.seq < mySeq) return;
+    localBuffer = (live.currentGuess || []).slice();
     const sp = r.spaceIndexes || [];
     if (!localBuffer.length) localBuffer = Core.makeGuessBuffer(r.wordLength || 0, sp);
 
@@ -1390,6 +1450,7 @@
       return;
     }
     if (pub.phase === "ended") {
+      forget(SESSION_KEY);
       if (!hasCelebratedEnd) {
         hasCelebratedEnd = true;
         View.celebrateWin();
@@ -1562,5 +1623,23 @@
 
   // ===== البداية =====
   setupHomeScreen();
-  initTransport();
+  // آخر غرفة لهاللاعب: نرجع لها بدون ما يضغط شي، إلا لو الرابط لغرفة ثانية.
+  // الغرفة المنتهية أو المحذوفة ما نرجع لها (ونمسح الحفظ)
+  async function resumeSession() {
+    const sess = readJSON(SESSION_KEY);
+    if (!sess || !sess.room || !sess.name) return;
+    if (urlRoom && urlRoom !== sess.room) return;
+    roomCode = sess.room;
+    const meta = await roomRef("meta").get();
+    roomCode = null;
+    if (!meta || meta.status === "ended") {
+      forget(SESSION_KEY);
+      return;
+    }
+    nameInput.value = sess.name;
+    codeInput.value = sess.room;
+    joinBtn.click();
+  }
+
+  if (initTransport()) resumeSession();
 })();

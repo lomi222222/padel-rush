@@ -54,6 +54,15 @@
   let pausedRemainingMs = null; // المتبقي وقت إيقاف المؤقّت أثناء السرقة
   let tickTimer = null;
 
+  // ===== حفظ المباراة =====
+  // صاحب المشروع: لو طلع من اللعبة (أو سكّر الجوال) ورد، يلقى المباراة مثل ما
+  // تركها — ما تنمسح إلا لما تخلص أو يضغط «إنهاء اللعبة». كل الحالة تنكتب
+  // بـlocalStorage بعد أي تغيير (الرسم هو اللي ينادي save)، وتنقرى عند الفتح.
+  // SAVE_SCHEMA يرتفع لو تغيّر شكل اللقطة: لقطة بشكل قديم تنرمى بدل ما تكسر الصفحة
+  const SAVE_KEY = "kw-local-match";
+  const SAVE_SCHEMA = 1;
+  let matchActive = false;
+
   // ===== عناصر DOM =====
   const setupScreen = document.getElementById("wordle-setup-screen");
   const playScreen = document.getElementById("wordle-play-screen");
@@ -204,6 +213,7 @@
     roundsPlayed = [0, 0];
     matchOver = false;
     target = "";
+    matchActive = true;
     setupScreen.classList.add("hidden");
     playScreen.classList.remove("hidden");
     endScreen.classList.add("hidden");
@@ -221,6 +231,7 @@
   }
 
   function renderScoreboard() {
+    saveMatch();
     View.renderScoreboard(scoreboardEl, { teams, teamIndex, onAdjust: adjustScore });
   }
 
@@ -230,6 +241,7 @@
   }
 
   function renderGrid() {
+    saveMatch();
     View.renderGrid(gridEl, {
       guesses,
       currentGuess,
@@ -257,6 +269,7 @@
   // «بوق — اسم الفريق (باقي ٢)»: الزرين يقعدون بسطر واحد مع زر السجل، والاسم
   // الطويل كان يلفّه وياكل من ارتفاع الشبكة. اسم الفريق صار بالتلميح (title)
   function updateBoqUi() {
+    saveMatch();
     if (gameOver || matchOver) {
       boqBtn.classList.add("hidden");
       changeBtn.classList.add("hidden");
@@ -730,6 +743,7 @@
   // تحسب نهاية الجولة، وتقرر هل انتهت المباراة (كل فريق لعب 5 جولات) أو لسه في دور تالي
   function resolveRoundEnd() {
     stopTicking();
+    // نهاية الجولة تتسجّل بعد ما يزيد roundsPlayed — شوف saveMatch تحت
     View.renderTimer(timerEl, null, null);
     roundsPlayed[teamIndex]++;
     matchOver = roundsPlayed.every((r) => r >= roundsPerTeam);
@@ -739,6 +753,7 @@
       matchOver ? "عرض النتيجة النهائية" : "دور الفريق التالي"
     );
     roundEndEl.classList.remove("hidden");
+    saveMatch();
   }
 
   document.addEventListener("keydown", (e) => {
@@ -772,6 +787,9 @@
   endMatchBtn.addEventListener("click", showEndScreen);
 
   function showEndScreen() {
+    // خلصت المباراة أو ضغط «إنهاء اللعبة» — الحالتين اللي تمسح الحفظ
+    matchActive = false;
+    clearSavedMatch();
     stopTicking();
     playScreen.classList.add("hidden");
     endScreen.classList.remove("hidden");
@@ -794,6 +812,128 @@
     scoreEditBtn.setAttribute("aria-pressed", on ? "true" : "false");
   });
 
+  function clearSavedMatch() {
+    try {
+      localStorage.removeItem(SAVE_KEY);
+    } catch (e) {}
+  }
+
+  // الوقت يوقف وأنت برّا: نحفظ **الباقي** مو موعد النهاية، وعند الرجوع يبدأ العد
+  // من جديد بنفس الباقي. لو حفظنا الموعد، أي طلعة طويلة تخلّص الجولة بغيابك
+  function remainingMs() {
+    if (!deadline) return null;
+    if (pausedRemainingMs != null) return pausedRemainingMs;
+    return Math.max(0, deadline - Date.now());
+  }
+
+  function saveMatch() {
+    if (!matchActive) return;
+    const snap = {
+      schema: SAVE_SCHEMA,
+      teams, teamIndex, roundsPlayed, matchOver, roundsPerTeam, roundSeconds,
+      boqLeft, boqPerTeam, changeLeft,
+      categories: [...selectedCategories],
+      bag: wordBag.toJSON(),
+      round: {
+        target, category, maxAttempts, attemptOffset, currentGuess, cursor, guesses, gameOver,
+        keyStatus, hints, hintLog, hintedLetters, steal,
+        timerMs: remainingMs(),
+        timerPaused: pausedRemainingMs != null,
+        message: { text: messageEl.textContent, kind: (messageEl.className.match(/\b(win|lose)\b/) || [""])[0] },
+      },
+    };
+    try {
+      localStorage.setItem(SAVE_KEY, JSON.stringify(snap));
+    } catch (e) {}
+  }
+
+  function loadSavedMatch() {
+    try {
+      const snap = JSON.parse(localStorage.getItem(SAVE_KEY) || "null");
+      if (!snap || snap.schema !== SAVE_SCHEMA || !snap.round || !snap.round.target) return null;
+      // الكلمة لازم تكون للحين بالبنك: لو انشالت بتحديث، اللقطة ما تنفع
+      if (!WORDS.some((w) => w.word === snap.round.target)) return null;
+      return snap;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function restoreMatch(snap) {
+    teams = snap.teams;
+    teamIndex = snap.teamIndex;
+    roundsPlayed = snap.roundsPlayed;
+    matchOver = snap.matchOver;
+    roundsPerTeam = snap.roundsPerTeam;
+    roundSeconds = snap.roundSeconds;
+    boqLeft = snap.boqLeft;
+    boqPerTeam = snap.boqPerTeam;
+    changeLeft = snap.changeLeft;
+    selectedCategories = new Set(snap.categories);
+    wordBag = Core.makeWordBag(selectedCategories);
+    wordBag.restore(snap.bag || []);
+
+    const r = snap.round;
+    loadWord({ word: r.target, category: r.category });
+    maxAttempts = r.maxAttempts;
+    attemptOffset = r.attemptOffset || 0;
+    currentGuess = r.currentGuess;
+    cursor = r.cursor;
+    guesses = r.guesses;
+    gameOver = r.gameOver;
+    keyStatus = r.keyStatus || {};
+    hints = Object.assign(Core.newHints(), r.hints);
+    hintLog = r.hintLog || [];
+    hintedLetters = r.hintedLetters || {};
+    steal = r.steal || null;
+    pausedRemainingMs = null;
+    deadline = null;
+    if (r.timerMs != null && !gameOver) {
+      if (r.timerPaused) {
+        pausedRemainingMs = r.timerMs;
+        deadline = Date.now() + r.timerMs;
+      } else {
+        deadline = Date.now() + r.timerMs;
+      }
+    }
+
+    matchActive = true;
+    setupScreen.classList.add("hidden");
+    endScreen.classList.add("hidden");
+    playScreen.classList.remove("hidden");
+    syncTopbar(true);
+
+    renderRoundLine();
+    View.renderCategoryPills(activeCategoriesEl, selectedCategories);
+    View.renderHintLog(hintLogEl, hintLog);
+    // السجل ينفتح لحاله مع أي تلميح **جديد** — المسترجع مو جديد
+    lastHintCount = hintLog.length;
+    syncHintLogBtn(hintLog);
+    showMessage(r.message ? r.message.text : "", r.message ? r.message.kind : "");
+    View.renderTimer(timerEl, deadline, pausedRemainingMs);
+    if (!gameOver) startTicking();
+    if (gameOver) {
+      View.setIconLabel(
+        nextTeamBtn,
+        matchOver ? "trophy" : "next",
+        matchOver ? "عرض النتيجة النهائية" : "دور الفريق التالي"
+      );
+    }
+    roundEndEl.classList.toggle("hidden", !gameOver);
+    updateHintButtons();
+    updateBoqUi();
+    applyTileSize();
+    renderGrid();
+    renderKeyboard();
+    renderScoreboard();
+  }
+
+  // آخر لحظة قبل ما تختفي الصفحة: الوقت الباقي يتسجّل بالضبط
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") saveMatch();
+  });
+  window.addEventListener("pagehide", saveMatch);
+
   document.getElementById("wordle-restart-btn").addEventListener("click", () => {
     endScreen.classList.add("hidden");
     setupScreen.classList.remove("hidden");
@@ -801,4 +941,8 @@
     team1Input.value = "";
     team2Input.value = "";
   });
+
+  const saved = loadSavedMatch();
+  if (saved) restoreMatch(saved);
+  else clearSavedMatch();
 })();

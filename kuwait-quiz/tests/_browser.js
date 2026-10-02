@@ -64,6 +64,18 @@ function makeChecker() {
 // يختار فئة وحدة بس. رقصة "الكل": نتأكد إنه مؤشَّر ثم نلغيه فتنفك كل الفئات،
 // وبعدها نأشّر اللي نبي. كانت مكرّرة نصاً بستة اختبارات.
 // prefix = "wordle" أو "online"
+// يفتح صفحة اللعب المحلي **بدون مباراة محفوظة**. المباراة تنحفظ وترجع لما تنفتح
+// الصفحة من جديد (طلب صاحب المشروع)، فاختبار يبدأ لعبة ثانية بنفس المتصفح كان
+// يلقى الأولى بدل شاشة الإعداد
+//
+// المسح من صفحة ثانية بنفس الموقع: صفحة اللعب نفسها **تحفظ وهي طالعة** (pagehide)،
+// فلو مسحنا منها وحدّثناها ترجع تكتب المباراة على طول
+async function openFreshLocal(page, url) {
+  await page.goto(new URL("manifest.json", url).href);
+  await page.evaluate(() => localStorage.removeItem("kw-local-match"));
+  await page.goto(url);
+}
+
 // يلغي كل الفئات مهما كانت البداية. الشاشة تبدأ فاضية الحين، فضغطة «الكل» وحدة
 // صارت **تختار** الكل بدل ما تلغيه — وكانت مكررة بعشر اختبارات على الافتراض
 // القديم. رقصة «الكل»: نتأكد إنه مؤشَّر ثم نلغيه فتنفك كل الفئات (حتى الحصرية)
@@ -179,5 +191,5 @@ async function loseRound(pageOrPages, prefix) {
   }
 }
 
-module.exports = { BASE, launch, makeChecker, requirePlaywright, clearCategories, selectAllCategories, pickOnlyCategory, loseRound };
+module.exports = { BASE, launch, makeChecker, requirePlaywright, openFreshLocal, clearCategories, selectAllCategories, pickOnlyCategory, loseRound };
 
