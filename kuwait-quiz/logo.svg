@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- أيقونة اللعبة: ثلاث خانات حروف، الأوسط انكشف — نفس لغة شبكة اللعب.
+       بدون حروف بالقصد: الـfavicon ما يقدر يضمن توفّر خط Cairo -->
+  <rect width="64" height="64" rx="14" fill="#fbf4e6" />
+  <rect x="7" y="23" width="16" height="18" rx="4" fill="none" stroke="#06264a" stroke-width="3.5" />
+  <rect x="24" y="23" width="16" height="18" rx="4" fill="#b8862b" />
+  <rect x="41" y="23" width="16" height="18" rx="4" fill="none" stroke="#06264a" stroke-width="3.5" />
+</svg>

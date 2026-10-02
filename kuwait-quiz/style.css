@@ -1,0 +1,2724 @@
+@import url("https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap");
+
+:root {
+  /* معامل التكبير: كل بكسل بالملف مضروب فيه. واجهة وحدة لكل الأجهزة تتمدد مع
+     الشاشة بدل بلوكات خاصة لكل جهاز (طلب صاحب المشروع). يحطه applyScale بـ
+     js/wordle-view.js، وحدّه الأدنى ١ ⇒ الجوال يظل بالبكسل نفسه، وكل قيود التخطيط
+     مقاسة عليه. الصفحات اللي ما تحمّل wordle-view.js تظل على ١ */
+  --s: 1;
+  --navy: #06264a;
+  --navy-fixed: #06264a;
+  --white-fixed: #ffffff;
+  --blue-900: #0b3d78;
+  --blue-700: #12539f;
+  --blue-600: #1c6dc9;
+  --blue-500: #2f8ce0;
+  --blue-300: #8ec3f2;
+  --blue-100: #eaf4ff;
+  --white: #ffffff;
+  --ink: #0c2036;
+  --muted: #5b7089;
+  --green: #1fa363;
+  --green-dark: #157a49;
+  --red: #dc2626;
+  --yellow: #eab308;
+  --gray-absent: #7b8a9a;
+  --radius: calc(16px * var(--s));
+  --shadow: 0 calc(10px * var(--s)) calc(30px * var(--s)) rgba(6, 38, 74, 0.15);
+  --body-bg-end: #ffffff;
+  /* دافئ-كويتي: الهيرو وبطاقات القائمة بالرئيسية */
+  --sand: #fbf4e6;
+  --sand-deep: #f3e4c4;
+  --sand-line: rgba(184, 134, 43, 0.25);
+  /* سطح وحد ناعمين — أسماء دلالية مو لونية عمداً: قيمتهم دافئة الحين، ولو تغيّر
+     المزاج بعدين ينتغيّرون من مكان واحد بدل ما نلاحق عشرين موضع */
+  --surface-soft: #f8f1e3;
+  --border-soft: #d9c193;
+  /* حواف الأمان (النوتش وشريط الهوم) عبر متغيّرات بدل env() مباشرة بكل موضع:
+     env() ترجّع صفراً دايماً على متصفح سطح المكتب، فبالمتغيّر يقدر الاختبار يحقن
+     قيم جهاز حقيقي ويتأكد إن الواجهة تبتعد عنها فعلاً */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  /* سهم القوائم المنسدلة — نرسمه بأنفسنا لأن مظهر النظام ملغى (شوف
+     .round-time-select). لونه يتبع --ink فينقلب مع الوضع الليلي */
+  --select-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5 6 6.5 11 1.5' fill='none' stroke='%230c2036' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+
+:root[data-theme="dark"] {
+  --white: #14243b;
+  --blue-100: #1c3252;
+  --ink: #eaf1fb;
+  --muted: #9fb3ca;
+  --navy: #eaf1fb;
+  --body-bg-end: #0a1626;
+  --shadow: 0 calc(10px * var(--s)) calc(30px * var(--s)) rgba(0, 0, 0, 0.4);
+  --sand: #201a12;
+  --sand-deep: #16120c;
+  --sand-line: rgba(224, 179, 84, 0.3);
+  --surface-soft: #241d14;
+  --border-soft: #a08a5e;
+  --select-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5 6 6.5 11 1.5' fill='none' stroke='%23eaf1fb' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  /* الصفحة نفسها ما تنزل وتصعد أبداً — كل شاشة تترتب داخل حدود الجهاز */
+  overflow: hidden;
+}
+
+body {
+  font-family: "Cairo", "Segoe UI", Tahoma, "Noto Sans Arabic", sans-serif;
+  background: linear-gradient(180deg, var(--surface-soft) 0%, var(--body-bg-end) 55%);
+  color: var(--ink);
+  direction: rtl;
+  /* dvh يحسب شريط المتصفح المتحرك بالجوال، و100vh لو المتصفح قديم */
+  height: 100vh;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  /* يمنع تكبير الضغطتين وقت الكتابة السريعة، وقرصة الإصبعين تظل تشتغل. الزوم
+     صار مسموح (شلنا user-scalable=no) لأن المربعات صغيرة على الآيباد، وهذي
+     اللي تمنعه يتكبّر بالغلط مع كل ضغطتين ورا بعض */
+  touch-action: manipulation;
+  -webkit-text-size-adjust: 100%;
+  /* الخط الافتراضي (١٦ حق المتصفح) يكبر مع المعامل مثل باقي البكسلات — بدونه
+     العناوين والنصوص اللي ما لها حجم صريح (h2 ونص الإعداد) تقعد بحجم الجوال
+     على التلفزيون */
+  font-size: calc(16px * var(--s));
+}
+
+a {
+  color: inherit;
+}
+
+/* الحشو يحترم حواف الأمان (النوتش وشريط الهوم). لازم صراحةً لأن viewport-fit=cover
+   بالـmeta يأمر المتصفح يرسم تحتهم — وبالوضع العرضي النوتش يجي على جنب الشاشة فيغطي
+   عمود كامل من الواجهة. max() تضمن إن الحشو ما يقل عن الأصلي بالأجهزة اللي بلا حواف */
+.page {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  max-width: calc(1100px * var(--s));
+  margin: 0 auto;
+  padding: calc(14px * var(--s)) calc(16px * var(--s));
+  padding-inline-start: max(calc(16px * var(--s)), var(--safe-right));
+  padding-inline-end: max(calc(16px * var(--s)), var(--safe-left));
+  padding-bottom: max(calc(14px * var(--s)), var(--safe-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: calc(14px * var(--s));
+  overflow: hidden;
+}
+
+@media (max-width: 400px) {
+  .page {
+    padding: calc(10px * var(--s));
+    padding-inline-start: max(calc(10px * var(--s)), var(--safe-right));
+    padding-inline-end: max(calc(10px * var(--s)), var(--safe-left));
+    padding-bottom: max(calc(10px * var(--s)), var(--safe-bottom));
+    gap: calc(10px * var(--s));
+  }
+}
+
+/* الشاشات اللي محتواها ممكن يطول (قوائم الفئات، النتائج) تنزل داخل نفسها،
+   عشان الصفحة كلها تبقى ثابتة */
+#wordle-setup-screen,
+#wordle-end-screen,
+#online-home,
+#online-lobby,
+#online-end {
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* شاشة اللعب ثابتة تماماً: كل شي فيها لازم يلقى مكانه بدون تمرير */
+#wordle-play-screen,
+#online-play {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* ===== Top bar ===== */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: calc(12px * var(--s));
+  padding: calc(14px * var(--s)) calc(18px * var(--s));
+  background: var(--navy-fixed);
+  color: var(--white-fixed);
+  border-radius: var(--radius);
+  /* الخط الذهبي السفلي ينرسم كظل داخلي مو border-bottom: الحد يزيد ارتفاع الشريط،
+     والشريط جزء من شاشة اللعب الثابتة فأي بكسل زايد ياكل من مساحة الشبكة */
+  box-shadow: var(--shadow), inset 0 -3px 0 var(--gold);
+}
+
+.topbar h1 {
+  margin: 0;
+  font-size: clamp(calc(18px * var(--s)), 2.6vw, calc(24px * var(--s)));
+  font-weight: 800;
+}
+
+.topbar .home-link {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  color: var(--white-fixed);
+  padding: calc(8px * var(--s)) calc(16px * var(--s));
+  border-radius: calc(999px * var(--s));
+  text-decoration: none;
+  font-weight: 700;
+  font-size: calc(14px * var(--s));
+  white-space: nowrap;
+}
+
+.topbar .home-link:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+/* "إنهاء اللعبة" بالشريط — يبدّل رابط "القائمة الرئيسية" أثناء اللعب، فياخذ
+   نفس شكله بالضبط عشان الشريط ما يتحرّك ولا يتغيّر ارتفاعه بينهما */
+.btn-topbar-end {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  color: var(--white-fixed);
+  padding: calc(8px * var(--s)) calc(16px * var(--s));
+  border-radius: calc(999px * var(--s));
+  font-weight: 700;
+  font-size: calc(14px * var(--s));
+  white-space: nowrap;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.btn-topbar-end:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+/* العلامة المصغّرة جنب اسم اللعبة بالشريط. مقاسها بالـem عشان تتقلّص لحالها مع
+   تصغير خط الشريط بالشاشات القصيرة، و inline (مو flex) عشان ما تغيّر ارتفاع السطر */
+.topbar-mark {
+  height: 0.95em;
+  width: auto;
+  vertical-align: -0.15em;
+  margin-inline-end: calc(5px * var(--s));
+}
+
+/* ===== أيقونات الواجهة =====
+   بديل الإيموجي بأدوات التحكم. المقاس بالـem وvertical-align بدل flex عشان تقعد
+   داخل صندوق السطر الموجود بالضبط — أي flex/gap هني كان بيغيّر ارتفاعات مضبوطة
+   بشاشة اللعب. نفس أسلوب .topbar-mark المُثبت إنه ما غيّر ولا بكسل */
+.ui-icon {
+  height: 1.05em;
+  width: 1.05em;
+  vertical-align: -0.2em;
+  flex-shrink: 0;
+}
+
+/* الأزرار اللي محتواها flex أصلاً (زر الثيم) ما تحتاج المحاذاة */
+.theme-toggle-btn .ui-icon {
+  vertical-align: 0;
+  height: 55%;
+  width: 55%;
+}
+
+/* ===== Theme toggle ===== */
+.theme-toggle-btn {
+  position: fixed;
+  top: max(calc(14px * var(--s)), var(--safe-top));
+  left: max(calc(14px * var(--s)), var(--safe-left));
+  z-index: 999;
+  width: calc(42px * var(--s));
+  height: calc(42px * var(--s));
+  border-radius: 50%;
+  border: 2px solid var(--border-soft);
+  background: var(--white);
+  font-size: calc(18px * var(--s));
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow);
+  padding: 0;
+}
+
+.theme-toggle-btn:hover {
+  background: var(--surface-soft);
+}
+
+@media (max-width: 400px) {
+  .theme-toggle-btn {
+    width: calc(36px * var(--s));
+    height: calc(36px * var(--s));
+    font-size: calc(15px * var(--s));
+    top: max(calc(10px * var(--s)), var(--safe-top));
+    left: max(calc(10px * var(--s)), var(--safe-left));
+  }
+}
+
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: calc(8px * var(--s));
+}
+
+/* .howto-btn (زر "طريقة اللعب") يشارك نفس المقاس والشكل — يحمل class="theme-toggle-btn
+   howto-btn" بالـHTML مباشرة (بلا تدخّل JS زي زر الثيم، لأنه ثابت مكانه من البداية) */
+.theme-toggle-inline,
+.howto-btn {
+  position: static;
+  width: calc(38px * var(--s));
+  height: calc(38px * var(--s));
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--white-fixed);
+  box-shadow: none;
+  font-weight: 800;
+}
+
+.theme-toggle-inline:hover,
+.howto-btn:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+@media (max-width: 400px) {
+  .theme-toggle-inline,
+  .howto-btn {
+    width: calc(34px * var(--s));
+    height: calc(34px * var(--s));
+  }
+}
+
+/* ===== Cards / buttons ===== */
+.card {
+  background: var(--white);
+  border-radius: var(--radius);
+  /* الحد الذهبي الشفاف ينرسم كظل داخلي — البطاقة تستخدمها شاشة اللعب بعد،
+     وحد حقيقي كان بيزيد بكسلين على كل بطاقة */
+  box-shadow: var(--shadow), inset 0 0 0 1px var(--sand-line);
+  padding: calc(24px * var(--s));
+}
+
+@media (max-width: 400px) {
+  .card {
+    padding: calc(14px * var(--s));
+  }
+}
+
+.btn {
+  font-family: inherit;
+  font-weight: 700;
+  font-size: calc(16px * var(--s));
+  border: none;
+  border-radius: calc(12px * var(--s));
+  padding: calc(12px * var(--s)) calc(22px * var(--s));
+  cursor: pointer;
+  transition: transform 0.08s ease, opacity 0.15s ease, box-shadow 0.15s ease;
+  /* بعض الأزرار روابط <a> — نشيل خط التسطير ونخلي النص بالنص */
+  text-decoration: none;
+  text-align: center;
+}
+
+.btn:active {
+  transform: scale(0.97);
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-primary {
+  background: var(--blue-700);
+  color: var(--white-fixed);
+  box-shadow: 0 calc(6px * var(--s)) calc(16px * var(--s)) rgba(18, 83, 159, 0.35);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--blue-600);
+}
+
+.btn-outline {
+  background: var(--white);
+  color: var(--blue-700);
+  border: 2px solid var(--blue-700);
+}
+
+.btn-outline:hover:not(:disabled) {
+  background: var(--surface-soft);
+}
+
+.btn-success {
+  background: var(--green);
+  color: var(--white-fixed);
+}
+
+.btn-success:hover:not(:disabled) {
+  background: var(--green-dark);
+}
+
+.btn-danger {
+  background: var(--red);
+  color: var(--white-fixed);
+}
+
+.btn-danger:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.btn-block {
+  width: 100%;
+}
+
+input[type="text"] {
+  font-family: inherit;
+  font-size: calc(16px * var(--s));
+  padding: calc(12px * var(--s)) calc(14px * var(--s));
+  border-radius: calc(10px * var(--s));
+  border: 2px solid var(--border-soft);
+  background: var(--white);
+  color: var(--ink);
+  width: 100%;
+}
+
+input[type="text"]:focus {
+  outline: none;
+  border-color: var(--blue-600);
+}
+
+/* ===== الصفحة الرئيسية — دافئ-كويتي =====
+   الدفء صار يعم كل الصفحات (شوف --surface-soft / --border-soft فوق)، وهالقسم
+   يخص عناصر الرئيسية وحدها: الهيرو، الشعار، بطاقات القائمة. الزخرفة سدو
+   (مثلثات متعرّجة — نسيج بدوي/خليجي تقليدي، بالعمد بدل المشربية العربية العامة
+   عشان الهوية تكون كويتية بالذات) */
+body.home-page {
+  background: linear-gradient(180deg, var(--sand) 0%, var(--body-bg-end) 78%);
+}
+
+body.home-page .page {
+  overflow-y: auto;
+  justify-content: center;
+}
+
+.hero {
+  position: relative;
+  text-align: center;
+  padding: calc(42px * var(--s)) calc(16px * var(--s)) calc(18px * var(--s));
+  overflow: hidden;
+}
+
+/* شريط السدو الزخرفي بالزوايا — خط متعرّج بسيط، شفاف جداً، ما يتفاعل مع أي ضغطة.
+   صغير على الجوال (زاوية بس، مو يسيطر على العرض الضيق) وأكبر على الشاشات الواسعة */
+.hero-motif {
+  position: absolute;
+  width: calc(110px * var(--s));
+  height: calc(32px * var(--s));
+  color: var(--gold);
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+:root[data-theme="dark"] .hero-motif {
+  opacity: 0.2;
+}
+
+.hero-motif--tr {
+  top: calc(4px * var(--s));
+  inset-inline-end: -16px;
+}
+
+.hero-motif--bl {
+  display: none;
+}
+
+@media (min-width: 600px) {
+  .hero-motif {
+    width: calc(200px * var(--s));
+    height: calc(58px * var(--s));
+  }
+
+  .hero-motif--tr {
+    top: calc(6px * var(--s));
+    inset-inline-end: -26px;
+  }
+
+  .hero-motif--bl {
+    display: block;
+    bottom: 0;
+    inset-inline-start: -26px;
+    transform: rotate(180deg);
+  }
+}
+
+/* الشعار: اسم اللعبة مكتوب جوّه خانات حروف — نفس مربّعات شبكة اللعب.
+   الحروف تطلع منفصلة (مو موصولة) بالقصد، لأن هذا بالضبط اللي تسويه الشبكة داخل اللعبة */
+.brand-mark {
+  display: flex;
+  justify-content: center;
+  margin: 0;
+  position: relative;
+}
+
+/* الشعار زر: الضغط عليه يعيد تشغيل حركة الانقلاب. إعادة الضبط تحته تخلي شكله
+   مطابق تماماً للي كان لما كان <span> — الفرق إنه صار قابل للضغط */
+.brand-tiles {
+  display: flex;
+  gap: clamp(calc(4px * var(--s)), 1.2vw, calc(8px * var(--s)));
+  /* منظور خفيف عشان انقلاب الخانات يبين مجسّم مو مجرد تصغير عمودي */
+  perspective: calc(600px * var(--s));
+  background: none;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.brand-tiles:focus-visible {
+  outline: calc(3px * var(--s)) solid var(--gold);
+  outline-offset: calc(6px * var(--s));
+  border-radius: calc(14px * var(--s));
+}
+
+.brand-tile {
+  width: clamp(calc(42px * var(--s)), 11vw, calc(62px * var(--s)));
+  height: clamp(calc(42px * var(--s)), 11vw, calc(62px * var(--s)));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: calc(3px * var(--s)) solid var(--navy);
+  border-radius: calc(10px * var(--s));
+  background: var(--white);
+  color: var(--navy);
+  font-size: clamp(calc(22px * var(--s)), 5.8vw, calc(32px * var(--s)));
+  font-weight: 800;
+  line-height: 1;
+  /* الخانة تعوّض نزول الحروف العربية شوي عشان الحرف يقعد بالنص بصرياً */
+  padding-bottom: 0.06em;
+}
+
+.brand-tile--accent {
+  background: var(--navy);
+  color: var(--sand);
+}
+
+.hero h1 {
+  font-size: clamp(calc(30px * var(--s)), 5vw, calc(46px * var(--s)));
+  margin: 0;
+}
+
+/* كشف الخانات — نفس إحساس انقلاب الحرف باللعبة.
+   الحركة معلّقة على كلاس `replay` مو على `.brand-tile` مباشرة: الكلاس موجود
+   بالـHTML فتشتغل أول ما تفتح الصفحة، و js/brand.js يشيله ويرجّعه عند الضغط
+   عشان تنعاد. إضافة كلاس ما يغيّر خصائص الحركة ما تعيد تشغيلها، فلازم تنشال أول */
+@media (prefers-reduced-motion: no-preference) {
+  .brand-tiles.replay .brand-tile {
+    animation: brand-tile-flip 0.42s ease-out backwards;
+  }
+
+  .brand-tiles.replay .brand-tile:nth-child(1) { animation-delay: 0.05s; }
+  .brand-tiles.replay .brand-tile:nth-child(2) { animation-delay: 0.12s; }
+  .brand-tiles.replay .brand-tile:nth-child(3) { animation-delay: 0.19s; }
+  .brand-tiles.replay .brand-tile:nth-child(4) { animation-delay: 0.26s; }
+  .brand-tiles.replay .brand-tile:nth-child(5) { animation-delay: 0.33s; }
+}
+
+@keyframes brand-tile-flip {
+  from {
+    transform: rotateX(-90deg);
+    opacity: 0;
+  }
+  to {
+    transform: rotateX(0);
+    opacity: 1;
+  }
+}
+
+/* نص للقارئ الصوتي بس: يقرا "صيدها" كلمة وحدة بدل ما يهجّي الخانات حرف حرف */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.hero-rule {
+  width: calc(84px * var(--s));
+  height: calc(3px * var(--s));
+  margin: calc(14px * var(--s)) auto calc(16px * var(--s));
+  border-radius: calc(999px * var(--s));
+  background: var(--gold);
+}
+
+.hero p {
+  color: var(--muted);
+  font-size: calc(18px * var(--s));
+  margin: 0;
+  position: relative;
+}
+
+.menu-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: calc(20px * var(--s));
+}
+
+@media (max-width: 720px) {
+  .menu-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.menu-card {
+  background: var(--white);
+  border-radius: calc(20px * var(--s));
+  box-shadow: var(--shadow);
+  padding: calc(30px * var(--s)) calc(24px * var(--s));
+  text-align: center;
+  text-decoration: none;
+  color: var(--ink);
+  border: 1.5px solid var(--sand-line);
+  transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(12px * var(--s));
+}
+
+.menu-card:hover {
+  border-color: var(--gold);
+  transform: translateY(-4px);
+  box-shadow: 0 calc(16px * var(--s)) calc(36px * var(--s)) rgba(6, 38, 74, 0.18);
+}
+
+.menu-icon {
+  width: calc(64px * var(--s));
+  height: calc(64px * var(--s));
+  border-radius: calc(18px * var(--s));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.menu-icon svg {
+  width: calc(30px * var(--s));
+  height: calc(30px * var(--s));
+}
+
+.menu-icon--navy {
+  background: var(--navy-fixed);
+  color: var(--white-fixed);
+}
+
+.menu-icon--gold {
+  background: var(--gold);
+  color: var(--white-fixed);
+}
+
+.menu-card h2 {
+  margin: 0;
+  color: var(--navy);
+  font-size: calc(24px * var(--s));
+  font-weight: 800;
+}
+
+.menu-card p {
+  margin: 0;
+  color: var(--muted);
+  font-size: calc(15px * var(--s));
+  line-height: 1.6;
+}
+
+/* ===== أغلفة شاشة الإعداد =====
+   بالوضع الطولي تختفي تماماً من التخطيط (display:contents)، فأولادها يصيرون أولاد
+   مباشرين للبطاقة زي ما كانوا قبل ما نلفّهم — صفر فرق بالشكل. بالوضع العرضي بس
+   تتحوّل لأعمدة حقيقية (شوف بلوك orientation:landscape) */
+.setup-head,
+.setup-col,
+.setup-foot {
+  display: contents;
+}
+
+/* ===== Team setup ===== */
+.team-setup-list {
+  display: flex;
+  flex-direction: column;
+  gap: calc(14px * var(--s));
+}
+
+.team-setup-row {
+  display: flex;
+  align-items: center;
+  gap: calc(12px * var(--s));
+}
+
+.team-swatch {
+  width: calc(20px * var(--s));
+  height: calc(20px * var(--s));
+  border-radius: calc(6px * var(--s));
+  flex-shrink: 0;
+}
+
+/* ===== Scoreboard ===== */
+/* دايماً فريقان جنب بعض. auto-fit كان يرصّهم فوق بعض بالجوال ويوكل ربع الشاشة
+   ويخلي الشبكة بلا مكان */
+.scoreboard {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: calc(10px * var(--s));
+}
+
+.team-chip {
+  border-radius: calc(14px * var(--s));
+  padding: calc(12px * var(--s)) calc(14px * var(--s));
+  color: var(--white-fixed);
+  display: flex;
+  flex-direction: column;
+  gap: calc(4px * var(--s));
+  box-shadow: var(--shadow);
+  position: relative;
+}
+
+.team-chip.current {
+  /* ذهبي مو أصفر: الأصفر معناه محجوز داخل اللعبة ("الحرف بمكان آخر")، فاستخدامه
+     هني كان يخلي اللون الواحد يحمل معنيين بنفس الشاشة */
+  outline: calc(3px * var(--s)) solid var(--gold);
+  outline-offset: 2px;
+}
+
+.team-chip .name {
+  font-weight: 800;
+  font-size: calc(15px * var(--s));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.team-chip .score {
+  font-size: calc(22px * var(--s));
+  font-weight: 800;
+}
+
+.team-chip .abilities {
+  display: flex;
+  gap: calc(4px * var(--s));
+  margin-top: calc(4px * var(--s));
+}
+
+/* أزرار ±٢٥ مخفية افتراضياً: حالة نادرة (تصحيح يدوي) وظهورها الدائم كان يربك
+   اللاعب الجديد ويوسّع حبّات الفرق. زر القلم يحط كلاس editing على اللوحة */
+.score-adjust-row {
+  display: none;
+  gap: calc(6px * var(--s));
+  margin-top: calc(4px * var(--s));
+}
+
+.scoreboard.editing .score-adjust-row {
+  display: flex;
+}
+
+.score-edit-btn {
+  flex-shrink: 0;
+  width: calc(36px * var(--s));
+  height: calc(36px * var(--s));
+  border-radius: 50%;
+  border: 2px solid var(--border-soft);
+  background: var(--white);
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
+}
+
+.score-edit-btn .ui-icon {
+  vertical-align: 0;
+  height: 55%;
+  width: 55%;
+}
+
+.score-edit-btn[aria-pressed="true"] {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+.score-adjust-btn {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  color: var(--white-fixed);
+  border-radius: calc(8px * var(--s));
+  padding: calc(4px * var(--s)) 0;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: calc(12px * var(--s));
+  cursor: pointer;
+}
+.score-adjust-btn:hover {
+  background: rgba(255, 255, 255, 0.28);
+}
+
+.hint-box {
+  background: var(--surface-soft);
+  border-radius: calc(10px * var(--s));
+  padding: calc(10px * var(--s)) calc(14px * var(--s));
+  text-align: center;
+  font-weight: 700;
+  color: var(--navy);
+  /* شريط ذهبي بجهة البداية — ينرسم كظل داخلي عشان ما يزيد عرض الصندوق */
+  box-shadow: inset -3px 0 0 var(--gold);
+}
+
+.abilities-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: calc(8px * var(--s));
+  justify-content: center;
+}
+
+.category-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(6px * var(--s));
+  background: var(--white);
+  border: 2px solid var(--border-soft);
+  color: var(--navy);
+  border-radius: calc(999px * var(--s));
+  padding: calc(8px * var(--s)) calc(14px * var(--s));
+  font-family: inherit;
+  font-weight: 700;
+  font-size: calc(13px * var(--s));
+  cursor: pointer;
+  user-select: none;
+}
+
+.category-chip input[type="checkbox"] {
+  accent-color: var(--blue-700);
+  width: calc(16px * var(--s));
+  height: calc(16px * var(--s));
+  cursor: pointer;
+}
+
+.category-chip.all {
+  border-color: var(--navy);
+  color: var(--navy);
+  font-weight: 800;
+}
+
+/* ===== شبكة بطاقات الفئات =====
+   محصورة بحاويتَي القائمة عمداً: حبّة «الكل» بصفّها المنفصل برّا القائمة،
+   فتظل بيضاوية مثل ما هي */
+#wordle-category-list,
+#online-category-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: calc(8px * var(--s));
+}
+
+#wordle-category-list .category-chip,
+#online-category-list .category-chip {
+  position: relative;
+  flex-direction: column;
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+  border-radius: calc(14px * var(--s));
+  /* غير المختارة رمادية وباهتة — الملوّن = مختار. الفرق لازم يبان من نظرة وحدة
+     لأن الاختيار متعدد، والبهتان لحاله ما كان يكفي مع رسومات ملوّنة */
+  opacity: 0.6;
+  filter: grayscale(1);
+  transition: opacity 0.15s, border-color 0.15s, filter 0.15s;
+}
+
+#wordle-category-list .category-chip:has(input:checked),
+#online-category-list .category-chip:has(input:checked) {
+  opacity: 1;
+  filter: none;
+  border-color: var(--gold);
+}
+
+/* الـinput يغطّي البطاقة كاملة وهو شفاف: ينضغط باللمس وبالاختبارات، وما ينشاف.
+   ما نستخدم hidden — المخفي ما ينضغط */
+#wordle-category-list .category-chip input[type="checkbox"],
+#online-category-list .category-chip input[type="checkbox"] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+  z-index: 1;
+}
+
+#wordle-category-list .cat-art,
+#online-category-list .cat-art {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: calc(7px * var(--s)) 0 calc(4px * var(--s));
+  /* لون الشريط بمتغيّر عشان فتحات الرسمة (ca-knock) تاخذ نفس اللون — لو تغيّر
+     الشريط لحاله تطلع الفتحات بقع بلون ثاني */
+  --art-band: var(--surface-soft);
+  background: var(--art-band);
+}
+
+/* الفئة الحصرية (القرآن): شريط ذهبي بعرض القائمة كلها بآخرها — مو بطاقة وسط
+   البقية. من برا، وقبل ما تنختار، لازم يبان إنها فئة من نوع ثاني: تنلعب لحالها
+   وتلغي غيرها. كانت بطاقة ذهبية باهتة بين ٢٠ بطاقة، وما بانت.
+   - ذهبية دايماً: الرمادي علامة «غير مختار» للباقي، بس هني الذهبي هو الهوية
+   - order يوديها للآخر بالعرض بس — ترتيب الـDOM ما يتغيّر (الاختبارات تلقاها بالنص)
+   - السطر الثاني من ::after مو عقدة نصية: نص الـlabel لازم يساوي اسم الفئة حرفياً */
+#wordle-category-list .category-chip.exclusive,
+#online-category-list .category-chip.exclusive {
+  grid-column: 1 / -1;
+  order: 1;
+  flex-direction: row;
+  align-items: stretch;
+  opacity: 1;
+  filter: none;
+  border-color: var(--gold);
+  background: var(--gold-soft);
+  color: var(--gold);
+}
+
+#wordle-category-list .category-chip.exclusive .cat-art,
+#online-category-list .category-chip.exclusive .cat-art {
+  --art-band: var(--gold-soft);
+  width: auto;
+  padding: calc(6px * var(--s)) calc(18px * var(--s));
+}
+
+#wordle-category-list .category-chip.exclusive .cat-name,
+#online-category-list .category-chip.exclusive .cat-name {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  flex: 1;
+  width: auto;
+  padding: calc(6px * var(--s)) calc(14px * var(--s));
+  font-size: calc(15px * var(--s));
+  font-weight: 800;
+  text-align: start;
+  border-top: 0;
+  border-inline-start: 1px solid var(--gold);
+}
+
+#wordle-category-list .category-chip.exclusive .cat-name::after,
+#online-category-list .category-chip.exclusive .cat-name::after {
+  content: "تنلعب لحالها — ما تنخلط مع غيرها";
+  font-size: calc(11px * var(--s));
+  font-weight: 600;
+  opacity: 0.85;
+}
+
+/* مختارة: الشريط يتعبّى ذهبي والنص أبيض */
+#wordle-category-list .category-chip.exclusive:has(input:checked),
+#online-category-list .category-chip.exclusive:has(input:checked) {
+  background: var(--gold);
+  color: var(--white-fixed);
+}
+
+/* علامة ✓ ذهبية أصلاً — على الذهبي تختفي */
+#wordle-category-list .category-chip.exclusive:has(input:checked)::after,
+#online-category-list .category-chip.exclusive:has(input:checked)::after {
+  color: var(--white-fixed);
+}
+
+/* رسومات الفئات (js/category-art.js). overflow ظاهر عشان الظل ما ينقص عند حدود
+   الرسمة */
+#wordle-category-list .ca-svg,
+#online-category-list .ca-svg {
+  display: block;
+  width: calc(44px * var(--s));
+  height: calc(44px * var(--s));
+  overflow: visible;
+}
+
+/* ألوان الرموز من الوضع: الكحلي ينقلب فاتح بالداكن عشان ينقرأ، والفتحات بلون
+   شريط البطاقة نفسه. الأجسام «الواقعية» ألوانها بالرسمة، وتاخذ الظل بس */
+.ca-base { fill: url(#ca-ink-l); stroke: url(#ca-ink-l); }
+.ca-accent { fill: url(#ca-gold-l); stroke: url(#ca-gold-l); }
+.ca-knock { fill: var(--art-band, var(--surface-soft)); stroke: var(--art-band, var(--surface-soft)); }
+.ca-sh { filter: url(#ca-sh-l); }
+:root[data-theme="dark"] .ca-base { fill: url(#ca-ink-d); stroke: url(#ca-ink-d); }
+:root[data-theme="dark"] .ca-accent { fill: url(#ca-gold-d); stroke: url(#ca-gold-d); }
+:root[data-theme="dark"] .ca-sh { filter: url(#ca-sh-d); }
+
+#wordle-category-list .cat-name,
+#online-category-list .cat-name {
+  display: block;
+  width: 100%;
+  padding: calc(5px * var(--s)) calc(4px * var(--s)) calc(6px * var(--s));
+  /* ١٣ مو ١١: صاحب المشروع لقاه صغير. أطول اسم «لاعبين كرة قدم» يقعد بسطر
+     واحد على ٣٧٥ (مقيس)؛ «سور القرآن الكريم» بالشريط العريض فما يتأثر */
+  font-size: calc(13px * var(--s));
+  line-height: 1.25;
+  text-align: center;
+  border-top: 1px solid var(--border-soft);
+}
+
+/* علامة الاختيار من CSS مو من عقدة نصية — فحص يقارن نص الـlabel حرفياً باسم
+   الفئة، وأي حرف زايد بالـDOM يكسره */
+#wordle-category-list .category-chip:has(input:checked)::after,
+#online-category-list .category-chip:has(input:checked)::after {
+  content: "✓";
+  position: absolute;
+  top: calc(3px * var(--s));
+  inset-inline-end: calc(5px * var(--s));
+  font-size: calc(12px * var(--s));
+  font-weight: 900;
+  line-height: 1;
+  color: var(--gold);
+}
+
+@media (max-width: 360px) {
+  #wordle-category-list,
+  #online-category-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.ability-btn {
+  background: var(--white);
+  border: 2px solid var(--border-soft);
+  color: var(--navy);
+  border-radius: calc(999px * var(--s));
+  padding: calc(8px * var(--s)) calc(16px * var(--s));
+  font-family: inherit;
+  font-weight: 700;
+  font-size: calc(13px * var(--s));
+  cursor: pointer;
+}
+
+.ability-btn:hover:not(:disabled) {
+  background: var(--surface-soft);
+}
+
+.ability-btn:disabled {
+  border-color: var(--gray-absent);
+  color: var(--gray-absent);
+  cursor: not-allowed;
+}
+
+@media (max-width: 400px) {
+
+  .ability-btn {
+    font-size: calc(12px * var(--s));
+    padding: calc(6px * var(--s)) calc(12px * var(--s));
+  }
+}
+
+/* ===== End screen ===== */
+.winner-banner {
+  text-align: center;
+  padding: calc(20px * var(--s));
+  border-radius: calc(16px * var(--s));
+  background: linear-gradient(135deg, var(--blue-700), var(--navy-fixed));
+  color: var(--white-fixed);
+  /* شريط ذهبي علوي — نفس ذهبي الشريط العلوي، وينرسم كظل فما يزيد الارتفاع */
+  box-shadow: inset 0 calc(4px * var(--s)) 0 var(--gold);
+}
+
+.winner-banner h2 {
+  margin: 0 0 calc(6px * var(--s));
+  font-size: calc(28px * var(--s));
+}
+
+.final-scores {
+  display: flex;
+  flex-direction: column;
+  gap: calc(10px * var(--s));
+}
+
+.final-score-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: calc(12px * var(--s)) calc(16px * var(--s));
+  border-radius: calc(12px * var(--s));
+  background: var(--surface-soft);
+  color: var(--ink);
+  font-weight: 800;
+}
+
+.final-score-row.first {
+  background: linear-gradient(90deg, #fff7d6, #ffe9a8);
+  border: 2px solid var(--yellow);
+  color: #0c2036;
+}
+
+/* ===== نافذة "طريقة اللعب" ===== */
+/* الطبقة والبطاقة تُلحقان بـbody مباشرة (خارج .page)، فوجودها ما يمس قياسات أي
+   شاشة لعب — تماماً زي .celebrate-overlay فوق */
+.howto-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1001;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: calc(16px * var(--s));
+  background: rgba(6, 38, 74, 0.55);
+  overflow-y: auto;
+}
+
+.howto-card {
+  background: var(--white);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  max-width: calc(480px * var(--s));
+  width: 100%;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  padding: calc(20px * var(--s));
+  gap: calc(14px * var(--s));
+}
+
+.howto-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.howto-head h2 {
+  margin: 0;
+  font-size: calc(20px * var(--s));
+}
+
+.howto-close {
+  width: calc(32px * var(--s));
+  height: calc(32px * var(--s));
+  border-radius: 50%;
+  border: none;
+  background: var(--surface-soft);
+  color: var(--ink);
+  font-size: calc(20px * var(--s));
+  line-height: 1;
+  cursor: pointer;
+}
+
+.howto-body {
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: calc(16px * var(--s));
+}
+
+.howto-body h3 {
+  margin: 0 0 calc(6px * var(--s));
+  font-size: calc(15px * var(--s));
+  color: var(--gold);
+}
+
+.howto-body p {
+  margin: 0;
+  line-height: 1.7;
+}
+
+.howto-tiles {
+  display: flex;
+  gap: calc(6px * var(--s));
+  margin-bottom: calc(8px * var(--s));
+}
+
+.howto-list {
+  list-style: none;
+  margin: 0 0 calc(8px * var(--s));
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: calc(8px * var(--s));
+}
+
+.howto-ico {
+  display: inline-flex;
+  color: var(--gold);
+}
+
+/* ===== احتفال الفوز النهائي: كونفيتي + ألعاب نارية ===== */
+/* عنصر مستقل يُلحَق بـbody عند إعلان الفوز — position:fixed خارج تدفّق الصفحة،
+   فما يقدر يزيد ارتفاع ولا يسبب تمرير أفقي مهما كان عدد القطع بداخله. */
+.celebrate-overlay {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 1000;
+}
+
+.confetti-piece {
+  position: absolute;
+  top: -14px;
+  width: calc(8px * var(--s));
+  height: calc(14px * var(--s));
+  border-radius: 2px;
+  animation-name: confetti-fall;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+
+@keyframes confetti-fall {
+  to {
+    transform: translateY(112vh) rotate(var(--spin, 360deg));
+    opacity: 0;
+  }
+}
+
+.firework-particle {
+  position: absolute;
+  width: calc(6px * var(--s));
+  height: calc(6px * var(--s));
+  border-radius: 50%;
+  animation-name: firework-burst;
+  animation-timing-function: ease-out;
+  animation-fill-mode: forwards;
+}
+
+@keyframes firework-burst {
+  0% {
+    transform: translate(0, 0) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--dx, 0), var(--dy, 0)) scale(0.3);
+    opacity: 0;
+  }
+}
+
+/* من يفضّل تقليل الحركة: نلغي الحركة بالكامل ونخفي القطع فوراً بدل ما تتراكم ثابتة */
+@media (prefers-reduced-motion: reduce) {
+  .confetti-piece,
+  .firework-particle {
+    display: none;
+  }
+}
+
+/* ===== Wordle ===== */
+/* اللوح والأدوات: فوق بعض بالوضع الطولي، وجنب بعض بالعرضي (شوف بلوك landscape).
+   flex:1 + min-height:0 هي اللي تخلي الشبكة تاخذ الباقي بالضبط بدون ما تفيض */
+.wordle-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: calc(10px * var(--s));
+  flex: 1;
+  min-height: 0;
+  padding: calc(12px * var(--s));
+  position: relative;
+  overflow: hidden;
+}
+
+/* زخرفة السدو بزاوية بطاقة اللعب — نفس نقش الرئيسية، خارج مسار التخطيط تماماً
+   (position:absolute) وبلا تفاعل، فما تكلّف ولا بكسل من مساحة الشبكة */
+.wrap-motif {
+  position: absolute;
+  bottom: calc(6px * var(--s));
+  inset-inline-start: calc(8px * var(--s));
+  width: calc(120px * var(--s));
+  height: calc(30px * var(--s));
+  color: var(--gold);
+  opacity: 0.09;
+  pointer-events: none;
+  z-index: 0;
+}
+
+:root[data-theme="dark"] .wrap-motif {
+  opacity: 0.14;
+}
+
+/* الفئات + نص الجولة + المؤقّت + البوق + دليل الألوان + المساعدات + السجل —
+   كتلة وحدة، محتواها ثابت (ما يكبر بالشبكة)، فتاخذ حجمها بس وتترك الباقي للشبكة */
+.wordle-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(3px * var(--s));
+  width: 100%;
+  flex-shrink: 0;
+  overflow-y: auto;
+}
+
+.wordle-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(8px * var(--s));
+  width: 100%;
+  flex-shrink: 0;
+}
+
+/* شاشة اللعب ارتفاعها ثابت، فكل بكسل يوفّره الإطار يروح للشبكة.
+   هذي القيم أصغر من العامة قصداً وتنطبق داخل شاشة اللعب بس */
+/* ===== ثبات حجم الشبكة أثناء الجولة =====
+   حجم الخلية محسوب من الارتفاع المتبقي للّوح. فأي شي بعمود الأدوات يكبر أثناء
+   اللعب يسرق من اللوح وتصغر الخلايا فجأة. الاثنين اللي يكبرون: سجل التلميحات
+   (مع كل وسيلة مساعدة) وتبديل زر البوق بلافتة السرقة — فنثبّت ارتفاعهم. */
+#wordle-hint-log,
+#online-hint-log {
+  width: 100%;
+  gap: calc(5px * var(--s));
+  /* يتّسع لثلاث تلميحات (وهي أقصى عدد بالجولة) وبعدها يمرّر داخل نفسه */
+  max-height: calc(92px * var(--s));
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+
+.boq-slot {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.wordle-info .steal-note {
+  font-size: calc(11.5px * var(--s));
+  line-height: 1.3;
+  margin: 0;
+}
+
+/* الثلاثة لازم يقعدون بسطر واحد: السطر الثاني ياكل ~٣٥ بكسل من ارتفاع الشبكة */
+.wordle-info .ability-btn {
+  padding: calc(5px * var(--s)) calc(7px * var(--s));
+  font-size: calc(11px * var(--s));
+  border-width: 1px;
+}
+
+.wordle-info #wordle-subtitle,
+.wordle-info #online-subtitle {
+  font-size: calc(12.5px * var(--s));
+  line-height: 1.3;
+}
+
+.wordle-info .boq-btn {
+  padding: calc(5px * var(--s)) calc(12px * var(--s));
+  font-size: calc(13px * var(--s));
+}
+
+.wordle-info .round-timer {
+  font-size: calc(17px * var(--s));
+}
+
+.wordle-controls .wordle-message {
+  min-height: 0;
+  font-size: calc(17px * var(--s));
+}
+
+/* لوحة النتائج فوق شاشة اللعب: مضغوطة عشان ما تاكل ربع الشاشة */
+#wordle-play-screen .team-chip,
+#online-play .team-chip {
+  padding: calc(7px * var(--s)) calc(10px * var(--s));
+  border-radius: calc(11px * var(--s));
+  gap: 2px;
+}
+
+#wordle-play-screen .team-chip .name,
+#online-play .team-chip .name {
+  font-size: calc(13px * var(--s));
+}
+
+#wordle-play-screen .team-chip .score,
+#online-play .team-chip .score {
+  font-size: calc(17px * var(--s));
+}
+
+.wordle-grid-scroll {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+  /* safe: لو فاض المحتوى بحالة نادرة (كلمة طويلة جداً بشاشة قصيرة) ما يتقص من فوق
+     ويصير أول صف غير قابل للوصول — يرجع للبداية بدال ما ينتصف */
+  align-items: safe center;
+  justify-content: safe center;
+  overflow: auto;
+}
+
+/* الهوامش الافتراضية للفقرات كانت تاكل ~١٠٠ بكسل من ارتفاع شاشة اللعب —
+   الترتيب هنا بالـgap مو بالهوامش */
+.wordle-info p,
+.wordle-controls p {
+  margin: 0;
+}
+
+/* صف النتائج داخل بطاقة اللعب */
+.score-row {
+  display: flex;
+  align-items: center;
+  gap: calc(10px * var(--s));
+  width: 100%;
+}
+
+.score-row {
+  flex-shrink: 0;
+}
+
+.score-row .scoreboard {
+  flex: 1;
+  min-width: 0;
+}
+
+.score-row .btn {
+  flex-shrink: 0;
+  padding: calc(7px * var(--s)) calc(12px * var(--s));
+  font-size: calc(12px * var(--s));
+}
+
+/* الفئات المختارة كحبّات ملوّنة بدال سطر "الفئات: كذا، كذا، كذا" */
+.cat-pills {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: calc(5px * var(--s));
+  width: 100%;
+}
+
+.cat-pill {
+  background: var(--surface-soft);
+  color: var(--blue-700);
+  border: 1px solid var(--border-soft);
+  border-radius: calc(999px * var(--s));
+  padding: 2px calc(10px * var(--s));
+  font-size: calc(11.5px * var(--s));
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.cat-pill.all {
+  background: var(--blue-700);
+  color: var(--white-fixed);
+  border-color: var(--blue-700);
+}
+
+.cat-pill.gold {
+  background: var(--gold-soft);
+  color: var(--gold);
+  border-color: var(--gold);
+}
+
+.cat-pill.more {
+  background: transparent;
+  color: var(--muted);
+  border-style: dashed;
+}
+
+/* سطر الجولة (دور الفريق… كلمة من… محاولات) */
+.round-line {
+  text-align: center;
+  color: var(--muted);
+  font-size: calc(13px * var(--s));
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+/* «خلال ٦ محاولات ٦٠٠ نقطة» — مجموعة وحدة ما تنكسر، عشان رقم النقاط ما ينفصل
+   عن المحاولات لو لفّ السطر. داخل نفس فقرة العنوان عمداً: ولا صندوق جديد.
+   كان بينهم نقطة رمادية «·» وانشالت: جنب الأرقام العربية تنقرأ صفر، فـ«· ٤٠٠»
+   يطلع «٤٠٠٠». المسافة واللون الذهبي يكفون فاصل */
+.round-tail {
+  white-space: nowrap;
+}
+
+/* النقاط اللي بياخذها لو حزرها بالمحاولة الجاية — تنقص مع كل مساعدة */
+.round-points {
+  color: var(--gold);
+  font-weight: 800;
+}
+
+.round-points:empty {
+  display: none;
+}
+
+/* دليل الألوان: ثلاث حبّات صغيرة بنقطة ملوّنة بدال ثلاث أسطر نص */
+.wordle-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: calc(5px * var(--s));
+  font-size: calc(11px * var(--s));
+  line-height: 1.3;
+}
+
+.wordle-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(5px * var(--s));
+  white-space: nowrap;
+  background: var(--surface-soft);
+  color: var(--muted);
+  border-radius: calc(999px * var(--s));
+  padding: 2px calc(9px * var(--s));
+  font-weight: 700;
+}
+
+.wordle-legend .lg {
+  width: calc(9px * var(--s));
+  height: calc(9px * var(--s));
+  /* مربّع صغير مو دائرة: الدليل يشرح خانات الشبكة، فيتكلم بنفس شكلها */
+  border-radius: calc(3px * var(--s));
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.wordle-legend .lg.green {
+  background: var(--green);
+}
+
+.wordle-legend .lg.yellow {
+  background: var(--yellow);
+}
+
+.wordle-legend .lg.gray {
+  background: var(--gray-absent);
+}
+
+/* --tile-gap تجي من applyTileSize عشان الحساب والرسم يستخدمون نفس الرقم */
+.wordle-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--tile-gap, calc(8px * var(--s)));
+  width: max-content;
+  margin: 0 auto;
+}
+
+.wordle-row {
+  display: flex;
+  gap: var(--tile-gap, calc(8px * var(--s)));
+}
+
+.wordle-tile {
+  width: var(--tile-size, clamp(calc(40px * var(--s)), 12vw, calc(52px * var(--s))));
+  height: var(--tile-size, clamp(calc(40px * var(--s)), 12vw, calc(52px * var(--s))));
+  flex-shrink: 0;
+  border: 2px solid var(--border-soft);
+  border-radius: calc(8px * var(--s));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* max() يرفع نسبة الخط بالخلايا الصغيرة عشان الحرف يظل مقروء */
+  font-size: max(calc(10px * var(--s)), calc(var(--tile-size, clamp(calc(40px * var(--s)), 12vw, calc(52px * var(--s)))) * 0.5));
+  font-weight: 800;
+  color: var(--navy);
+  background: var(--white);
+  text-transform: uppercase;
+}
+
+.wordle-tile-gap {
+  width: var(--tile-gap-width, calc(16px * var(--s)));
+  height: var(--tile-size, clamp(calc(40px * var(--s)), 12vw, calc(52px * var(--s))));
+  flex-shrink: 0;
+}
+
+.wordle-tile.filled {
+  border-color: var(--blue-600);
+}
+
+/* الخانة الفاضية تاخذ عمقاً خفيفاً بدل ما تكون مسطّحة — ظل داخلي، بلا كلفة تخطيط */
+.wordle-tile {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55), inset 0 -1px 2px rgba(6, 38, 74, 0.05);
+}
+
+:root[data-theme="dark"] .wordle-tile {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), inset 0 -1px 2px rgba(0, 0, 0, 0.25);
+}
+
+/* كشف الصف المُرسَل: الخانات تنقلب وحدة ورا الثانية — نفس حركة الشعار بالرئيسية،
+   فتصير الحركة توقيع اللعبة مو زينة عشوائية. transform بس، صفر كلفة تخطيط.
+   التأخير لكل خانة يجي من renderGrid عبر --reveal-delay */
+@media (prefers-reduced-motion: no-preference) {
+  .wordle-tile.reveal {
+    animation: tile-reveal 0.4s ease-out backwards;
+    animation-delay: var(--reveal-delay, 0s);
+  }
+}
+
+@keyframes tile-reveal {
+  0% {
+    transform: rotateX(-90deg);
+  }
+  60% {
+    transform: rotateX(10deg);
+  }
+  100% {
+    transform: rotateX(0);
+  }
+}
+
+/* طيف تلميح "اكشف حرف": الحرف بمكانه الصح بس مو مكتوب — اللاعب حر يكتبه أو يكتب
+   غيره. أخضر لأن دليل الألوان يقول أخضر = مكانه صحيح، ومتقطّع عشان ما ينلخبط مع
+   حرف مكتوب فعلاً. الحد يبقى 2px والمقاسات ما تنلمس */
+.wordle-tile.ghost {
+  border-style: dashed;
+  border-color: var(--green);
+  color: var(--green);
+  opacity: 0.55;
+}
+
+/* خانات الصف الحالي تنضغط عشان اللاعب يكتب بموضع بدل الترتيب */
+.wordle-tile.tappable {
+  cursor: pointer;
+}
+
+/* المؤشر: وين بيروح الحرف الجاي. بدون علامة ظاهرة تصير الميزة مخفية ما تنكتشف،
+   واللاعب ما يعرف ليش الحرف نزل بمكان غير الي يتوقعه */
+.wordle-tile.cursor {
+  border-color: var(--blue-600);
+  box-shadow: 0 0 0 2px var(--blue-300);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .wordle-tile.cursor {
+    animation: tile-cursor 1.2s ease-in-out infinite;
+  }
+  @keyframes tile-cursor {
+    50% {
+      box-shadow: 0 0 0 2px transparent;
+    }
+  }
+}
+
+.wordle-tile.green {
+  background: var(--green);
+  border-color: var(--green);
+  color: var(--white-fixed);
+}
+
+.wordle-tile.yellow {
+  background: var(--yellow);
+  border-color: var(--yellow);
+  color: var(--white-fixed);
+}
+
+.wordle-tile.gray {
+  background: var(--gray-absent);
+  border-color: var(--gray-absent);
+  color: var(--white-fixed);
+}
+
+/* ===== الكيبورد — بشكل كيبورد iOS العربي ===== */
+.keyboard {
+  --key-bg: #fcfcfe;
+  --key-ink: #1c1c1e;
+  --key-shadow: 0 1px 0 rgba(0, 0, 0, 0.28);
+  display: flex;
+  flex-direction: column;
+  gap: calc(8px * var(--s));
+  width: 100%;
+  max-width: calc(560px * var(--s));
+  padding: calc(8px * var(--s)) calc(5px * var(--s));
+  border-radius: calc(12px * var(--s));
+  background: #d1d4db;
+}
+
+:root[data-theme="dark"] .keyboard {
+  --key-bg: #4a4a4c;
+  --key-ink: #ffffff;
+  --key-shadow: 0 1px 0 rgba(0, 0, 0, 0.6);
+  background: #1c1c1e;
+}
+
+/* الصفحة كلها rtl، واللي يقلب ترتيب الأزرار بصرياً. الحروف مرتّبة بالمصفوفة
+   بترتيب كيبورد iOS (ض أول → ج آخر) فنخلي الصف نفسه ltr عشان يطلع مطابق للصورة:
+   ض على اليسار و ج على اليمين، و⌫ بآخر الصف الثالث */
+.keyboard-row {
+  display: flex;
+  direction: ltr;
+  gap: calc(6px * var(--s));
+  justify-content: center;
+}
+
+.key {
+  font-family: inherit;
+  border: none;
+  border-radius: calc(7px * var(--s));
+  background: var(--key-bg);
+  color: var(--key-ink);
+  box-shadow: var(--key-shadow);
+  font-weight: 500;
+  font-size: calc(19px * var(--s));
+  line-height: 1;
+  padding: calc(11px * var(--s)) 0;
+  min-width: 0;
+  flex: 1 1 0;
+  cursor: pointer;
+  max-width: calc(42px * var(--s));
+}
+
+.key.wide {
+  max-width: calc(260px * var(--s));
+  flex: 1 1 0;
+  font-size: calc(15px * var(--s));
+  font-weight: 600;
+  padding: calc(11px * var(--s)) calc(4px * var(--s));
+}
+
+@media (max-width: 480px) {
+  .keyboard {
+    gap: calc(6px * var(--s));
+    padding: calc(6px * var(--s)) calc(3px * var(--s));
+  }
+
+  .keyboard-row {
+    gap: calc(4px * var(--s));
+  }
+
+  .key {
+    font-size: calc(17px * var(--s));
+    padding: calc(9px * var(--s)) 0;
+  }
+
+  .key.wide {
+    font-size: calc(13px * var(--s));
+    padding: calc(9px * var(--s)) calc(4px * var(--s));
+  }
+}
+
+.key.green {
+  background: var(--green);
+  color: var(--white-fixed);
+}
+
+.key.yellow {
+  background: var(--yellow);
+  color: var(--white-fixed);
+}
+
+.key.gray {
+  background: var(--gray-absent);
+  color: var(--white-fixed);
+}
+
+.key:hover {
+  filter: brightness(1.05);
+}
+
+.wordle-message {
+  text-align: center;
+  font-weight: 800;
+  font-size: calc(20px * var(--s));
+  min-height: calc(28px * var(--s));
+  color: var(--navy);
+}
+
+.wordle-message.win {
+  color: var(--green-dark);
+}
+
+.wordle-message.lose {
+  color: var(--red);
+}
+
+/* ===== Misc ===== */
+.center {
+  text-align: center;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: calc(14px * var(--s));
+}
+
+.row {
+  display: flex;
+  gap: calc(12px * var(--s));
+  flex-wrap: wrap;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* ===== شاشات قصيرة: نضغط الإطار عشان الشبكة تاخذ نصيبها =====
+   الشبكة هي اللعبة، فالإطار (الكيبورد، اللوحة، الأزرار) هو اللي ينضغط مو هي.
+
+   الحد ٧٨٠ مو ٧٠٠: كان ٧٠٠ وطلعت فجوة بين ٧٠٠ و٨٠٠ — الشاشة أطول من ٧٠٠ فما
+   تاخذ الضغط، وأقصر من ٨٠٠ فما تسع الشبكة بدونه. فكانت أجهزة مثل ٣٦٠×٧٤٠
+   تنقص شبكتها ٢٨–٣٨ بكسل من ٧ صفوف فأكثر (٢٣٪ من بنك الكلمات)، بينما
+   ٣٧٥×٦٦٧ **الأقصر منها** يسع لأنه داخل الضغط.
+
+   و٧٨٠ مو ٨٠٠ عمداً: ٣٦٠×٨٠٠ يسع أصلاً، فما فيه سبب نخفي عنه دليل الألوان. */
+@media (max-height: 780px) {
+  .topbar {
+    padding: calc(8px * var(--s)) calc(14px * var(--s));
+  }
+
+  .topbar h1 {
+    font-size: calc(15px * var(--s));
+  }
+
+  .topbar .home-link {
+    padding: calc(5px * var(--s)) calc(10px * var(--s));
+    font-size: calc(12px * var(--s));
+  }
+
+  #wordle-play-screen .team-chip,
+  #online-play .team-chip {
+    padding: calc(5px * var(--s)) calc(8px * var(--s));
+  }
+
+  #wordle-play-screen .team-chip .score,
+  #online-play .team-chip .score {
+    font-size: calc(15px * var(--s));
+  }
+
+  .score-adjust-btn {
+    padding: 2px 0;
+    font-size: calc(10px * var(--s));
+  }
+
+  .keyboard {
+    gap: calc(5px * var(--s));
+    padding: calc(5px * var(--s)) calc(3px * var(--s));
+  }
+
+  .keyboard-row {
+    gap: calc(4px * var(--s));
+  }
+
+  .key {
+    padding: calc(7px * var(--s)) 0;
+    font-size: calc(15px * var(--s));
+  }
+
+  .key.wide {
+    padding: calc(7px * var(--s)) calc(4px * var(--s));
+    font-size: calc(12px * var(--s));
+  }
+
+  .wordle-info .ability-btn {
+    padding: calc(4px * var(--s)) calc(9px * var(--s));
+    font-size: calc(11px * var(--s));
+  }
+
+  .wordle-controls .wordle-message {
+    font-size: calc(14px * var(--s));
+  }
+
+  .wordle-wrap {
+    gap: calc(8px * var(--s));
+    padding: calc(8px * var(--s));
+  }
+
+  /* على شاشة طولية قصيرة، دليل الألوان أقل شي يستاهل مساحة — الشبكة أهم.
+     الفئات تظل تبين، لها صنفها الخاص (.cat-pills) */
+  .wordle-info .wordle-legend {
+    display: none;
+  }
+
+  /* سطر واحد بدال سطرين */
+  .wordle-info #wordle-subtitle,
+  .wordle-info #online-subtitle {
+    font-size: calc(12px * var(--s));
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
+
+  .key {
+    padding: calc(5px * var(--s)) 0;
+  }
+
+  .key.wide {
+    padding: calc(5px * var(--s)) calc(4px * var(--s));
+  }
+}
+
+/* ===== الجهاز بالعرض: عمودان — الشبكة بجهة والأدوات بالجهة الثانية =====
+   بدال ما نضغط كل شي فوق بعض بعمود واحد ونخلي الصفحة تنزل، نستغل عرض الشاشة:
+   اللوح (المعلومات + الشبكة) بجهة، والأدوات (التلميحات + الكيبورد) بالجهة الثانية */
+@media (orientation: landscape) {
+  .page {
+    padding: calc(6px * var(--s)) calc(10px * var(--s));
+    /* الاختصار فوق يمسح حشو حواف الأمان، فنرجّعه — وبالوضع العرضي هو الأهم أصلاً
+       لأن النوتش يجي على جنب الشاشة مباشرة فوق الكيبورد */
+    padding-inline-start: max(calc(10px * var(--s)), var(--safe-right));
+    padding-inline-end: max(calc(10px * var(--s)), var(--safe-left));
+    padding-bottom: max(calc(6px * var(--s)), var(--safe-bottom));
+    gap: calc(6px * var(--s));
+  }
+
+  .card {
+    padding: calc(8px * var(--s));
+  }
+
+  .stack {
+    gap: calc(6px * var(--s));
+  }
+
+}
+
+/* ===== التخطيط الثلاثي بالعرضي: أي شاشة عرضية، جوال ولا آيباد ولا تلفزيون =====
+   شكلان بس باللعبة: طولي وهذا. الأحجام تكبر مع الشاشة بمعامل --s (فوق بـ:root)
+   بدل بلوك خاص للشاشات الكبيرة — صاحب المشروع يبي «نفس الواجهة، تتكبّر على
+   حجمها». بلوكات الضغط (max-height:600/400/340 تحت) تظل للجوال لأن ارتفاعه قليل.
+   **الاستعلام لازم يطابق LANDSCAPE_3COL بـjs/wordle-view.js حرفياً** */
+@media (orientation: landscape) {
+  /* ثلاث أعمدة: الكيبورد | المعلومات | الشبكة. كانت عمودين (لوح+أدوات) وعمود
+     اللوح يحجز عرض أوسع من الشبكة الفعلية فيصير فراغ فاضي بينه وبين الكيبورد —
+     الحين المعلومات (الفئات/الجولة/البوق/الدليل/المساعدات/السجل) تملأ هالفراغ
+     بعمودها الخاص، فتصير الشبكة عمود خاص فيها بس (كل الارتفاع لها) وكذا الكيبورد */
+  .wordle-wrap {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(calc(125px * var(--s)), calc(160px * var(--s))) minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-areas:
+      "grid info score"
+      "grid info kb";
+    gap: calc(6px * var(--s)) calc(10px * var(--s));
+    padding: calc(8px * var(--s));
+  }
+
+  .score-row {
+    grid-area: score;
+  }
+
+  .wordle-info {
+    grid-area: info;
+    width: auto;
+    height: 100%;
+    justify-content: center;
+    overflow-y: auto;
+  }
+
+  /* العمود صار عمود مستقل بارتفاع كامل، فبطّلنا نحتاج نقص السطر لسطر وحد — يلف
+     عادي لسطرين ولا يضيع رقم المحاولات */
+  .wordle-info #wordle-subtitle,
+  .wordle-info #online-subtitle {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+  }
+
+  /* بلوك (max-height:700px) يخفي الدليل لأي شاشة قصيرة — وهالشرط ينطبق على كل
+     شاشات العرض تقريباً. عمود المعلومات هنا مستقل بعرضه الخاص فيتحمّله بدون ما
+     ياكل من ارتفاع الشبكة، فنرجّعه */
+  .wordle-info .wordle-legend {
+    display: flex;
+  }
+
+  .wordle-grid-scroll {
+    grid-area: grid;
+  }
+
+  .wordle-controls {
+    grid-area: kb;
+    justify-content: center;
+    width: auto;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  /* ===== الكلمات الطويلة: الكيبورد ينزل تحت والشبكة تاخذ العرض =====
+     بالتخطيط الثلاثي الكيبورد ياخذ عموداً جنب الشبكة، فيقسم العرض نصّين: قِسناه
+     على ٨٤٤ فطلع للشبكة ٣١٤ بكسل بس ⇒ كلمة ١٥ خانة تطلع خانتها ١٨px وخطها ١٠
+     (أرضية الخط) — يعني الحرف يختفي.
+     وما فيه مساحة تُستعاد بإعادة التوزيع: الفراغ الكلي بالأعمدة الثلاثة ١٧ بكسل.
+     فالحل الوحيد إن الكيبورد ينزل تحت — نفس سبب كون الوضع الطولي أوضح.
+     ينطبق بـdata-wide-grid اللي تحطها sizeTiles لأن CSS ما يعرف طول الكلمة. */
+  .wordle-wrap[data-wide-grid] {
+    grid-template-columns: minmax(0, 1fr) minmax(calc(125px * var(--s)), calc(160px * var(--s)));
+    /* صفّ الكيبورد بارتفاع صريح مو auto: الكيبورد جوّه `flex: 1 1 0`، ولو كان
+       صفّه auto ما لقى ارتفاعاً يتمدد فيه وانهار لصفر (المفاتيح موجودة بالـDOM
+       بس غير مرئية) */
+    grid-template-rows: auto minmax(0, 1fr) clamp(calc(104px * var(--s)), 38vh, calc(150px * var(--s)));
+    /* عمود المعلومات يمتد للصفّين الأخيرين (جنب الكيبورد) مو للصف الأوسط بس:
+       محتواه ١٩٢px (سطر الجولة + الفئات + البوق + الدليل + المساعدات) والصف
+       الأوسط وحده يعطيه ١١٥ فتنقص أزرار المساعدات. والكيبورد ما يحتاج العرض
+       كله أصلاً، فالفراغ جنبه يروح للمعلومات */
+    grid-template-areas:
+      "score info"
+      "grid info"
+      "kb info";
+  }
+
+  /* صف النتيجة صار فوق الشبكة العريضة، فلولا الحد تمدّدت حبّات الفرق بعرضها كله */
+  .wordle-wrap[data-wide-grid] .score-row {
+    max-width: calc(420px * var(--s));
+    margin-inline: auto;
+  }
+
+  /* الكيبورد بعرض الشاشة كاملاً ⇒ ما يحتاج ارتفاع الثلاثة أعمدة */
+  .wordle-wrap[data-wide-grid] .wordle-controls .keyboard {
+    max-height: 100%;
+  }
+
+  /* بدال ما نضبط ارتفاع الكيبورد بنقاط توقّف ثابتة (وهي تنكسر مع كل عرض عمود
+     مختلف لأن صف التلميحات ينزل سطرين أو ما ينزل)، نخلي الكيبورد ياخذ الباقي
+     بالضبط: الصفوف تتقاسم ارتفاعه والأزرار تمتد لملء صفّها. جذي ما يفيض أبداً */
+  .wordle-controls .keyboard {
+    flex: 1 1 0;
+    min-height: 0;
+    max-height: calc(220px * var(--s));
+  }
+
+  .wordle-controls .keyboard-row {
+    flex: 1 1 0;
+    min-height: 0;
+  }
+
+  .wordle-controls .key {
+    padding: 0;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* بالعرضي عمود المعلومات ضيق — سجل التلميحات يتّسع لواحد ويمرّر */
+  #wordle-hint-log,
+  #online-hint-log {
+    max-height: calc(34px * var(--s));
+  }
+}
+
+/* ===== شاشة الإعداد بعمودين + ضغط الأحجام بالعرضي =====
+   كان كله داخل max-height:600 (الجوال بس)، فالتلفزيون والآيباد يطلعون الإعداد
+   عمود واحد طويل وزر البدء تحت، والشريط العلوي بحجم الطولي. الحين العرضي شكل
+   واحد بكل الأجهزة: نفس الجوال بالعرض، مكبّر بـ--s */
+@media (orientation: landscape) {
+  /* ما نخلي القائمة حاوية تمرير: بقواعد الفلكس، أي عنصر يصير حاوية تمرير يفقد حده
+     الأدنى التلقائي (min-height:auto يصير صفر)، فينسحق تحت flex-shrink — وهذا اللي
+     كان يخلي ٢٠ فئة تنحشر بعشرة بكسل. البطاقة نفسها تمرّر، فمجال تمرير واحد يكفي */
+  #wordle-category-list,
+  #online-category-list {
+    flex: 0 0 auto;
+    padding: calc(5px * var(--s));
+    border: 1px solid var(--border-soft);
+    border-radius: calc(12px * var(--s));
+  }
+
+  /* ===== شاشة الإعداد بعمودين =====
+     المحتوى بعمود واحد يطلع ~٦٠٥px مقابل ٢٧٦–٣٥٨ متاحة، فزر البدء كان يقعد تحت
+     الشاشة بـ١٩٠px بدون أي إشارة إنه موجود.
+     الصف الأوسط ياخذ الباقي (minmax(0,1fr)) والعمودان يمرّرون داخل نفسهم، فصف
+     الأزرار يقعد مثبّت بالأسفل ودايماً ظاهر. عمود الفئات أوسع لأنه الأطول محتوى */
+  #wordle-setup-screen {
+    display: grid;
+    grid-template-columns: 1fr 1.5fr;
+    grid-template-areas:
+      "head head"
+      "cola colb"
+      "foot foot";
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    gap: calc(6px * var(--s)) calc(14px * var(--s));
+    overflow: hidden;
+  }
+
+  #wordle-setup-screen .setup-col {
+    overflow-y: auto;
+    /* صريح لأن overflow يلغي الحد الأدنى التلقائي — بدونه ينسحق زي ما انسحقت
+       قائمة الفئات قبل */
+    min-height: 0;
+  }
+
+  /* زر البدء ورابط الأونلاين جنب بعض بدل ما ياخذون سطرين وفاصل بينهم */
+  #wordle-setup-screen .setup-foot {
+    flex-direction: row;
+    align-items: stretch;
+    gap: calc(10px * var(--s));
+  }
+
+  #wordle-setup-screen .setup-foot .online-divider {
+    display: none;
+  }
+
+  #wordle-setup-screen .setup-foot .btn {
+    flex: 1 1 0;
+    padding: calc(9px * var(--s)) calc(12px * var(--s));
+    font-size: calc(14px * var(--s));
+  }
+
+  /* اللوبي: عمودان بدون تثبيت صفوف — البطاقة نفسها تمرّر لأن فوقها رمز الغرفة
+     وقائمة اللاعبين، فتقسيمها لمناطق ثابتة يعقّدها بلا فايدة */
+  #online-host-controls {
+    display: grid;
+    grid-template-columns: 1fr 1.5fr;
+    grid-template-areas: "cola colb" "foot foot";
+    align-content: start;
+    gap: calc(8px * var(--s)) calc(14px * var(--s));
+  }
+
+  .setup-head { grid-area: head; }
+  .setup-foot { grid-area: foot; }
+  .setup-col:nth-of-type(1) { grid-area: cola; }
+  .setup-col:nth-of-type(2) { grid-area: colb; }
+
+  .setup-head,
+  .setup-col,
+  .setup-foot {
+    display: flex;
+    flex-direction: column;
+    gap: calc(8px * var(--s));
+    min-width: 0;
+  }
+
+  /* العنوان الفرعي الشارح يختفي — المساحة الرأسية أغلى منه بهالوضع */
+  .setup-intro {
+    display: none;
+  }
+}
+
+@media (orientation: landscape) {
+
+  #wordle-setup-screen h2,
+  #online-host-controls h2 {
+    font-size: calc(17px * var(--s));
+    margin: 0;
+  }
+
+  /* ارتفاع الشريط يحدّده زر الثيم مو النص، فتنحيفه يبدأ من الزر */
+  .topbar {
+    padding: calc(3px * var(--s)) calc(10px * var(--s));
+  }
+
+  .topbar h1 {
+    font-size: calc(13px * var(--s));
+  }
+
+  .topbar .home-link {
+    padding: 2px calc(8px * var(--s));
+    font-size: calc(11px * var(--s));
+  }
+
+  /* زر «؟» يشارك زر الثيم مقاسه بكل مكان (شوف .howto-btn فوق) — كان ناسيه
+     هني، فيقعد ٣٨ وسط أزرار ٢٢ ويطوّل الشريط كله بالعرضي */
+  .theme-toggle-inline,
+  .howto-btn {
+    width: calc(22px * var(--s));
+    height: calc(22px * var(--s));
+    font-size: calc(11px * var(--s));
+  }
+
+  #wordle-subtitle,
+  #online-subtitle {
+    font-size: calc(11px * var(--s));
+    margin: 0;
+  }
+
+  .abilities-row {
+    gap: calc(4px * var(--s));
+  }
+
+  .ability-btn {
+    padding: calc(4px * var(--s)) calc(8px * var(--s));
+    font-size: calc(10px * var(--s));
+  }
+
+  .hint-box {
+    padding: calc(4px * var(--s)) calc(8px * var(--s));
+    font-size: calc(11px * var(--s));
+  }
+
+  .keyboard {
+    gap: calc(4px * var(--s));
+    padding: calc(5px * var(--s)) calc(3px * var(--s));
+  }
+
+  .keyboard-row {
+    gap: calc(3px * var(--s));
+  }
+
+  .key {
+    padding: calc(6px * var(--s)) 0;
+    font-size: calc(14px * var(--s));
+    border-radius: calc(6px * var(--s));
+  }
+
+  .key.wide {
+    padding: calc(6px * var(--s)) calc(4px * var(--s));
+    font-size: calc(11px * var(--s));
+  }
+
+  .scoreboard {
+    gap: calc(5px * var(--s));
+  }
+
+  /* بالعرضي الارتفاع هو النادر: نخلي بطاقة الفريق سطر واحد (اسم + نقاط + أزرار)
+     بدال ثلاثة أسطر فوق بعض — يوفّر ~٢٥ بكسل تروح كلها للشبكة */
+  #wordle-play-screen .team-chip,
+  #online-play .team-chip {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: calc(4px * var(--s)) calc(8px * var(--s));
+    padding: calc(4px * var(--s)) calc(9px * var(--s));
+  }
+
+  /* بالعرض الضيق (زي آيفون SE) عمود الأدوات يصير رفيع وما يكفي اسم الفريق —
+     نخلي الاسم يلف سطرين بدال ما ينقص بـ"..." ويضيع جزء منه */
+  #wordle-play-screen .team-chip .name,
+  #online-play .team-chip .name {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    line-height: 1.2;
+  }
+
+  #wordle-play-screen .score-adjust-row,
+  #online-play .score-adjust-row {
+    margin-top: 0;
+    gap: calc(4px * var(--s));
+  }
+
+  .team-chip .name {
+    font-size: calc(12px * var(--s));
+  }
+
+  .team-chip .score {
+    font-size: calc(13px * var(--s));
+  }
+
+  .wordle-message {
+    min-height: calc(12px * var(--s));
+    font-size: calc(12px * var(--s));
+  }
+
+  .score-adjust-btn {
+    padding: 1px 0;
+    font-size: calc(9px * var(--s));
+  }
+
+  #wordle-end-match-btn,
+  #online-end-match-btn {
+    padding: calc(4px * var(--s)) calc(8px * var(--s));
+    font-size: calc(11px * var(--s));
+  }
+
+  .online-turn-note {
+    font-size: calc(11px * var(--s));
+    padding: calc(3px * var(--s)) calc(8px * var(--s));
+  }
+
+  .round-timer {
+    font-size: calc(14px * var(--s));
+  }
+
+  .boq-btn {
+    padding: calc(4px * var(--s)) calc(10px * var(--s));
+    font-size: calc(11px * var(--s));
+  }
+}
+
+/* ===== عرضي قصير: الكيبورد يتمدّد لملء عموده (شوف بلوك landscape فوق)، فهنا
+   نضبط أحجام الخطوط بس ===== */
+@media (orientation: landscape) and (max-height: 400px) {
+  .keyboard {
+    gap: calc(4px * var(--s));
+    padding: calc(5px * var(--s)) calc(3px * var(--s));
+  }
+
+  .keyboard-row {
+    gap: calc(3px * var(--s));
+  }
+
+  .key {
+    font-size: calc(13px * var(--s));
+  }
+
+  .key.wide {
+    font-size: calc(11px * var(--s));
+  }
+
+  #wordle-play-screen .team-chip,
+  #online-play .team-chip {
+    padding: calc(3px * var(--s)) calc(8px * var(--s));
+  }
+
+  #wordle-play-screen .team-chip .name,
+  #online-play .team-chip .name {
+    font-size: calc(11px * var(--s));
+  }
+
+  #wordle-play-screen .team-chip .score,
+  #online-play .team-chip .score {
+    font-size: calc(12px * var(--s));
+  }
+}
+
+@media (orientation: landscape) and (max-height: 340px) {
+  .keyboard {
+    gap: calc(3px * var(--s));
+    padding: calc(4px * var(--s)) calc(3px * var(--s));
+  }
+
+  .key {
+    font-size: calc(12px * var(--s));
+  }
+
+  .key.wide {
+    font-size: calc(10px * var(--s));
+  }
+
+  /* آخر شي ينحذف قبل ما نقص الكيبورد */
+  .wordle-info .wordle-legend {
+    display: none;
+  }
+}
+
+/* ===== الوضع الأونلاين ===== */
+.online-status {
+  text-align: center;
+  font-weight: 700;
+  font-size: calc(13px * var(--s));
+  color: var(--muted);
+  margin: 0;
+}
+
+.online-status.error {
+  color: var(--red);
+}
+
+.online-error {
+  color: var(--red);
+  font-weight: 700;
+  text-align: center;
+  margin: 0;
+}
+
+.online-divider {
+  display: flex;
+  align-items: center;
+  gap: calc(10px * var(--s));
+  color: var(--muted);
+  font-size: calc(13px * var(--s));
+  font-weight: 700;
+}
+
+.online-divider::before,
+.online-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--border-soft);
+  opacity: 0.6;
+}
+
+.online-code-input {
+  text-align: center;
+  letter-spacing: calc(8px * var(--s));
+  font-weight: 800;
+  font-size: calc(22px * var(--s));
+  text-transform: uppercase;
+}
+
+.online-room-box {
+  background: var(--surface-soft);
+  border-radius: var(--radius);
+  padding: calc(14px * var(--s));
+  display: flex;
+  flex-direction: column;
+  gap: calc(10px * var(--s));
+}
+
+.online-room-code {
+  text-align: center;
+  font-size: calc(38px * var(--s));
+  font-weight: 800;
+  letter-spacing: calc(10px * var(--s));
+  color: var(--blue-700);
+  direction: ltr;
+}
+
+.online-players {
+  display: flex;
+  flex-direction: column;
+  gap: calc(8px * var(--s));
+}
+
+.online-player-row {
+  display: flex;
+  align-items: center;
+  gap: calc(10px * var(--s));
+  justify-content: space-between;
+  background: var(--surface-soft);
+  border-radius: calc(12px * var(--s));
+  padding: calc(10px * var(--s)) calc(12px * var(--s));
+  border-right: calc(4px * var(--s)) solid var(--gray-absent);
+}
+
+.online-player-row.clickable {
+  cursor: pointer;
+}
+
+.online-player-name {
+  font-weight: 700;
+  color: var(--ink);
+  flex: 1;
+}
+
+.online-team-badge {
+  font-size: calc(12px * var(--s));
+  font-weight: 700;
+  color: var(--white-fixed);
+  background: var(--blue-700);
+  border-radius: calc(999px * var(--s));
+  padding: calc(4px * var(--s)) calc(10px * var(--s));
+  white-space: nowrap;
+}
+
+.online-team-badge.none {
+  background: var(--gray-absent);
+}
+
+.online-offline-dot {
+  font-size: calc(11px * var(--s));
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.online-team-pick {
+  border-width: calc(3px * var(--s));
+  font-weight: 800;
+}
+
+.online-team-pick.selected {
+  background: var(--blue-700);
+  color: var(--white-fixed);
+  border-color: var(--blue-700);
+}
+
+.online-turn-note {
+  text-align: center;
+  font-weight: 800;
+  font-size: calc(14px * var(--s));
+  margin: 0;
+  padding: calc(6px * var(--s)) calc(10px * var(--s));
+  border-radius: calc(999px * var(--s));
+}
+
+.online-turn-note.mine {
+  color: var(--white-fixed);
+  background: var(--green);
+}
+
+.online-turn-note.watching {
+  color: var(--muted);
+  background: var(--surface-soft);
+}
+
+/* ===== فئة حصرية (ذهبية) + البوق + مؤقّت الجولة ===== */
+:root {
+  --gold: #b8862b;
+  --gold-soft: #fdf3dc;
+}
+
+:root[data-theme="dark"] {
+  --gold: #e0b354;
+  --gold-soft: #3a2f16;
+}
+
+.category-chip.exclusive {
+  border-color: var(--gold);
+  color: var(--gold);
+  font-weight: 800;
+  background: var(--gold-soft);
+}
+
+.category-chip.exclusive:has(input:checked) {
+  background: var(--gold);
+  color: var(--white-fixed);
+}
+
+.round-time-select {
+  font-family: inherit;
+  /* ١٦ مو ١٥: الزوم صار مسموح، وسفاري يكبّر الصفحة لحاله لما تنضغط أي خانة
+     كتابة أو قائمة خطها أصغر من ١٦ */
+  font-size: calc(16px * var(--s));
+  font-weight: 700;
+  padding: calc(10px * var(--s)) calc(12px * var(--s));
+  /* مساحة لسهم القائمة على اليسار (نهاية السطر بالعربي) */
+  padding-left: calc(34px * var(--s));
+  border-radius: calc(12px * var(--s));
+  border: 2px solid var(--border-soft);
+  color: var(--ink);
+  width: 100%;
+  /* سفاري بالآيفون كان يرسم القائمة فاضية — ما يبين فيها الاختيار إطلاقاً، لأنه
+     يعتمد على رسم النظام للعنصر مع ستايل مخصص. نلغي مظهر النظام ونرسم النص
+     والسهم بأنفسنا، فالاختيار يبين بنفس الشكل على كل المتصفحات */
+  -webkit-appearance: none;
+  appearance: none;
+  background-color: var(--white);
+  background-image: var(--select-arrow);
+  background-repeat: no-repeat;
+  background-position: left calc(12px * var(--s)) center;
+  background-size: calc(12px * var(--s)) calc(8px * var(--s));
+}
+
+.round-timer {
+  text-align: center;
+  font-weight: 800;
+  font-size: calc(20px * var(--s));
+  color: var(--blue-700);
+  letter-spacing: 1px;
+  direction: ltr;
+  margin: 0;
+}
+
+.round-timer.low {
+  color: var(--red);
+}
+
+.boq-btn {
+  background: var(--gold);
+  color: var(--white-fixed);
+  font-size: calc(14px * var(--s));
+  padding: calc(8px * var(--s)) calc(14px * var(--s));
+  align-self: center;
+}
+
+.steal-note {
+  text-align: center;
+  font-weight: 800;
+  font-size: calc(14px * var(--s));
+  margin: 0;
+  padding: calc(6px * var(--s)) calc(10px * var(--s));
+  border-radius: calc(999px * var(--s));
+  background: var(--gold);
+  color: var(--white-fixed);
+}
+
+.wordle-row.steal .wordle-tile {
+  border-color: var(--gold);
+}
+
+.round-time-custom {
+  font-family: inherit;
+  font-size: calc(16px * var(--s));
+  font-weight: 700;
+  padding: calc(10px * var(--s)) calc(12px * var(--s));
+  border-radius: calc(12px * var(--s));
+  border: 2px solid var(--border-soft);
+  background: var(--white);
+  color: var(--ink);
+  width: 100%;
+  text-align: center;
+}
+
+.round-time-custom:focus {
+  outline: none;
+  border-color: var(--blue-600);
+}
+
+.round-time-hint {
+  font-size: calc(12px * var(--s));
+  margin: -6px 0 0;
+}
+
+
+/* ===== التجربة التوجيهية =====
+   ترث شكل نافذة "طريقة اللعب" (.howto-*) وتضيف ما تحتاجه: شبكة وكيبورد مصغّرين.
+   الكيبورد هني أضيق من كيبورد اللعب لأن النافذة أضيق من الشاشة */
+.tutorial-body {
+  align-items: center;
+  gap: calc(12px * var(--s));
+}
+
+.tutorial-say {
+  text-align: center;
+  font-weight: 700;
+  min-height: 3.4em; /* يثبّت ارتفاع النافذة فما تنطّ بين الخطوات */
+}
+
+.tutorial-grid {
+  gap: calc(6px * var(--s));
+}
+
+.tutorial-grid .wordle-tile {
+  width: calc(44px * var(--s));
+  height: calc(44px * var(--s));
+  font-size: calc(22px * var(--s));
+}
+
+.tutorial-note {
+  width: 100%;
+  background: var(--surface-soft);
+  border: 1px solid var(--border-soft);
+  border-radius: calc(12px * var(--s));
+  padding: calc(12px * var(--s)) calc(14px * var(--s));
+  display: flex;
+  flex-direction: column;
+  gap: calc(8px * var(--s));
+}
+
+.tutorial-note p {
+  margin: 0;
+  line-height: 1.7;
+}
+
+/* سطر شرح لون: الخانة الملوّنة والنص بسطر واحد */
+.tutorial-legend-row {
+  display: flex;
+  align-items: center;
+  gap: calc(10px * var(--s));
+  line-height: 1.6;
+}
+
+.tutorial-legend-tile {
+  flex-shrink: 0;
+  width: calc(30px * var(--s));
+  height: calc(30px * var(--s));
+}
+
+.tutorial-note.warn {
+  border-color: var(--red);
+  color: var(--red);
+  font-weight: 700;
+}
+
+.tutorial-keyboard {
+  width: 100%;
+  gap: calc(5px * var(--s));
+}
+
+.tutorial-keyboard .key {
+  font-size: calc(14px * var(--s));
+  padding: calc(8px * var(--s)) 0;
+  min-width: 0;
+}
+
+@media (max-width: 400px) {
+  .tutorial-grid .wordle-tile {
+    width: calc(38px * var(--s));
+    height: calc(38px * var(--s));
+    font-size: calc(19px * var(--s));
+  }
+
+  .tutorial-keyboard .key {
+    font-size: calc(12px * var(--s));
+    padding: calc(6px * var(--s)) 0;
+  }
+}
+
+/* ===== نافذة منبثقة صغيرة =====
+   ملحقة بـbody بموضع fixed عمداً: .wordle-info فيه overflow-y:auto
+   و#wordle-play-screen فيه overflow:hidden، فأي شي بموضع مطلق جوّاهم ينقص */
+.kw-popover {
+  position: fixed;
+  z-index: 1002;
+  max-width: min(calc(320px * var(--s)), calc(100vw - calc(16px * var(--s))));
+  background: var(--white);
+  border: 2px solid var(--border-soft);
+  border-radius: calc(14px * var(--s));
+  box-shadow: var(--shadow);
+  padding: calc(10px * var(--s));
+  display: flex;
+  flex-direction: column;
+  gap: calc(8px * var(--s));
+}
+
+.kw-popover-title {
+  margin: 0;
+  font-size: calc(12px * var(--s));
+  font-weight: 800;
+  color: var(--muted);
+  text-align: center;
+}
+
+/* سجل التلميحات داخل النافذة: العرض مضمون هني فالنص ما ينضغط، والصناديق ترجع
+   بحجمها الطبيعي بدل ما تنكمش عشان توفّر مكاناً */
+.kw-popover #wordle-hint-log,
+.kw-popover #online-hint-log {
+  max-height: min(calc(240px * var(--s)), 40vh);
+}
+
+.kw-popover .hint-box {
+  font-size: calc(13px * var(--s));
+  padding: calc(8px * var(--s)) calc(12px * var(--s));
+}
+
+/* زر فتح سجل التلميحات — يقعد بصف البوق، ومخفي لين ينوجد تلميح */
+.hintlog-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(5px * var(--s));
+}
+
+.hintlog-btn[aria-expanded="true"] {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+/* حبّة «+٧» صارت زراً — نرجّع شكل الحبّة اللي ياخذه الزر من المتصفح */
+button.cat-pill {
+  font-family: inherit;
+  cursor: pointer;
+  line-height: inherit;
+}
+
+button.cat-pill.more:hover {
+  border-style: solid;
+  color: var(--blue-700);
+}
+
+.boq-slot {
+  gap: calc(6px * var(--s));
+  flex-wrap: wrap;
+}
+
+/* عدّاد «اكشف حرف»: اللاعب لازم يعرف إن عنده مرتين بس، وقبل هذا ما كنا نكتب
+   الباقي لأن أي حرفين زيادة يلفّون صف المساعدات على ٣٧٥ بكسل. الحل رقم بخط
+   أصغر داخل حبّة ضيّقة — يوصّل المعلومة بأقل عرض ممكن، والهامش مقيس */
+.ability-btn .uses-left {
+  display: inline-block;
+  min-width: 1.05em;
+  padding: 0 0.15em;
+  margin-inline-start: 0.1em;
+  border-radius: calc(999px * var(--s));
+  background: rgba(6, 38, 74, 0.12);
+  font-size: 0.78em;
+  font-weight: 700;
+  line-height: 1.25;
+  text-align: center;
+}
+.ability-btn:disabled .uses-left {
+  opacity: 0.55;
+}
+
+/* أدوات الخصم: نفس حبّة العدّاد على الزر الذهبي. والخلفية فاتحة مو كحلية لأن
+   الزر نفسه ملوّن */
+.boq-btn .uses-left {
+  display: inline-block;
+  min-width: 1.1em;
+  padding: 0 0.2em;
+  margin-inline-start: 0.2em;
+  border-radius: calc(999px * var(--s));
+  background: rgba(255, 255, 255, 0.28);
+  font-size: 0.82em;
+  /* ‎١٫٢٥ مثل حبّة المساعدات كبّرت الزر ‎٠٫٣ بكسل وأكلت من الشبكة — الهامش صفر */
+  line-height: 1.1;
+  text-align: center;
+}
+
+/* «غيّر السؤال» كحلي عشان ما يلتبس بالبوق الذهبي جنبه — الاثنين للخصم بس
+   أثرهم مختلف تماماً */
+.change-btn {
+  background: var(--blue-700);
+}

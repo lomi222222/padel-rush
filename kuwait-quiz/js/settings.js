@@ -1,0 +1,78 @@
+// حفظ إعدادات آخر مباراة (عدد الجولات، مدة الجولة، عدد البوق) محلياً على
+// الجهاز — تُقرأ عند فتح شاشة الإعداد وتُكتب لما المباراة تبدأ فعلياً. يشترك فيه
+// الوضعان المحلي والأونلاين (بالأونلاين: الهوست بس هو اللي يقرأ/يكتب).
+(function () {
+  "use strict";
+
+  function safeGet(key) {
+    try {
+      return localStorage.getItem(key);
+    } catch (e) {
+      return null; // وضع خاص أو ممنوع
+    }
+  }
+  function safeSet(key, value) {
+    try {
+      localStorage.setItem(key, value);
+    } catch (e) {
+      /* نتجاهل */
+    }
+  }
+
+  const KEYS = {
+    rounds: "kw-settings-rounds",
+    timeValue: "kw-settings-time-value",
+    timeCustomMinutes: "kw-settings-time-custom-minutes",
+    boq: "kw-settings-boq",
+    tutorialSeen: "kw-tutorial-seen",
+  };
+
+  // التجربة التوجيهية تطلع أول زيارة بس. لو localStorage مقفول (تصفح خاص) نرجّع
+  // false دايماً — تطلع كل مرة، وهذا أهون من إنها ما تطلع أبداً للاعب الجديد
+  function tutorialSeen() {
+    return safeGet(KEYS.tutorialSeen) === "1";
+  }
+  function markTutorialSeen() {
+    safeSet(KEYS.tutorialSeen, "1");
+  }
+
+  function loadRoundCount(validOptions, fallback) {
+    const saved = Number(safeGet(KEYS.rounds));
+    return validOptions.includes(saved) ? saved : fallback;
+  }
+  function saveRoundCount(n) {
+    safeSet(KEYS.rounds, String(n));
+  }
+
+  // اختيار عدد البوق: إما "auto" أو رقم كنص — نخزّنه كما هو ونتحقق منه عند
+  // القراءة، فأي قيمة قديمة أو مخربطة ترجع للتلقائي بدل ما تكسر البداية
+  function loadBoqCount(validValues, fallback) {
+    const saved = safeGet(KEYS.boq);
+    return validValues.includes(saved) ? saved : fallback;
+  }
+  function saveBoqCount(value) {
+    safeSet(KEYS.boq, String(value));
+  }
+
+  // value: نص قيمة <option> المختار. customMinutes: الرقم بالحقل المخصص لو استُخدم
+  function loadRoundTime() {
+    return { value: safeGet(KEYS.timeValue), customMinutes: safeGet(KEYS.timeCustomMinutes) };
+  }
+  function saveRoundTime(value, customMinutes) {
+    safeSet(KEYS.timeValue, String(value));
+    safeSet(KEYS.timeCustomMinutes, customMinutes != null ? String(customMinutes) : "");
+  }
+
+  // نتجاهل أي اسم فئة محفوظ ما عاد موجود بالبنك (فئة انحذفت أو تغيّر اسمها)
+
+  window.WordleSettings = {
+    loadRoundCount,
+    saveRoundCount,
+    loadBoqCount,
+    saveBoqCount,
+    loadRoundTime,
+    saveRoundTime,
+    tutorialSeen,
+    markTutorialSeen,
+  };
+})();
