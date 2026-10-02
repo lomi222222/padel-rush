@@ -1,6 +1,11 @@
 @import url("https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap");
 
 :root {
+  /* معامل التكبير: كل بكسل بالملف مضروب فيه. واجهة وحدة لكل الأجهزة تتمدد مع
+     الشاشة بدل بلوكات خاصة لكل جهاز (طلب صاحب المشروع). يحطه applyScale بـ
+     js/wordle-view.js، وحدّه الأدنى ١ ⇒ الجوال يظل بالبكسل نفسه، وكل قيود التخطيط
+     مقاسة عليه. الصفحات اللي ما تحمّل wordle-view.js تظل على ١ */
+  --s: 1;
   --navy: #06264a;
   --navy-fixed: #06264a;
   --white-fixed: #ffffff;
@@ -18,8 +23,8 @@
   --red: #dc2626;
   --yellow: #eab308;
   --gray-absent: #7b8a9a;
-  --radius: 16px;
-  --shadow: 0 10px 30px rgba(6, 38, 74, 0.15);
+  --radius: calc(16px * var(--s));
+  --shadow: 0 calc(10px * var(--s)) calc(30px * var(--s)) rgba(6, 38, 74, 0.15);
   --body-bg-end: #ffffff;
   /* دافئ-كويتي: الهيرو وبطاقات القائمة بالرئيسية */
   --sand: #fbf4e6;
@@ -48,7 +53,7 @@
   --muted: #9fb3ca;
   --navy: #eaf1fb;
   --body-bg-end: #0a1626;
-  --shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  --shadow: 0 calc(10px * var(--s)) calc(30px * var(--s)) rgba(0, 0, 0, 0.4);
   --sand: #201a12;
   --sand-deep: #16120c;
   --sand-line: rgba(224, 179, 84, 0.3);
@@ -85,6 +90,10 @@ body {
      اللي تمنعه يتكبّر بالغلط مع كل ضغطتين ورا بعض */
   touch-action: manipulation;
   -webkit-text-size-adjust: 100%;
+  /* الخط الافتراضي (١٦ حق المتصفح) يكبر مع المعامل مثل باقي البكسلات — بدونه
+     العناوين والنصوص اللي ما لها حجم صريح (h2 ونص الإعداد) تقعد بحجم الجوال
+     على التلفزيون */
+  font-size: calc(16px * var(--s));
 }
 
 a {
@@ -98,25 +107,25 @@ a {
   flex: 1;
   min-height: 0;
   width: 100%;
-  max-width: 1100px;
+  max-width: calc(1100px * var(--s));
   margin: 0 auto;
-  padding: 14px 16px;
-  padding-inline-start: max(16px, var(--safe-right));
-  padding-inline-end: max(16px, var(--safe-left));
-  padding-bottom: max(14px, var(--safe-bottom));
+  padding: calc(14px * var(--s)) calc(16px * var(--s));
+  padding-inline-start: max(calc(16px * var(--s)), var(--safe-right));
+  padding-inline-end: max(calc(16px * var(--s)), var(--safe-left));
+  padding-bottom: max(calc(14px * var(--s)), var(--safe-bottom));
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: calc(14px * var(--s));
   overflow: hidden;
 }
 
 @media (max-width: 400px) {
   .page {
-    padding: 10px;
-    padding-inline-start: max(10px, var(--safe-right));
-    padding-inline-end: max(10px, var(--safe-left));
-    padding-bottom: max(10px, var(--safe-bottom));
-    gap: 10px;
+    padding: calc(10px * var(--s));
+    padding-inline-start: max(calc(10px * var(--s)), var(--safe-right));
+    padding-inline-end: max(calc(10px * var(--s)), var(--safe-left));
+    padding-bottom: max(calc(10px * var(--s)), var(--safe-bottom));
+    gap: calc(10px * var(--s));
   }
 }
 
@@ -144,8 +153,8 @@ a {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 14px 18px;
+  gap: calc(12px * var(--s));
+  padding: calc(14px * var(--s)) calc(18px * var(--s));
   background: var(--navy-fixed);
   color: var(--white-fixed);
   border-radius: var(--radius);
@@ -156,7 +165,7 @@ a {
 
 .topbar h1 {
   margin: 0;
-  font-size: clamp(18px, 2.6vw, 24px);
+  font-size: clamp(calc(18px * var(--s)), 2.6vw, calc(24px * var(--s)));
   font-weight: 800;
 }
 
@@ -164,11 +173,11 @@ a {
   background: rgba(255, 255, 255, 0.12);
   border: 1px solid rgba(255, 255, 255, 0.35);
   color: var(--white-fixed);
-  padding: 8px 16px;
-  border-radius: 999px;
+  padding: calc(8px * var(--s)) calc(16px * var(--s));
+  border-radius: calc(999px * var(--s));
   text-decoration: none;
   font-weight: 700;
-  font-size: 14px;
+  font-size: calc(14px * var(--s));
   white-space: nowrap;
 }
 
@@ -182,10 +191,10 @@ a {
   background: rgba(255, 255, 255, 0.12);
   border: 1px solid rgba(255, 255, 255, 0.35);
   color: var(--white-fixed);
-  padding: 8px 16px;
-  border-radius: 999px;
+  padding: calc(8px * var(--s)) calc(16px * var(--s));
+  border-radius: calc(999px * var(--s));
   font-weight: 700;
-  font-size: 14px;
+  font-size: calc(14px * var(--s));
   white-space: nowrap;
   cursor: pointer;
   font-family: inherit;
@@ -201,7 +210,7 @@ a {
   height: 0.95em;
   width: auto;
   vertical-align: -0.15em;
-  margin-inline-end: 5px;
+  margin-inline-end: calc(5px * var(--s));
 }
 
 /* ===== أيقونات الواجهة =====
@@ -225,15 +234,15 @@ a {
 /* ===== Theme toggle ===== */
 .theme-toggle-btn {
   position: fixed;
-  top: max(14px, var(--safe-top));
-  left: max(14px, var(--safe-left));
+  top: max(calc(14px * var(--s)), var(--safe-top));
+  left: max(calc(14px * var(--s)), var(--safe-left));
   z-index: 999;
-  width: 42px;
-  height: 42px;
+  width: calc(42px * var(--s));
+  height: calc(42px * var(--s));
   border-radius: 50%;
   border: 2px solid var(--border-soft);
   background: var(--white);
-  font-size: 18px;
+  font-size: calc(18px * var(--s));
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -248,18 +257,18 @@ a {
 
 @media (max-width: 400px) {
   .theme-toggle-btn {
-    width: 36px;
-    height: 36px;
-    font-size: 15px;
-    top: max(10px, var(--safe-top));
-    left: max(10px, var(--safe-left));
+    width: calc(36px * var(--s));
+    height: calc(36px * var(--s));
+    font-size: calc(15px * var(--s));
+    top: max(calc(10px * var(--s)), var(--safe-top));
+    left: max(calc(10px * var(--s)), var(--safe-left));
   }
 }
 
 .topbar-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: calc(8px * var(--s));
 }
 
 /* .howto-btn (زر "طريقة اللعب") يشارك نفس المقاس والشكل — يحمل class="theme-toggle-btn
@@ -267,8 +276,8 @@ a {
 .theme-toggle-inline,
 .howto-btn {
   position: static;
-  width: 38px;
-  height: 38px;
+  width: calc(38px * var(--s));
+  height: calc(38px * var(--s));
   border: 1px solid rgba(255, 255, 255, 0.35);
   background: rgba(255, 255, 255, 0.12);
   color: var(--white-fixed);
@@ -284,8 +293,8 @@ a {
 @media (max-width: 400px) {
   .theme-toggle-inline,
   .howto-btn {
-    width: 34px;
-    height: 34px;
+    width: calc(34px * var(--s));
+    height: calc(34px * var(--s));
   }
 }
 
@@ -296,22 +305,22 @@ a {
   /* الحد الذهبي الشفاف ينرسم كظل داخلي — البطاقة تستخدمها شاشة اللعب بعد،
      وحد حقيقي كان بيزيد بكسلين على كل بطاقة */
   box-shadow: var(--shadow), inset 0 0 0 1px var(--sand-line);
-  padding: 24px;
+  padding: calc(24px * var(--s));
 }
 
 @media (max-width: 400px) {
   .card {
-    padding: 14px;
+    padding: calc(14px * var(--s));
   }
 }
 
 .btn {
   font-family: inherit;
   font-weight: 700;
-  font-size: 16px;
+  font-size: calc(16px * var(--s));
   border: none;
-  border-radius: 12px;
-  padding: 12px 22px;
+  border-radius: calc(12px * var(--s));
+  padding: calc(12px * var(--s)) calc(22px * var(--s));
   cursor: pointer;
   transition: transform 0.08s ease, opacity 0.15s ease, box-shadow 0.15s ease;
   /* بعض الأزرار روابط <a> — نشيل خط التسطير ونخلي النص بالنص */
@@ -332,7 +341,7 @@ a {
 .btn-primary {
   background: var(--blue-700);
   color: var(--white-fixed);
-  box-shadow: 0 6px 16px rgba(18, 83, 159, 0.35);
+  box-shadow: 0 calc(6px * var(--s)) calc(16px * var(--s)) rgba(18, 83, 159, 0.35);
 }
 
 .btn-primary:hover:not(:disabled) {
@@ -373,9 +382,9 @@ a {
 
 input[type="text"] {
   font-family: inherit;
-  font-size: 16px;
-  padding: 12px 14px;
-  border-radius: 10px;
+  font-size: calc(16px * var(--s));
+  padding: calc(12px * var(--s)) calc(14px * var(--s));
+  border-radius: calc(10px * var(--s));
   border: 2px solid var(--border-soft);
   background: var(--white);
   color: var(--ink);
@@ -404,7 +413,7 @@ body.home-page .page {
 .hero {
   position: relative;
   text-align: center;
-  padding: 42px 16px 18px;
+  padding: calc(42px * var(--s)) calc(16px * var(--s)) calc(18px * var(--s));
   overflow: hidden;
 }
 
@@ -412,8 +421,8 @@ body.home-page .page {
    صغير على الجوال (زاوية بس، مو يسيطر على العرض الضيق) وأكبر على الشاشات الواسعة */
 .hero-motif {
   position: absolute;
-  width: 110px;
-  height: 32px;
+  width: calc(110px * var(--s));
+  height: calc(32px * var(--s));
   color: var(--gold);
   opacity: 0.3;
   pointer-events: none;
@@ -424,7 +433,7 @@ body.home-page .page {
 }
 
 .hero-motif--tr {
-  top: 4px;
+  top: calc(4px * var(--s));
   inset-inline-end: -16px;
 }
 
@@ -434,12 +443,12 @@ body.home-page .page {
 
 @media (min-width: 600px) {
   .hero-motif {
-    width: 200px;
-    height: 58px;
+    width: calc(200px * var(--s));
+    height: calc(58px * var(--s));
   }
 
   .hero-motif--tr {
-    top: 6px;
+    top: calc(6px * var(--s));
     inset-inline-end: -26px;
   }
 
@@ -464,9 +473,9 @@ body.home-page .page {
    مطابق تماماً للي كان لما كان <span> — الفرق إنه صار قابل للضغط */
 .brand-tiles {
   display: flex;
-  gap: clamp(4px, 1.2vw, 8px);
+  gap: clamp(calc(4px * var(--s)), 1.2vw, calc(8px * var(--s)));
   /* منظور خفيف عشان انقلاب الخانات يبين مجسّم مو مجرد تصغير عمودي */
-  perspective: 600px;
+  perspective: calc(600px * var(--s));
   background: none;
   border: 0;
   padding: 0;
@@ -478,22 +487,22 @@ body.home-page .page {
 }
 
 .brand-tiles:focus-visible {
-  outline: 3px solid var(--gold);
-  outline-offset: 6px;
-  border-radius: 14px;
+  outline: calc(3px * var(--s)) solid var(--gold);
+  outline-offset: calc(6px * var(--s));
+  border-radius: calc(14px * var(--s));
 }
 
 .brand-tile {
-  width: clamp(42px, 11vw, 62px);
-  height: clamp(42px, 11vw, 62px);
+  width: clamp(calc(42px * var(--s)), 11vw, calc(62px * var(--s)));
+  height: clamp(calc(42px * var(--s)), 11vw, calc(62px * var(--s)));
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 3px solid var(--navy);
-  border-radius: 10px;
+  border: calc(3px * var(--s)) solid var(--navy);
+  border-radius: calc(10px * var(--s));
   background: var(--white);
   color: var(--navy);
-  font-size: clamp(22px, 5.8vw, 32px);
+  font-size: clamp(calc(22px * var(--s)), 5.8vw, calc(32px * var(--s)));
   font-weight: 800;
   line-height: 1;
   /* الخانة تعوّض نزول الحروف العربية شوي عشان الحرف يقعد بالنص بصرياً */
@@ -506,7 +515,7 @@ body.home-page .page {
 }
 
 .hero h1 {
-  font-size: clamp(30px, 5vw, 46px);
+  font-size: clamp(calc(30px * var(--s)), 5vw, calc(46px * var(--s)));
   margin: 0;
 }
 
@@ -551,16 +560,16 @@ body.home-page .page {
 }
 
 .hero-rule {
-  width: 84px;
-  height: 3px;
-  margin: 14px auto 16px;
-  border-radius: 999px;
+  width: calc(84px * var(--s));
+  height: calc(3px * var(--s));
+  margin: calc(14px * var(--s)) auto calc(16px * var(--s));
+  border-radius: calc(999px * var(--s));
   background: var(--gold);
 }
 
 .hero p {
   color: var(--muted);
-  font-size: 18px;
+  font-size: calc(18px * var(--s));
   margin: 0;
   position: relative;
 }
@@ -568,7 +577,7 @@ body.home-page .page {
 .menu-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 20px;
+  gap: calc(20px * var(--s));
 }
 
 @media (max-width: 720px) {
@@ -579,9 +588,9 @@ body.home-page .page {
 
 .menu-card {
   background: var(--white);
-  border-radius: 20px;
+  border-radius: calc(20px * var(--s));
   box-shadow: var(--shadow);
-  padding: 30px 24px;
+  padding: calc(30px * var(--s)) calc(24px * var(--s));
   text-align: center;
   text-decoration: none;
   color: var(--ink);
@@ -590,27 +599,27 @@ body.home-page .page {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
+  gap: calc(12px * var(--s));
 }
 
 .menu-card:hover {
   border-color: var(--gold);
   transform: translateY(-4px);
-  box-shadow: 0 16px 36px rgba(6, 38, 74, 0.18);
+  box-shadow: 0 calc(16px * var(--s)) calc(36px * var(--s)) rgba(6, 38, 74, 0.18);
 }
 
 .menu-icon {
-  width: 64px;
-  height: 64px;
-  border-radius: 18px;
+  width: calc(64px * var(--s));
+  height: calc(64px * var(--s));
+  border-radius: calc(18px * var(--s));
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .menu-icon svg {
-  width: 30px;
-  height: 30px;
+  width: calc(30px * var(--s));
+  height: calc(30px * var(--s));
 }
 
 .menu-icon--navy {
@@ -626,14 +635,14 @@ body.home-page .page {
 .menu-card h2 {
   margin: 0;
   color: var(--navy);
-  font-size: 24px;
+  font-size: calc(24px * var(--s));
   font-weight: 800;
 }
 
 .menu-card p {
   margin: 0;
   color: var(--muted);
-  font-size: 15px;
+  font-size: calc(15px * var(--s));
   line-height: 1.6;
 }
 
@@ -651,19 +660,19 @@ body.home-page .page {
 .team-setup-list {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: calc(14px * var(--s));
 }
 
 .team-setup-row {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: calc(12px * var(--s));
 }
 
 .team-swatch {
-  width: 20px;
-  height: 20px;
-  border-radius: 6px;
+  width: calc(20px * var(--s));
+  height: calc(20px * var(--s));
+  border-radius: calc(6px * var(--s));
   flex-shrink: 0;
 }
 
@@ -673,16 +682,16 @@ body.home-page .page {
 .scoreboard {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  gap: calc(10px * var(--s));
 }
 
 .team-chip {
-  border-radius: 14px;
-  padding: 12px 14px;
+  border-radius: calc(14px * var(--s));
+  padding: calc(12px * var(--s)) calc(14px * var(--s));
   color: var(--white-fixed);
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: calc(4px * var(--s));
   box-shadow: var(--shadow);
   position: relative;
 }
@@ -690,35 +699,35 @@ body.home-page .page {
 .team-chip.current {
   /* ذهبي مو أصفر: الأصفر معناه محجوز داخل اللعبة ("الحرف بمكان آخر")، فاستخدامه
      هني كان يخلي اللون الواحد يحمل معنيين بنفس الشاشة */
-  outline: 3px solid var(--gold);
+  outline: calc(3px * var(--s)) solid var(--gold);
   outline-offset: 2px;
 }
 
 .team-chip .name {
   font-weight: 800;
-  font-size: 15px;
+  font-size: calc(15px * var(--s));
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .team-chip .score {
-  font-size: 22px;
+  font-size: calc(22px * var(--s));
   font-weight: 800;
 }
 
 .team-chip .abilities {
   display: flex;
-  gap: 4px;
-  margin-top: 4px;
+  gap: calc(4px * var(--s));
+  margin-top: calc(4px * var(--s));
 }
 
 /* أزرار ±٢٥ مخفية افتراضياً: حالة نادرة (تصحيح يدوي) وظهورها الدائم كان يربك
    اللاعب الجديد ويوسّع حبّات الفرق. زر القلم يحط كلاس editing على اللوحة */
 .score-adjust-row {
   display: none;
-  gap: 6px;
-  margin-top: 4px;
+  gap: calc(6px * var(--s));
+  margin-top: calc(4px * var(--s));
 }
 
 .scoreboard.editing .score-adjust-row {
@@ -727,8 +736,8 @@ body.home-page .page {
 
 .score-edit-btn {
   flex-shrink: 0;
-  width: 36px;
-  height: 36px;
+  width: calc(36px * var(--s));
+  height: calc(36px * var(--s));
   border-radius: 50%;
   border: 2px solid var(--border-soft);
   background: var(--white);
@@ -756,11 +765,11 @@ body.home-page .page {
   background: rgba(255, 255, 255, 0.15);
   border: 1px solid rgba(255, 255, 255, 0.4);
   color: var(--white-fixed);
-  border-radius: 8px;
-  padding: 4px 0;
+  border-radius: calc(8px * var(--s));
+  padding: calc(4px * var(--s)) 0;
   font-family: inherit;
   font-weight: 700;
-  font-size: 12px;
+  font-size: calc(12px * var(--s));
   cursor: pointer;
 }
 .score-adjust-btn:hover {
@@ -769,8 +778,8 @@ body.home-page .page {
 
 .hint-box {
   background: var(--surface-soft);
-  border-radius: 10px;
-  padding: 10px 14px;
+  border-radius: calc(10px * var(--s));
+  padding: calc(10px * var(--s)) calc(14px * var(--s));
   text-align: center;
   font-weight: 700;
   color: var(--navy);
@@ -781,30 +790,30 @@ body.home-page .page {
 .abilities-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: calc(8px * var(--s));
   justify-content: center;
 }
 
 .category-chip {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: calc(6px * var(--s));
   background: var(--white);
   border: 2px solid var(--border-soft);
   color: var(--navy);
-  border-radius: 999px;
-  padding: 8px 14px;
+  border-radius: calc(999px * var(--s));
+  padding: calc(8px * var(--s)) calc(14px * var(--s));
   font-family: inherit;
   font-weight: 700;
-  font-size: 13px;
+  font-size: calc(13px * var(--s));
   cursor: pointer;
   user-select: none;
 }
 
 .category-chip input[type="checkbox"] {
   accent-color: var(--blue-700);
-  width: 16px;
-  height: 16px;
+  width: calc(16px * var(--s));
+  height: calc(16px * var(--s));
   cursor: pointer;
 }
 
@@ -821,7 +830,7 @@ body.home-page .page {
 #online-category-list {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
+  gap: calc(8px * var(--s));
 }
 
 #wordle-category-list .category-chip,
@@ -831,7 +840,7 @@ body.home-page .page {
   gap: 0;
   padding: 0;
   overflow: hidden;
-  border-radius: 14px;
+  border-radius: calc(14px * var(--s));
   /* غير المختارة رمادية وباهتة — الملوّن = مختار. الفرق لازم يبان من نظرة وحدة
      لأن الاختيار متعدد، والبهتان لحاله ما كان يكفي مع رسومات ملوّنة */
   opacity: 0.6;
@@ -866,7 +875,7 @@ body.home-page .page {
   align-items: center;
   justify-content: center;
   width: 100%;
-  padding: 7px 0 4px;
+  padding: calc(7px * var(--s)) 0 calc(4px * var(--s));
   /* لون الشريط بمتغيّر عشان فتحات الرسمة (ca-knock) تاخذ نفس اللون — لو تغيّر
      الشريط لحاله تطلع الفتحات بقع بلون ثاني */
   --art-band: var(--surface-soft);
@@ -896,7 +905,7 @@ body.home-page .page {
 #online-category-list .category-chip.exclusive .cat-art {
   --art-band: var(--gold-soft);
   width: auto;
-  padding: 6px 18px;
+  padding: calc(6px * var(--s)) calc(18px * var(--s));
 }
 
 #wordle-category-list .category-chip.exclusive .cat-name,
@@ -907,8 +916,8 @@ body.home-page .page {
   align-items: flex-start;
   flex: 1;
   width: auto;
-  padding: 6px 14px;
-  font-size: 15px;
+  padding: calc(6px * var(--s)) calc(14px * var(--s));
+  font-size: calc(15px * var(--s));
   font-weight: 800;
   text-align: start;
   border-top: 0;
@@ -918,7 +927,7 @@ body.home-page .page {
 #wordle-category-list .category-chip.exclusive .cat-name::after,
 #online-category-list .category-chip.exclusive .cat-name::after {
   content: "تنلعب لحالها — ما تنخلط مع غيرها";
-  font-size: 11px;
+  font-size: calc(11px * var(--s));
   font-weight: 600;
   opacity: 0.85;
 }
@@ -941,8 +950,8 @@ body.home-page .page {
 #wordle-category-list .ca-svg,
 #online-category-list .ca-svg {
   display: block;
-  width: 44px;
-  height: 44px;
+  width: calc(44px * var(--s));
+  height: calc(44px * var(--s));
   overflow: visible;
 }
 
@@ -960,10 +969,10 @@ body.home-page .page {
 #online-category-list .cat-name {
   display: block;
   width: 100%;
-  padding: 5px 4px 6px;
+  padding: calc(5px * var(--s)) calc(4px * var(--s)) calc(6px * var(--s));
   /* ١٣ مو ١١: صاحب المشروع لقاه صغير. أطول اسم «لاعبين كرة قدم» يقعد بسطر
      واحد على ٣٧٥ (مقيس)؛ «سور القرآن الكريم» بالشريط العريض فما يتأثر */
-  font-size: 13px;
+  font-size: calc(13px * var(--s));
   line-height: 1.25;
   text-align: center;
   border-top: 1px solid var(--border-soft);
@@ -975,9 +984,9 @@ body.home-page .page {
 #online-category-list .category-chip:has(input:checked)::after {
   content: "✓";
   position: absolute;
-  top: 3px;
-  inset-inline-end: 5px;
-  font-size: 12px;
+  top: calc(3px * var(--s));
+  inset-inline-end: calc(5px * var(--s));
+  font-size: calc(12px * var(--s));
   font-weight: 900;
   line-height: 1;
   color: var(--gold);
@@ -994,11 +1003,11 @@ body.home-page .page {
   background: var(--white);
   border: 2px solid var(--border-soft);
   color: var(--navy);
-  border-radius: 999px;
-  padding: 8px 16px;
+  border-radius: calc(999px * var(--s));
+  padding: calc(8px * var(--s)) calc(16px * var(--s));
   font-family: inherit;
   font-weight: 700;
-  font-size: 13px;
+  font-size: calc(13px * var(--s));
   cursor: pointer;
 }
 
@@ -1015,39 +1024,39 @@ body.home-page .page {
 @media (max-width: 400px) {
 
   .ability-btn {
-    font-size: 12px;
-    padding: 6px 12px;
+    font-size: calc(12px * var(--s));
+    padding: calc(6px * var(--s)) calc(12px * var(--s));
   }
 }
 
 /* ===== End screen ===== */
 .winner-banner {
   text-align: center;
-  padding: 20px;
-  border-radius: 16px;
+  padding: calc(20px * var(--s));
+  border-radius: calc(16px * var(--s));
   background: linear-gradient(135deg, var(--blue-700), var(--navy-fixed));
   color: var(--white-fixed);
   /* شريط ذهبي علوي — نفس ذهبي الشريط العلوي، وينرسم كظل فما يزيد الارتفاع */
-  box-shadow: inset 0 4px 0 var(--gold);
+  box-shadow: inset 0 calc(4px * var(--s)) 0 var(--gold);
 }
 
 .winner-banner h2 {
-  margin: 0 0 6px;
-  font-size: 28px;
+  margin: 0 0 calc(6px * var(--s));
+  font-size: calc(28px * var(--s));
 }
 
 .final-scores {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: calc(10px * var(--s));
 }
 
 .final-score-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 16px;
-  border-radius: 12px;
+  padding: calc(12px * var(--s)) calc(16px * var(--s));
+  border-radius: calc(12px * var(--s));
   background: var(--surface-soft);
   color: var(--ink);
   font-weight: 800;
@@ -1069,7 +1078,7 @@ body.home-page .page {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 16px;
+  padding: calc(16px * var(--s));
   background: rgba(6, 38, 74, 0.55);
   overflow-y: auto;
 }
@@ -1078,13 +1087,13 @@ body.home-page .page {
   background: var(--white);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
-  max-width: 480px;
+  max-width: calc(480px * var(--s));
   width: 100%;
   max-height: 88vh;
   display: flex;
   flex-direction: column;
-  padding: 20px;
-  gap: 14px;
+  padding: calc(20px * var(--s));
+  gap: calc(14px * var(--s));
 }
 
 .howto-head {
@@ -1095,17 +1104,17 @@ body.home-page .page {
 
 .howto-head h2 {
   margin: 0;
-  font-size: 20px;
+  font-size: calc(20px * var(--s));
 }
 
 .howto-close {
-  width: 32px;
-  height: 32px;
+  width: calc(32px * var(--s));
+  height: calc(32px * var(--s));
   border-radius: 50%;
   border: none;
   background: var(--surface-soft);
   color: var(--ink);
-  font-size: 20px;
+  font-size: calc(20px * var(--s));
   line-height: 1;
   cursor: pointer;
 }
@@ -1114,12 +1123,12 @@ body.home-page .page {
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: calc(16px * var(--s));
 }
 
 .howto-body h3 {
-  margin: 0 0 6px;
-  font-size: 15px;
+  margin: 0 0 calc(6px * var(--s));
+  font-size: calc(15px * var(--s));
   color: var(--gold);
 }
 
@@ -1130,17 +1139,17 @@ body.home-page .page {
 
 .howto-tiles {
   display: flex;
-  gap: 6px;
-  margin-bottom: 8px;
+  gap: calc(6px * var(--s));
+  margin-bottom: calc(8px * var(--s));
 }
 
 .howto-list {
   list-style: none;
-  margin: 0 0 8px;
+  margin: 0 0 calc(8px * var(--s));
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: calc(8px * var(--s));
 }
 
 .howto-ico {
@@ -1162,8 +1171,8 @@ body.home-page .page {
 .confetti-piece {
   position: absolute;
   top: -14px;
-  width: 8px;
-  height: 14px;
+  width: calc(8px * var(--s));
+  height: calc(14px * var(--s));
   border-radius: 2px;
   animation-name: confetti-fall;
   animation-timing-function: linear;
@@ -1179,8 +1188,8 @@ body.home-page .page {
 
 .firework-particle {
   position: absolute;
-  width: 6px;
-  height: 6px;
+  width: calc(6px * var(--s));
+  height: calc(6px * var(--s));
   border-radius: 50%;
   animation-name: firework-burst;
   animation-timing-function: ease-out;
@@ -1212,10 +1221,10 @@ body.home-page .page {
 .wordle-wrap {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: calc(10px * var(--s));
   flex: 1;
   min-height: 0;
-  padding: 12px;
+  padding: calc(12px * var(--s));
   position: relative;
   overflow: hidden;
 }
@@ -1224,10 +1233,10 @@ body.home-page .page {
    (position:absolute) وبلا تفاعل، فما تكلّف ولا بكسل من مساحة الشبكة */
 .wrap-motif {
   position: absolute;
-  bottom: 6px;
-  inset-inline-start: 8px;
-  width: 120px;
-  height: 30px;
+  bottom: calc(6px * var(--s));
+  inset-inline-start: calc(8px * var(--s));
+  width: calc(120px * var(--s));
+  height: calc(30px * var(--s));
   color: var(--gold);
   opacity: 0.09;
   pointer-events: none;
@@ -1244,7 +1253,7 @@ body.home-page .page {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 3px;
+  gap: calc(3px * var(--s));
   width: 100%;
   flex-shrink: 0;
   overflow-y: auto;
@@ -1254,7 +1263,7 @@ body.home-page .page {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: calc(8px * var(--s));
   width: 100%;
   flex-shrink: 0;
 }
@@ -1268,9 +1277,9 @@ body.home-page .page {
 #wordle-hint-log,
 #online-hint-log {
   width: 100%;
-  gap: 5px;
+  gap: calc(5px * var(--s));
   /* يتّسع لثلاث تلميحات (وهي أقصى عدد بالجولة) وبعدها يمرّر داخل نفسه */
-  max-height: 92px;
+  max-height: calc(92px * var(--s));
   overflow-y: auto;
   flex-shrink: 0;
 }
@@ -1284,54 +1293,54 @@ body.home-page .page {
 }
 
 .wordle-info .steal-note {
-  font-size: 11.5px;
+  font-size: calc(11.5px * var(--s));
   line-height: 1.3;
   margin: 0;
 }
 
 /* الثلاثة لازم يقعدون بسطر واحد: السطر الثاني ياكل ~٣٥ بكسل من ارتفاع الشبكة */
 .wordle-info .ability-btn {
-  padding: 5px 7px;
-  font-size: 11px;
+  padding: calc(5px * var(--s)) calc(7px * var(--s));
+  font-size: calc(11px * var(--s));
   border-width: 1px;
 }
 
 .wordle-info #wordle-subtitle,
 .wordle-info #online-subtitle {
-  font-size: 12.5px;
+  font-size: calc(12.5px * var(--s));
   line-height: 1.3;
 }
 
 .wordle-info .boq-btn {
-  padding: 5px 12px;
-  font-size: 13px;
+  padding: calc(5px * var(--s)) calc(12px * var(--s));
+  font-size: calc(13px * var(--s));
 }
 
 .wordle-info .round-timer {
-  font-size: 17px;
+  font-size: calc(17px * var(--s));
 }
 
 .wordle-controls .wordle-message {
   min-height: 0;
-  font-size: 17px;
+  font-size: calc(17px * var(--s));
 }
 
 /* لوحة النتائج فوق شاشة اللعب: مضغوطة عشان ما تاكل ربع الشاشة */
 #wordle-play-screen .team-chip,
 #online-play .team-chip {
-  padding: 7px 10px;
-  border-radius: 11px;
+  padding: calc(7px * var(--s)) calc(10px * var(--s));
+  border-radius: calc(11px * var(--s));
   gap: 2px;
 }
 
 #wordle-play-screen .team-chip .name,
 #online-play .team-chip .name {
-  font-size: 13px;
+  font-size: calc(13px * var(--s));
 }
 
 #wordle-play-screen .team-chip .score,
 #online-play .team-chip .score {
-  font-size: 17px;
+  font-size: calc(17px * var(--s));
 }
 
 .wordle-grid-scroll {
@@ -1357,7 +1366,7 @@ body.home-page .page {
 .score-row {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: calc(10px * var(--s));
   width: 100%;
 }
 
@@ -1372,8 +1381,8 @@ body.home-page .page {
 
 .score-row .btn {
   flex-shrink: 0;
-  padding: 7px 12px;
-  font-size: 12px;
+  padding: calc(7px * var(--s)) calc(12px * var(--s));
+  font-size: calc(12px * var(--s));
 }
 
 /* الفئات المختارة كحبّات ملوّنة بدال سطر "الفئات: كذا، كذا، كذا" */
@@ -1381,7 +1390,7 @@ body.home-page .page {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 5px;
+  gap: calc(5px * var(--s));
   width: 100%;
 }
 
@@ -1389,9 +1398,9 @@ body.home-page .page {
   background: var(--surface-soft);
   color: var(--blue-700);
   border: 1px solid var(--border-soft);
-  border-radius: 999px;
-  padding: 2px 10px;
-  font-size: 11.5px;
+  border-radius: calc(999px * var(--s));
+  padding: 2px calc(10px * var(--s));
+  font-size: calc(11.5px * var(--s));
   font-weight: 700;
   white-space: nowrap;
 }
@@ -1418,7 +1427,7 @@ body.home-page .page {
 .round-line {
   text-align: center;
   color: var(--muted);
-  font-size: 13px;
+  font-size: calc(13px * var(--s));
   font-weight: 700;
   line-height: 1.4;
 }
@@ -1446,28 +1455,28 @@ body.home-page .page {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 5px;
-  font-size: 11px;
+  gap: calc(5px * var(--s));
+  font-size: calc(11px * var(--s));
   line-height: 1.3;
 }
 
 .wordle-legend span {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: calc(5px * var(--s));
   white-space: nowrap;
   background: var(--surface-soft);
   color: var(--muted);
-  border-radius: 999px;
-  padding: 2px 9px;
+  border-radius: calc(999px * var(--s));
+  padding: 2px calc(9px * var(--s));
   font-weight: 700;
 }
 
 .wordle-legend .lg {
-  width: 9px;
-  height: 9px;
+  width: calc(9px * var(--s));
+  height: calc(9px * var(--s));
   /* مربّع صغير مو دائرة: الدليل يشرح خانات الشبكة، فيتكلم بنفس شكلها */
-  border-radius: 3px;
+  border-radius: calc(3px * var(--s));
   display: inline-block;
   flex-shrink: 0;
 }
@@ -1488,27 +1497,27 @@ body.home-page .page {
 .wordle-grid {
   display: flex;
   flex-direction: column;
-  gap: var(--tile-gap, 8px);
+  gap: var(--tile-gap, calc(8px * var(--s)));
   width: max-content;
   margin: 0 auto;
 }
 
 .wordle-row {
   display: flex;
-  gap: var(--tile-gap, 8px);
+  gap: var(--tile-gap, calc(8px * var(--s)));
 }
 
 .wordle-tile {
-  width: var(--tile-size, clamp(40px, 12vw, 52px));
-  height: var(--tile-size, clamp(40px, 12vw, 52px));
+  width: var(--tile-size, clamp(calc(40px * var(--s)), 12vw, calc(52px * var(--s))));
+  height: var(--tile-size, clamp(calc(40px * var(--s)), 12vw, calc(52px * var(--s))));
   flex-shrink: 0;
   border: 2px solid var(--border-soft);
-  border-radius: 8px;
+  border-radius: calc(8px * var(--s));
   display: flex;
   align-items: center;
   justify-content: center;
   /* max() يرفع نسبة الخط بالخلايا الصغيرة عشان الحرف يظل مقروء */
-  font-size: max(10px, calc(var(--tile-size, clamp(40px, 12vw, 52px)) * 0.5));
+  font-size: max(calc(10px * var(--s)), calc(var(--tile-size, clamp(calc(40px * var(--s)), 12vw, calc(52px * var(--s)))) * 0.5));
   font-weight: 800;
   color: var(--navy);
   background: var(--white);
@@ -1516,8 +1525,8 @@ body.home-page .page {
 }
 
 .wordle-tile-gap {
-  width: var(--tile-gap-width, 16px);
-  height: var(--tile-size, clamp(40px, 12vw, 52px));
+  width: var(--tile-gap-width, calc(16px * var(--s)));
+  height: var(--tile-size, clamp(calc(40px * var(--s)), 12vw, calc(52px * var(--s))));
   flex-shrink: 0;
 }
 
@@ -1614,11 +1623,11 @@ body.home-page .page {
   --key-shadow: 0 1px 0 rgba(0, 0, 0, 0.28);
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: calc(8px * var(--s));
   width: 100%;
-  max-width: 560px;
-  padding: 8px 5px;
-  border-radius: 12px;
+  max-width: calc(560px * var(--s));
+  padding: calc(8px * var(--s)) calc(5px * var(--s));
+  border-radius: calc(12px * var(--s));
   background: #d1d4db;
 }
 
@@ -1635,53 +1644,53 @@ body.home-page .page {
 .keyboard-row {
   display: flex;
   direction: ltr;
-  gap: 6px;
+  gap: calc(6px * var(--s));
   justify-content: center;
 }
 
 .key {
   font-family: inherit;
   border: none;
-  border-radius: 7px;
+  border-radius: calc(7px * var(--s));
   background: var(--key-bg);
   color: var(--key-ink);
   box-shadow: var(--key-shadow);
   font-weight: 500;
-  font-size: 19px;
+  font-size: calc(19px * var(--s));
   line-height: 1;
-  padding: 11px 0;
+  padding: calc(11px * var(--s)) 0;
   min-width: 0;
   flex: 1 1 0;
   cursor: pointer;
-  max-width: 42px;
+  max-width: calc(42px * var(--s));
 }
 
 .key.wide {
-  max-width: 260px;
+  max-width: calc(260px * var(--s));
   flex: 1 1 0;
-  font-size: 15px;
+  font-size: calc(15px * var(--s));
   font-weight: 600;
-  padding: 11px 4px;
+  padding: calc(11px * var(--s)) calc(4px * var(--s));
 }
 
 @media (max-width: 480px) {
   .keyboard {
-    gap: 6px;
-    padding: 6px 3px;
+    gap: calc(6px * var(--s));
+    padding: calc(6px * var(--s)) calc(3px * var(--s));
   }
 
   .keyboard-row {
-    gap: 4px;
+    gap: calc(4px * var(--s));
   }
 
   .key {
-    font-size: 17px;
-    padding: 9px 0;
+    font-size: calc(17px * var(--s));
+    padding: calc(9px * var(--s)) 0;
   }
 
   .key.wide {
-    font-size: 13px;
-    padding: 9px 4px;
+    font-size: calc(13px * var(--s));
+    padding: calc(9px * var(--s)) calc(4px * var(--s));
   }
 }
 
@@ -1707,8 +1716,8 @@ body.home-page .page {
 .wordle-message {
   text-align: center;
   font-weight: 800;
-  font-size: 20px;
-  min-height: 28px;
+  font-size: calc(20px * var(--s));
+  min-height: calc(28px * var(--s));
   color: var(--navy);
 }
 
@@ -1732,12 +1741,12 @@ body.home-page .page {
 .stack {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: calc(14px * var(--s));
 }
 
 .row {
   display: flex;
-  gap: 12px;
+  gap: calc(12px * var(--s));
   flex-wrap: wrap;
 }
 
@@ -1756,64 +1765,64 @@ body.home-page .page {
    و٧٨٠ مو ٨٠٠ عمداً: ٣٦٠×٨٠٠ يسع أصلاً، فما فيه سبب نخفي عنه دليل الألوان. */
 @media (max-height: 780px) {
   .topbar {
-    padding: 8px 14px;
+    padding: calc(8px * var(--s)) calc(14px * var(--s));
   }
 
   .topbar h1 {
-    font-size: 15px;
+    font-size: calc(15px * var(--s));
   }
 
   .topbar .home-link {
-    padding: 5px 10px;
-    font-size: 12px;
+    padding: calc(5px * var(--s)) calc(10px * var(--s));
+    font-size: calc(12px * var(--s));
   }
 
   #wordle-play-screen .team-chip,
   #online-play .team-chip {
-    padding: 5px 8px;
+    padding: calc(5px * var(--s)) calc(8px * var(--s));
   }
 
   #wordle-play-screen .team-chip .score,
   #online-play .team-chip .score {
-    font-size: 15px;
+    font-size: calc(15px * var(--s));
   }
 
   .score-adjust-btn {
     padding: 2px 0;
-    font-size: 10px;
+    font-size: calc(10px * var(--s));
   }
 
   .keyboard {
-    gap: 5px;
-    padding: 5px 3px;
+    gap: calc(5px * var(--s));
+    padding: calc(5px * var(--s)) calc(3px * var(--s));
   }
 
   .keyboard-row {
-    gap: 4px;
+    gap: calc(4px * var(--s));
   }
 
   .key {
-    padding: 7px 0;
-    font-size: 15px;
+    padding: calc(7px * var(--s)) 0;
+    font-size: calc(15px * var(--s));
   }
 
   .key.wide {
-    padding: 7px 4px;
-    font-size: 12px;
+    padding: calc(7px * var(--s)) calc(4px * var(--s));
+    font-size: calc(12px * var(--s));
   }
 
   .wordle-info .ability-btn {
-    padding: 4px 9px;
-    font-size: 11px;
+    padding: calc(4px * var(--s)) calc(9px * var(--s));
+    font-size: calc(11px * var(--s));
   }
 
   .wordle-controls .wordle-message {
-    font-size: 14px;
+    font-size: calc(14px * var(--s));
   }
 
   .wordle-wrap {
-    gap: 8px;
-    padding: 8px;
+    gap: calc(8px * var(--s));
+    padding: calc(8px * var(--s));
   }
 
   /* على شاشة طولية قصيرة، دليل الألوان أقل شي يستاهل مساحة — الشبكة أهم.
@@ -1825,7 +1834,7 @@ body.home-page .page {
   /* سطر واحد بدال سطرين */
   .wordle-info #wordle-subtitle,
   .wordle-info #online-subtitle {
-    font-size: 12px;
+    font-size: calc(12px * var(--s));
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1833,58 +1842,57 @@ body.home-page .page {
   }
 
   .key {
-    padding: 5px 0;
+    padding: calc(5px * var(--s)) 0;
   }
 
   .key.wide {
-    padding: 5px 4px;
+    padding: calc(5px * var(--s)) calc(4px * var(--s));
   }
 }
 
 /* ===== الجهاز بالعرض: عمودان — الشبكة بجهة والأدوات بالجهة الثانية =====
    بدال ما نضغط كل شي فوق بعض بعمود واحد ونخلي الصفحة تنزل، نستغل عرض الشاشة:
    اللوح (المعلومات + الشبكة) بجهة، والأدوات (التلميحات + الكيبورد) بالجهة الثانية */
-@media (orientation: landscape) and (max-height: 600px) {
+@media (orientation: landscape) {
   .page {
-    padding: 6px 10px;
+    padding: calc(6px * var(--s)) calc(10px * var(--s));
     /* الاختصار فوق يمسح حشو حواف الأمان، فنرجّعه — وبالوضع العرضي هو الأهم أصلاً
        لأن النوتش يجي على جنب الشاشة مباشرة فوق الكيبورد */
-    padding-inline-start: max(10px, var(--safe-right));
-    padding-inline-end: max(10px, var(--safe-left));
-    padding-bottom: max(6px, var(--safe-bottom));
-    gap: 6px;
+    padding-inline-start: max(calc(10px * var(--s)), var(--safe-right));
+    padding-inline-end: max(calc(10px * var(--s)), var(--safe-left));
+    padding-bottom: max(calc(6px * var(--s)), var(--safe-bottom));
+    gap: calc(6px * var(--s));
   }
 
   .card {
-    padding: 8px;
+    padding: calc(8px * var(--s));
   }
 
   .stack {
-    gap: 6px;
+    gap: calc(6px * var(--s));
   }
 
 }
 
-/* ===== التخطيط الثلاثي بالعرضي: للجوال وللشاشات الكبيرة (آيباد، تلفزيون، لابتوب) =====
-   الهيكل بس هني — بلوك الجوال (فوق وتحت) يصغّر الخطوط والأزرار لأن ارتفاعه
-   قليل، وبلوك الشاشات الكبيرة (تحت) يكبّرها. كان كله داخل max-height:600 فالآيباد
-   والتلفزيون بالعرض يطيحون على تخطيط الطول: الشبكة محشورة بين المعلومات فوق
-   والكيبورد تحت، والخانة ٤٧ بكسل بس على آيباد (مقيس). والترتيب محفوظ عمداً:
-   نفس مكان القواعد بالملف، فالجوال يطلع نفس ما كان بالضبط */
-@media (orientation: landscape) and (max-height: 600px), (orientation: landscape) and (min-width: 1000px) {
+/* ===== التخطيط الثلاثي بالعرضي: أي شاشة عرضية، جوال ولا آيباد ولا تلفزيون =====
+   شكلان بس باللعبة: طولي وهذا. الأحجام تكبر مع الشاشة بمعامل --s (فوق بـ:root)
+   بدل بلوك خاص للشاشات الكبيرة — صاحب المشروع يبي «نفس الواجهة، تتكبّر على
+   حجمها». بلوكات الضغط (max-height:600/400/340 تحت) تظل للجوال لأن ارتفاعه قليل.
+   **الاستعلام لازم يطابق LANDSCAPE_3COL بـjs/wordle-view.js حرفياً** */
+@media (orientation: landscape) {
   /* ثلاث أعمدة: الكيبورد | المعلومات | الشبكة. كانت عمودين (لوح+أدوات) وعمود
      اللوح يحجز عرض أوسع من الشبكة الفعلية فيصير فراغ فاضي بينه وبين الكيبورد —
      الحين المعلومات (الفئات/الجولة/البوق/الدليل/المساعدات/السجل) تملأ هالفراغ
      بعمودها الخاص، فتصير الشبكة عمود خاص فيها بس (كل الارتفاع لها) وكذا الكيبورد */
   .wordle-wrap {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(125px, 160px) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) minmax(calc(125px * var(--s)), calc(160px * var(--s))) minmax(0, 1fr);
     grid-template-rows: auto minmax(0, 1fr);
     grid-template-areas:
       "grid info score"
       "grid info kb";
-    gap: 6px 10px;
-    padding: 8px;
+    gap: calc(6px * var(--s)) calc(10px * var(--s));
+    padding: calc(8px * var(--s));
   }
 
   .score-row {
@@ -1935,11 +1943,11 @@ body.home-page .page {
      فالحل الوحيد إن الكيبورد ينزل تحت — نفس سبب كون الوضع الطولي أوضح.
      ينطبق بـdata-wide-grid اللي تحطها sizeTiles لأن CSS ما يعرف طول الكلمة. */
   .wordle-wrap[data-wide-grid] {
-    grid-template-columns: minmax(0, 1fr) minmax(125px, 160px);
+    grid-template-columns: minmax(0, 1fr) minmax(calc(125px * var(--s)), calc(160px * var(--s)));
     /* صفّ الكيبورد بارتفاع صريح مو auto: الكيبورد جوّه `flex: 1 1 0`، ولو كان
        صفّه auto ما لقى ارتفاعاً يتمدد فيه وانهار لصفر (المفاتيح موجودة بالـDOM
        بس غير مرئية) */
-    grid-template-rows: auto minmax(0, 1fr) clamp(104px, 38vh, 150px);
+    grid-template-rows: auto minmax(0, 1fr) clamp(calc(104px * var(--s)), 38vh, calc(150px * var(--s)));
     /* عمود المعلومات يمتد للصفّين الأخيرين (جنب الكيبورد) مو للصف الأوسط بس:
        محتواه ١٩٢px (سطر الجولة + الفئات + البوق + الدليل + المساعدات) والصف
        الأوسط وحده يعطيه ١١٥ فتنقص أزرار المساعدات. والكيبورد ما يحتاج العرض
@@ -1952,7 +1960,7 @@ body.home-page .page {
 
   /* صف النتيجة صار فوق الشبكة العريضة، فلولا الحد تمدّدت حبّات الفرق بعرضها كله */
   .wordle-wrap[data-wide-grid] .score-row {
-    max-width: 420px;
+    max-width: calc(420px * var(--s));
     margin-inline: auto;
   }
 
@@ -1967,7 +1975,7 @@ body.home-page .page {
   .wordle-controls .keyboard {
     flex: 1 1 0;
     min-height: 0;
-    max-height: 220px;
+    max-height: calc(220px * var(--s));
   }
 
   .wordle-controls .keyboard-row {
@@ -1986,21 +1994,24 @@ body.home-page .page {
   /* بالعرضي عمود المعلومات ضيق — سجل التلميحات يتّسع لواحد ويمرّر */
   #wordle-hint-log,
   #online-hint-log {
-    max-height: 34px;
+    max-height: calc(34px * var(--s));
   }
 }
 
-@media (orientation: landscape) and (max-height: 600px) {
-
+/* ===== شاشة الإعداد بعمودين + ضغط الأحجام بالعرضي =====
+   كان كله داخل max-height:600 (الجوال بس)، فالتلفزيون والآيباد يطلعون الإعداد
+   عمود واحد طويل وزر البدء تحت، والشريط العلوي بحجم الطولي. الحين العرضي شكل
+   واحد بكل الأجهزة: نفس الجوال بالعرض، مكبّر بـ--s */
+@media (orientation: landscape) {
   /* ما نخلي القائمة حاوية تمرير: بقواعد الفلكس، أي عنصر يصير حاوية تمرير يفقد حده
      الأدنى التلقائي (min-height:auto يصير صفر)، فينسحق تحت flex-shrink — وهذا اللي
      كان يخلي ٢٠ فئة تنحشر بعشرة بكسل. البطاقة نفسها تمرّر، فمجال تمرير واحد يكفي */
   #wordle-category-list,
   #online-category-list {
     flex: 0 0 auto;
-    padding: 5px;
+    padding: calc(5px * var(--s));
     border: 1px solid var(--border-soft);
-    border-radius: 12px;
+    border-radius: calc(12px * var(--s));
   }
 
   /* ===== شاشة الإعداد بعمودين =====
@@ -2016,7 +2027,7 @@ body.home-page .page {
       "cola colb"
       "foot foot";
     grid-template-rows: auto minmax(0, 1fr) auto;
-    gap: 6px 14px;
+    gap: calc(6px * var(--s)) calc(14px * var(--s));
     overflow: hidden;
   }
 
@@ -2031,7 +2042,7 @@ body.home-page .page {
   #wordle-setup-screen .setup-foot {
     flex-direction: row;
     align-items: stretch;
-    gap: 10px;
+    gap: calc(10px * var(--s));
   }
 
   #wordle-setup-screen .setup-foot .online-divider {
@@ -2040,8 +2051,8 @@ body.home-page .page {
 
   #wordle-setup-screen .setup-foot .btn {
     flex: 1 1 0;
-    padding: 9px 12px;
-    font-size: 14px;
+    padding: calc(9px * var(--s)) calc(12px * var(--s));
+    font-size: calc(14px * var(--s));
   }
 
   /* اللوبي: عمودان بدون تثبيت صفوف — البطاقة نفسها تمرّر لأن فوقها رمز الغرفة
@@ -2051,7 +2062,7 @@ body.home-page .page {
     grid-template-columns: 1fr 1.5fr;
     grid-template-areas: "cola colb" "foot foot";
     align-content: start;
-    gap: 8px 14px;
+    gap: calc(8px * var(--s)) calc(14px * var(--s));
   }
 
   .setup-head { grid-area: head; }
@@ -2064,7 +2075,7 @@ body.home-page .page {
   .setup-foot {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: calc(8px * var(--s));
     min-width: 0;
   }
 
@@ -2072,75 +2083,78 @@ body.home-page .page {
   .setup-intro {
     display: none;
   }
+}
+
+@media (orientation: landscape) {
 
   #wordle-setup-screen h2,
   #online-host-controls h2 {
-    font-size: 17px;
+    font-size: calc(17px * var(--s));
     margin: 0;
   }
 
   /* ارتفاع الشريط يحدّده زر الثيم مو النص، فتنحيفه يبدأ من الزر */
   .topbar {
-    padding: 3px 10px;
+    padding: calc(3px * var(--s)) calc(10px * var(--s));
   }
 
   .topbar h1 {
-    font-size: 13px;
+    font-size: calc(13px * var(--s));
   }
 
   .topbar .home-link {
-    padding: 2px 8px;
-    font-size: 11px;
+    padding: 2px calc(8px * var(--s));
+    font-size: calc(11px * var(--s));
   }
 
   .theme-toggle-inline {
-    width: 22px;
-    height: 22px;
-    font-size: 11px;
+    width: calc(22px * var(--s));
+    height: calc(22px * var(--s));
+    font-size: calc(11px * var(--s));
   }
 
   #wordle-subtitle,
   #online-subtitle {
-    font-size: 11px;
+    font-size: calc(11px * var(--s));
     margin: 0;
   }
 
   .abilities-row {
-    gap: 4px;
+    gap: calc(4px * var(--s));
   }
 
   .ability-btn {
-    padding: 4px 8px;
-    font-size: 10px;
+    padding: calc(4px * var(--s)) calc(8px * var(--s));
+    font-size: calc(10px * var(--s));
   }
 
   .hint-box {
-    padding: 4px 8px;
-    font-size: 11px;
+    padding: calc(4px * var(--s)) calc(8px * var(--s));
+    font-size: calc(11px * var(--s));
   }
 
   .keyboard {
-    gap: 4px;
-    padding: 5px 3px;
+    gap: calc(4px * var(--s));
+    padding: calc(5px * var(--s)) calc(3px * var(--s));
   }
 
   .keyboard-row {
-    gap: 3px;
+    gap: calc(3px * var(--s));
   }
 
   .key {
-    padding: 6px 0;
-    font-size: 14px;
-    border-radius: 6px;
+    padding: calc(6px * var(--s)) 0;
+    font-size: calc(14px * var(--s));
+    border-radius: calc(6px * var(--s));
   }
 
   .key.wide {
-    padding: 6px 4px;
-    font-size: 11px;
+    padding: calc(6px * var(--s)) calc(4px * var(--s));
+    font-size: calc(11px * var(--s));
   }
 
   .scoreboard {
-    gap: 5px;
+    gap: calc(5px * var(--s));
   }
 
   /* بالعرضي الارتفاع هو النادر: نخلي بطاقة الفريق سطر واحد (اسم + نقاط + أزرار)
@@ -2151,8 +2165,8 @@ body.home-page .page {
     align-items: center;
     justify-content: space-between;
     flex-wrap: wrap;
-    gap: 4px 8px;
-    padding: 4px 9px;
+    gap: calc(4px * var(--s)) calc(8px * var(--s));
+    padding: calc(4px * var(--s)) calc(9px * var(--s));
   }
 
   /* بالعرض الضيق (زي آيفون SE) عمود الأدوات يصير رفيع وما يكفي اسم الفريق —
@@ -2168,135 +2182,45 @@ body.home-page .page {
   #wordle-play-screen .score-adjust-row,
   #online-play .score-adjust-row {
     margin-top: 0;
-    gap: 4px;
+    gap: calc(4px * var(--s));
   }
 
   .team-chip .name {
-    font-size: 12px;
+    font-size: calc(12px * var(--s));
   }
 
   .team-chip .score {
-    font-size: 13px;
+    font-size: calc(13px * var(--s));
   }
 
   .wordle-message {
-    min-height: 12px;
-    font-size: 12px;
+    min-height: calc(12px * var(--s));
+    font-size: calc(12px * var(--s));
   }
 
   .score-adjust-btn {
     padding: 1px 0;
-    font-size: 9px;
+    font-size: calc(9px * var(--s));
   }
 
   #wordle-end-match-btn,
   #online-end-match-btn {
-    padding: 4px 8px;
-    font-size: 11px;
+    padding: calc(4px * var(--s)) calc(8px * var(--s));
+    font-size: calc(11px * var(--s));
   }
 
   .online-turn-note {
-    font-size: 11px;
-    padding: 3px 8px;
+    font-size: calc(11px * var(--s));
+    padding: calc(3px * var(--s)) calc(8px * var(--s));
   }
 
   .round-timer {
-    font-size: 14px;
+    font-size: calc(14px * var(--s));
   }
 
   .boq-btn {
-    padding: 4px 10px;
-    font-size: 11px;
-  }
-}
-
-/* ===== عرضي كبير (آيباد، تلفزيون، لابتوب): نفس التخطيط الثلاثي بأحجام كبيرة =====
-   صاحب المشروع يلعب بالعرض ويحطه على التلفزيون. min-height:601 عشان ما يلمس
-   الجوال (بلوكه فوق)، والصفحة تاخذ عرضاً أكثر من ١١٠٠ لأن الأعمدة الثلاثة تتقاسمه */
-@media (orientation: landscape) and (min-width: 1000px) and (min-height: 601px) {
-  .page {
-    max-width: 1800px;
-  }
-
-  /* الكيبورد أعرض شوي من الشبكة (١٫١): بعرض متساوي طلعت أزراره ٣٠×٨٤ على
-     آيباد — رفيعة وطويلة. وأكثر من ١٫١ ياخذ من الخانات، وهي الأهم عند صاحب
-     المشروع (١٫٢٥ نزّلت الآيباد من ٩٣ لـ٨٤). والكلمات الطويلة تنزّل الكيبورد تحت
-     (data-wide-grid) أصلاً */
-  .wordle-wrap {
-    grid-template-columns: minmax(0, 1fr) minmax(220px, 280px) minmax(0, 1.1fr);
-    gap: 10px 18px;
-  }
-
-  .wordle-wrap[data-wide-grid] {
-    grid-template-columns: minmax(0, 1fr) minmax(220px, 280px);
-    grid-template-rows: auto minmax(0, 1fr) clamp(150px, 30vh, 260px);
-  }
-
-  /* الكيبورد يملأ عموده: حد الـ٥٦٠ للطول بالجوال، وعلى التلفزيون كان يحشره
-     بربع الشاشة. والارتفاع محدود عشان الأزرار ما تطلع أعمدة طويلة */
-  .wordle-controls .keyboard {
-    max-width: none;
-    max-height: min(38vh, 380px);
-  }
-
-  /* حد الزر (٤٢) للجوال بالطول؛ هني الكيبورد عموده عريض فنخليه يتمدد */
-  .key {
-    max-width: 72px;
-    font-size: clamp(16px, 2.4vh, 28px);
-  }
-
-  .key.wide {
-    font-size: clamp(13px, 1.8vh, 20px);
-  }
-
-  /* نصوص العمود الأوسط تكبر مع ارتفاع الشاشة — على التلفزيون بأحجام الجوال
-     (١١–١٣ بكسل) ما تنقرا من الكنبة */
-  .wordle-info {
-    gap: 8px;
-  }
-
-  .wordle-info #wordle-subtitle,
-  .wordle-info #online-subtitle,
-  .wordle-info .round-tail {
-    font-size: clamp(14px, 2vh, 24px);
-  }
-
-  .wordle-info .ability-btn {
-    padding: 6px 10px;
-    font-size: clamp(12px, 1.6vh, 19px);
-  }
-
-  .wordle-info .boq-btn,
-  .wordle-info .steal-note {
-    font-size: clamp(14px, 1.9vh, 22px);
-  }
-
-  .wordle-info .wordle-legend,
-  .wordle-info .cat-pill {
-    font-size: clamp(12px, 1.5vh, 17px);
-  }
-
-  .wordle-info .round-timer {
-    font-size: clamp(18px, 2.6vh, 30px);
-  }
-
-  .wordle-controls .wordle-message {
-    font-size: clamp(17px, 2.2vh, 26px);
-  }
-
-  #wordle-play-screen .team-chip .name,
-  #online-play .team-chip .name {
-    font-size: clamp(12px, 1.6vh, 18px);
-  }
-
-  #wordle-play-screen .team-chip .score,
-  #online-play .team-chip .score {
-    font-size: clamp(15px, 2vh, 24px);
-  }
-
-  #wordle-hint-log,
-  #online-hint-log {
-    max-height: 120px;
+    padding: calc(4px * var(--s)) calc(10px * var(--s));
+    font-size: calc(11px * var(--s));
   }
 }
 
@@ -2304,50 +2228,50 @@ body.home-page .page {
    نضبط أحجام الخطوط بس ===== */
 @media (orientation: landscape) and (max-height: 400px) {
   .keyboard {
-    gap: 4px;
-    padding: 5px 3px;
+    gap: calc(4px * var(--s));
+    padding: calc(5px * var(--s)) calc(3px * var(--s));
   }
 
   .keyboard-row {
-    gap: 3px;
+    gap: calc(3px * var(--s));
   }
 
   .key {
-    font-size: 13px;
+    font-size: calc(13px * var(--s));
   }
 
   .key.wide {
-    font-size: 11px;
+    font-size: calc(11px * var(--s));
   }
 
   #wordle-play-screen .team-chip,
   #online-play .team-chip {
-    padding: 3px 8px;
+    padding: calc(3px * var(--s)) calc(8px * var(--s));
   }
 
   #wordle-play-screen .team-chip .name,
   #online-play .team-chip .name {
-    font-size: 11px;
+    font-size: calc(11px * var(--s));
   }
 
   #wordle-play-screen .team-chip .score,
   #online-play .team-chip .score {
-    font-size: 12px;
+    font-size: calc(12px * var(--s));
   }
 }
 
 @media (orientation: landscape) and (max-height: 340px) {
   .keyboard {
-    gap: 3px;
-    padding: 4px 3px;
+    gap: calc(3px * var(--s));
+    padding: calc(4px * var(--s)) calc(3px * var(--s));
   }
 
   .key {
-    font-size: 12px;
+    font-size: calc(12px * var(--s));
   }
 
   .key.wide {
-    font-size: 10px;
+    font-size: calc(10px * var(--s));
   }
 
   /* آخر شي ينحذف قبل ما نقص الكيبورد */
@@ -2360,7 +2284,7 @@ body.home-page .page {
 .online-status {
   text-align: center;
   font-weight: 700;
-  font-size: 13px;
+  font-size: calc(13px * var(--s));
   color: var(--muted);
   margin: 0;
 }
@@ -2379,9 +2303,9 @@ body.home-page .page {
 .online-divider {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: calc(10px * var(--s));
   color: var(--muted);
-  font-size: 13px;
+  font-size: calc(13px * var(--s));
   font-weight: 700;
 }
 
@@ -2396,26 +2320,26 @@ body.home-page .page {
 
 .online-code-input {
   text-align: center;
-  letter-spacing: 8px;
+  letter-spacing: calc(8px * var(--s));
   font-weight: 800;
-  font-size: 22px;
+  font-size: calc(22px * var(--s));
   text-transform: uppercase;
 }
 
 .online-room-box {
   background: var(--surface-soft);
   border-radius: var(--radius);
-  padding: 14px;
+  padding: calc(14px * var(--s));
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: calc(10px * var(--s));
 }
 
 .online-room-code {
   text-align: center;
-  font-size: 38px;
+  font-size: calc(38px * var(--s));
   font-weight: 800;
-  letter-spacing: 10px;
+  letter-spacing: calc(10px * var(--s));
   color: var(--blue-700);
   direction: ltr;
 }
@@ -2423,18 +2347,18 @@ body.home-page .page {
 .online-players {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: calc(8px * var(--s));
 }
 
 .online-player-row {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: calc(10px * var(--s));
   justify-content: space-between;
   background: var(--surface-soft);
-  border-radius: 12px;
-  padding: 10px 12px;
-  border-right: 4px solid var(--gray-absent);
+  border-radius: calc(12px * var(--s));
+  padding: calc(10px * var(--s)) calc(12px * var(--s));
+  border-right: calc(4px * var(--s)) solid var(--gray-absent);
 }
 
 .online-player-row.clickable {
@@ -2448,12 +2372,12 @@ body.home-page .page {
 }
 
 .online-team-badge {
-  font-size: 12px;
+  font-size: calc(12px * var(--s));
   font-weight: 700;
   color: var(--white-fixed);
   background: var(--blue-700);
-  border-radius: 999px;
-  padding: 4px 10px;
+  border-radius: calc(999px * var(--s));
+  padding: calc(4px * var(--s)) calc(10px * var(--s));
   white-space: nowrap;
 }
 
@@ -2462,13 +2386,13 @@ body.home-page .page {
 }
 
 .online-offline-dot {
-  font-size: 11px;
+  font-size: calc(11px * var(--s));
   color: var(--muted);
   white-space: nowrap;
 }
 
 .online-team-pick {
-  border-width: 3px;
+  border-width: calc(3px * var(--s));
   font-weight: 800;
 }
 
@@ -2481,10 +2405,10 @@ body.home-page .page {
 .online-turn-note {
   text-align: center;
   font-weight: 800;
-  font-size: 14px;
+  font-size: calc(14px * var(--s));
   margin: 0;
-  padding: 6px 10px;
-  border-radius: 999px;
+  padding: calc(6px * var(--s)) calc(10px * var(--s));
+  border-radius: calc(999px * var(--s));
 }
 
 .online-turn-note.mine {
@@ -2524,12 +2448,12 @@ body.home-page .page {
   font-family: inherit;
   /* ١٦ مو ١٥: الزوم صار مسموح، وسفاري يكبّر الصفحة لحاله لما تنضغط أي خانة
      كتابة أو قائمة خطها أصغر من ١٦ */
-  font-size: 16px;
+  font-size: calc(16px * var(--s));
   font-weight: 700;
-  padding: 10px 12px;
+  padding: calc(10px * var(--s)) calc(12px * var(--s));
   /* مساحة لسهم القائمة على اليسار (نهاية السطر بالعربي) */
-  padding-left: 34px;
-  border-radius: 12px;
+  padding-left: calc(34px * var(--s));
+  border-radius: calc(12px * var(--s));
   border: 2px solid var(--border-soft);
   color: var(--ink);
   width: 100%;
@@ -2541,14 +2465,14 @@ body.home-page .page {
   background-color: var(--white);
   background-image: var(--select-arrow);
   background-repeat: no-repeat;
-  background-position: left 12px center;
-  background-size: 12px 8px;
+  background-position: left calc(12px * var(--s)) center;
+  background-size: calc(12px * var(--s)) calc(8px * var(--s));
 }
 
 .round-timer {
   text-align: center;
   font-weight: 800;
-  font-size: 20px;
+  font-size: calc(20px * var(--s));
   color: var(--blue-700);
   letter-spacing: 1px;
   direction: ltr;
@@ -2562,18 +2486,18 @@ body.home-page .page {
 .boq-btn {
   background: var(--gold);
   color: var(--white-fixed);
-  font-size: 14px;
-  padding: 8px 14px;
+  font-size: calc(14px * var(--s));
+  padding: calc(8px * var(--s)) calc(14px * var(--s));
   align-self: center;
 }
 
 .steal-note {
   text-align: center;
   font-weight: 800;
-  font-size: 14px;
+  font-size: calc(14px * var(--s));
   margin: 0;
-  padding: 6px 10px;
-  border-radius: 999px;
+  padding: calc(6px * var(--s)) calc(10px * var(--s));
+  border-radius: calc(999px * var(--s));
   background: var(--gold);
   color: var(--white-fixed);
 }
@@ -2584,10 +2508,10 @@ body.home-page .page {
 
 .round-time-custom {
   font-family: inherit;
-  font-size: 16px;
+  font-size: calc(16px * var(--s));
   font-weight: 700;
-  padding: 10px 12px;
-  border-radius: 12px;
+  padding: calc(10px * var(--s)) calc(12px * var(--s));
+  border-radius: calc(12px * var(--s));
   border: 2px solid var(--border-soft);
   background: var(--white);
   color: var(--ink);
@@ -2601,7 +2525,7 @@ body.home-page .page {
 }
 
 .round-time-hint {
-  font-size: 12px;
+  font-size: calc(12px * var(--s));
   margin: -6px 0 0;
 }
 
@@ -2611,7 +2535,7 @@ body.home-page .page {
    الكيبورد هني أضيق من كيبورد اللعب لأن النافذة أضيق من الشاشة */
 .tutorial-body {
   align-items: center;
-  gap: 12px;
+  gap: calc(12px * var(--s));
 }
 
 .tutorial-say {
@@ -2621,24 +2545,24 @@ body.home-page .page {
 }
 
 .tutorial-grid {
-  gap: 6px;
+  gap: calc(6px * var(--s));
 }
 
 .tutorial-grid .wordle-tile {
-  width: 44px;
-  height: 44px;
-  font-size: 22px;
+  width: calc(44px * var(--s));
+  height: calc(44px * var(--s));
+  font-size: calc(22px * var(--s));
 }
 
 .tutorial-note {
   width: 100%;
   background: var(--surface-soft);
   border: 1px solid var(--border-soft);
-  border-radius: 12px;
-  padding: 12px 14px;
+  border-radius: calc(12px * var(--s));
+  padding: calc(12px * var(--s)) calc(14px * var(--s));
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: calc(8px * var(--s));
 }
 
 .tutorial-note p {
@@ -2650,14 +2574,14 @@ body.home-page .page {
 .tutorial-legend-row {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: calc(10px * var(--s));
   line-height: 1.6;
 }
 
 .tutorial-legend-tile {
   flex-shrink: 0;
-  width: 30px;
-  height: 30px;
+  width: calc(30px * var(--s));
+  height: calc(30px * var(--s));
 }
 
 .tutorial-note.warn {
@@ -2668,25 +2592,25 @@ body.home-page .page {
 
 .tutorial-keyboard {
   width: 100%;
-  gap: 5px;
+  gap: calc(5px * var(--s));
 }
 
 .tutorial-keyboard .key {
-  font-size: 14px;
-  padding: 8px 0;
+  font-size: calc(14px * var(--s));
+  padding: calc(8px * var(--s)) 0;
   min-width: 0;
 }
 
 @media (max-width: 400px) {
   .tutorial-grid .wordle-tile {
-    width: 38px;
-    height: 38px;
-    font-size: 19px;
+    width: calc(38px * var(--s));
+    height: calc(38px * var(--s));
+    font-size: calc(19px * var(--s));
   }
 
   .tutorial-keyboard .key {
-    font-size: 12px;
-    padding: 6px 0;
+    font-size: calc(12px * var(--s));
+    padding: calc(6px * var(--s)) 0;
   }
 }
 
@@ -2696,20 +2620,20 @@ body.home-page .page {
 .kw-popover {
   position: fixed;
   z-index: 1002;
-  max-width: min(320px, calc(100vw - 16px));
+  max-width: min(calc(320px * var(--s)), calc(100vw - calc(16px * var(--s))));
   background: var(--white);
   border: 2px solid var(--border-soft);
-  border-radius: 14px;
+  border-radius: calc(14px * var(--s));
   box-shadow: var(--shadow);
-  padding: 10px;
+  padding: calc(10px * var(--s));
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: calc(8px * var(--s));
 }
 
 .kw-popover-title {
   margin: 0;
-  font-size: 12px;
+  font-size: calc(12px * var(--s));
   font-weight: 800;
   color: var(--muted);
   text-align: center;
@@ -2719,19 +2643,19 @@ body.home-page .page {
    بحجمها الطبيعي بدل ما تنكمش عشان توفّر مكاناً */
 .kw-popover #wordle-hint-log,
 .kw-popover #online-hint-log {
-  max-height: min(240px, 40vh);
+  max-height: min(calc(240px * var(--s)), 40vh);
 }
 
 .kw-popover .hint-box {
-  font-size: 13px;
-  padding: 8px 12px;
+  font-size: calc(13px * var(--s));
+  padding: calc(8px * var(--s)) calc(12px * var(--s));
 }
 
 /* زر فتح سجل التلميحات — يقعد بصف البوق، ومخفي لين ينوجد تلميح */
 .hintlog-btn {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: calc(5px * var(--s));
 }
 
 .hintlog-btn[aria-expanded="true"] {
@@ -2752,7 +2676,7 @@ button.cat-pill.more:hover {
 }
 
 .boq-slot {
-  gap: 6px;
+  gap: calc(6px * var(--s));
   flex-wrap: wrap;
 }
 
@@ -2764,7 +2688,7 @@ button.cat-pill.more:hover {
   min-width: 1.05em;
   padding: 0 0.15em;
   margin-inline-start: 0.1em;
-  border-radius: 999px;
+  border-radius: calc(999px * var(--s));
   background: rgba(6, 38, 74, 0.12);
   font-size: 0.78em;
   font-weight: 700;
@@ -2782,7 +2706,7 @@ button.cat-pill.more:hover {
   min-width: 1.1em;
   padding: 0 0.2em;
   margin-inline-start: 0.2em;
-  border-radius: 999px;
+  border-radius: calc(999px * var(--s));
   background: rgba(255, 255, 255, 0.28);
   font-size: 0.82em;
   /* ‎١٫٢٥ مثل حبّة المساعدات كبّرت الزر ‎٠٫٣ بكسل وأكلت من الشبكة — الهامش صفر */

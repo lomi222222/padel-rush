@@ -5,6 +5,35 @@
 
   const Core = window.WordleCore;
 
+  // ===== معامل التكبير (--s) =====
+  // واجهة وحدة لكل الأجهزة تتمدد مع الشاشة (طلب صاحب المشروع): كل بكسل بـ
+  // style.css مضروب بـ--s. المقاس الأساسي هو الجوال (٣٩٠×٨٤٤، أو ٨٤٤×٣٩٠ بالعرض)،
+  // والمعامل = كم مرة الشاشة أكبر منه بأضيق البعدين، عشان ولا شي يطلع برّا.
+  // الحد الأدنى ١: الجوالات الصغيرة لها بلوكات ضغط مقاسة ومحروسة، وتصغيرها بمعامل
+  // يلفّ سطر المساعدات. والأعلى ٢٫٥ عشان شاشة عملاقة ما تطلّع أزراراً بحجم الكف.
+  // JS مو CSS: قسمة طول على طول (100vw / 390px) ما تشتغل بسفاري
+  const BASE_LONG = 844;
+  const BASE_SHORT = 390;
+  // الواجهة تكبر ٦٠٪ من فرق الشاشة بس، والباقي يروح للشبكة. بالتكبير الكامل
+  // الكيبورد والنصوص كلت المكان: خانة الآيباد بالطول نزلت من ٩٨ لـ٧٤ (قسناها)،
+  // وهي أكثر شي يهم صاحب المشروع. بـ٠٫٦ الآيباد العرضي ٧١←٨٧ والطولي ٨٩،
+  // والتلفزيون ١٣٠←١٢٧، والكيبورد والخط يكبرون فعلاً
+  const SCALE_DAMPING = 0.6;
+  let scale = 1;
+  function applyScale() {
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    // نفس تعريف CSS للعرضي: العرض أكبر من الطول
+    const landscape = w > h;
+    const fit = Math.min(w / (landscape ? BASE_LONG : BASE_SHORT), h / (landscape ? BASE_SHORT : BASE_LONG));
+    scale = Math.round(Math.max(1, Math.min(2.5, 1 + (fit - 1) * SCALE_DAMPING)) * 100) / 100;
+    document.documentElement.style.setProperty("--s", String(scale));
+  }
+  applyScale();
+  // قبل مستمعات sizeTiles (تتسجّل بعدين) عشان الخانات تنحسب بالمعامل الجديد
+  window.addEventListener("resize", applyScale);
+  window.addEventListener("orientationchange", applyScale);
+
   // ===== أيقونات الواجهة =====
   // رسمات خطّية بنفس لغة الصفحة الرئيسية: حد ٢px، currentColor، أطراف مدوّرة.
   // القاعدة بكل اللعبة: أيقونة لأدوات التحكم، وإيموجي داخل الجُمل بس (رسائل اللعب).
@@ -220,16 +249,18 @@
     requestAnimationFrame(() => sizeTiles(gridEl, true));
   }
 
-  // تحت هالحجم الحرف العربي ما ينقرا — الخط نصف الخانة وأرضيته ١٠px
+  // تحت هالحجم الحرف العربي ما ينقرا — الخط نصف الخانة وأرضيته ١٠px. مضروب
+  // بالمعامل لأن «ينقرا» نسبي: على التلفزيون الناس قاعدين بعيد
   const WIDE_GRID_BELOW = 30;
 
   // الفراغات تضيق كل ما طالت الكلمة: ١٢ خانة بشاشة ٣٩٠ تعني الفراغات وحدها تاكل
   // خُمس السطر، فنضيّقها عشان الحرف نفسه يكبر
   function spacingFor(wordLength) {
     const narrow = window.innerWidth <= 400;
+    // الفراغات تكبر مع المعامل مثل كل شي — بدونه شبكة التلفزيون تطلع ملزّقة
     return {
-      gapPx: wordLength >= 10 ? 3 : wordLength >= 7 ? 5 : narrow ? 6 : 8,
-      spacerWidth: wordLength >= 10 ? 9 : narrow ? 14 : 20,
+      gapPx: Math.round((wordLength >= 10 ? 3 : wordLength >= 7 ? 5 : narrow ? 6 : 8) * scale),
+      spacerWidth: Math.round((wordLength >= 10 ? 9 : narrow ? 14 : 20) * scale),
     };
   }
 
@@ -250,11 +281,8 @@
   // **القرار يُقاس دائماً من الحالة الضيّقة** — نشيل الراية ونقيس ثم نقرر. لو
   // قِسنا من الحالة الحالية لتذبذب: بالعريض العرض كبير فالجواب "لا نحتاج"، وأول
   // ما نرجع ضيّق يصير "نحتاج"، وهكذا مع كل تغيير مقاس.
-  // لازم تطابق استعلامات style.css حرفياً: التخطيط الثلاثي (جوال وشاشات كبيرة)،
-  // والشاشات الكبيرة لحالها
-  const LANDSCAPE_3COL =
-    "(orientation: landscape) and (max-height: 600px), (orientation: landscape) and (min-width: 1000px)";
-  const BIG_LANDSCAPE = "(orientation: landscape) and (min-width: 1000px) and (min-height: 601px)";
+  // لازم يطابق استعلام التخطيط الثلاثي بـstyle.css حرفياً
+  const LANDSCAPE_3COL = "(orientation: landscape)";
 
   // أكبر خانة يسمح فيها العرض والارتفاع الحاليين (بدون السقف)
   function fitTile(container, opts) {
@@ -274,10 +302,10 @@
     // ما يحتاجها لأن الكيبورد تحت فيه من البداية
     if (!matchMedia(LANDSCAPE_3COL).matches) return;
 
-    // الشاشات الكبيرة: نقيس التخطيطين ونختار اللي خانته أكبر. هناك فيه ارتفاع
+    // الشاشات الأكبر من الجوال (المعامل فوق ١): نقيس التخطيطين ونختار اللي خانته أكبر. هناك فيه ارتفاع
     // يكفي للكيبورد تحت، فالكلمة الطويلة (٩ خانات) تطلع ٥٢ بدل ٤١ على آيباد.
     // القياس حتمي (الحالتين كل مرة) فما يتذبذب، ولو تساووا (السقف) يظل الثلاثي
-    if (matchMedia(BIG_LANDSCAPE).matches) {
+    if (scale > 1) {
       const container = gridEl.parentElement;
       const narrow = fitTile(container, opts);
       wrap.setAttribute("data-wide-grid", "");
@@ -285,20 +313,19 @@
       return;
     }
 
-    // الجوال: القاعدة القديمة كما هي — العريض بس لما الحرف ما ينقرا
+    // الجوال (المعامل ١): القاعدة القديمة كما هي — العريض بس لما الحرف ما
+    // ينقرا. قياس التخطيطين هناك يغيّر شكل الجوال، وكل قيوده مقاسة على هالقاعدة
     // قراءة clientWidth بعد الشيل تجبر إعادة تخطيط، فالقياس يطلع للحالة الضيّقة
-    if (widthPerTile(gridEl.parentElement, opts) < WIDE_GRID_BELOW) {
+    if (widthPerTile(gridEl.parentElement, opts) < WIDE_GRID_BELOW * scale) {
       wrap.setAttribute("data-wide-grid", "");
     }
   }
 
   // سقف الخانة يكبر مع الشاشة. كان ٧٢ ثابت، فالآيباد يطلع نفس الآيفون بالضبط
-  // (٧٢) مع إن مكانه يسمح بالضعف، وصاحب المشروع لقى المربعات صغيرة عليه. على
-  // الجوال أصغر بُعد ~٣٩٠ فالحساب يطلع أقل من ٧٢ ويظل السقف ٧٢ — ما يتغيّر شي
+  // مع إن مكانه يسمح بالضعف. بنفس المعامل اللي يكبّر باقي الواجهة، فالخانة
+  // والكيبورد والخط يكبرون سوا — الجوال يظل ٧٢
   function tileCap() {
-    const short = Math.min(window.innerWidth, window.innerHeight);
-    // ١٦٠ لا ١٢٠: على التلفزيون (١٠٨٠) الناس قاعدين بعيد، والمكان يسمح
-    return Math.max(72, Math.min(160, Math.round(short * 0.12)));
+    return Math.round(72 * scale);
   }
 
   function sizeTiles(gridEl, allowed) {
@@ -336,7 +363,7 @@
     // خلّينا الأرضية ٢٦ صارت هي السقف وضاع المكسب كله (قِسناه: ٢٦px بدل ٤٣).
     // والتمرير الرأسي مقبول هناك أصلاً، وهو اللي طلبه المستخدم صراحةً
     const isWide = gridEl.closest(".wordle-wrap")?.hasAttribute("data-wide-grid");
-    const READABLE = isWide ? 40 : 26;
+    const READABLE = (isWide ? 40 : 26) * scale;
     const byHeight = Math.max(READABLE, rawHeight);
     const size = Math.max(13, Math.min(tileCap(), Math.floor(Math.min(rawWidth, byHeight))));
 
