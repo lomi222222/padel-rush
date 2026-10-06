@@ -1362,7 +1362,7 @@
 
     if (key === "ENTER") {
       if (!Core.isGuessComplete(localBuffer, spaces)) {
-        View.showMessage(messageEl, "أدخل " + Core.toArabicDigits(r.wordLength) + " أحرف أولاً", "");
+        View.showMessage(messageEl, "أدخل " + Core.toArabicDigits(r.wordLength) + " أحرف أولاً", "", { force: true });
         return;
       }
       sendInput("submit");

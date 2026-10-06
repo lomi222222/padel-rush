@@ -441,8 +441,9 @@
     renderKeyboard();
   });
 
+  // كل نداء هني حدث صار فعلاً، فالفقاعة تطلع حتى لو نفس النص (شوف View.showMessage)
   function showMessage(text, kind) {
-    View.showMessage(messageEl, text, kind);
+    View.showMessage(messageEl, text, kind, { force: true });
   }
 
   function logHint(text) {

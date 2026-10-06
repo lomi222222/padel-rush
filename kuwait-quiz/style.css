@@ -1325,6 +1325,29 @@ body.home-page .page {
   font-size: calc(17px * var(--s));
 }
 
+/* فقاعة رسالة وسط الجولة بالطولي (View.showMessage): فوق أعلى الشبكة وما تاخذ
+   مكان، فطول الشبكة ثابت. فوق مو تحت: تحت تغطي آخر صف وهو اللي يكتب فيه اللاعب */
+.wordle-controls .wordle-message.toast {
+  position: fixed;
+  top: calc(var(--toast-top, 120px) + 4px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 30;
+  width: max-content;
+  max-width: calc(100vw - 32px * var(--s));
+  padding: calc(7px * var(--s)) calc(14px * var(--s));
+  border-radius: calc(14px * var(--s));
+  background: var(--white);
+  border: 1px solid var(--sand-line);
+  box-shadow: 0 calc(6px * var(--s)) calc(18px * var(--s)) rgba(6, 38, 74, 0.18);
+  pointer-events: none;
+  transition: opacity 0.35s ease;
+}
+
+.wordle-controls .wordle-message.toast-gone {
+  opacity: 0;
+}
+
 /* لوحة النتائج فوق شاشة اللعب: مضغوطة عشان ما تاكل ربع الشاشة */
 #wordle-play-screen .team-chip,
 #online-play .team-chip {
@@ -1773,8 +1796,12 @@ body.home-page .page {
    تنقص شبكتها ٢٨–٣٨ بكسل من ٧ صفوف فأكثر (٢٣٪ من بنك الكلمات)، بينما
    ٣٧٥×٦٦٧ **الأقصر منها** يسع لأنه داخل الضغط.
 
-   و٧٨٠ مو ٨٠٠ عمداً: ٣٦٠×٨٠٠ يسع أصلاً، فما فيه سبب نخفي عنه دليل الألوان. */
-@media (max-height: 780px) {
+   و٧٨٠ مو ٨٠٠ عمداً: ٣٦٠×٨٠٠ يسع أصلاً، فما فيه سبب نخفي عنه دليل الألوان.
+
+   والطولي لين ٩٠٠ بعد: جوال صاحب المشروع بوضع التطبيق ارتفاعه ~٧٩٣ (شريط الساعة
+   والهوم ينقصون)، فكان فوق ٧٨٠ بشوي وياخذ الإطار بحجمه الكامل — صندوق الشبكة ٢٤٧
+   بدل ٣٢٧. كل الآيفونات بوضع التطبيق بين ٧٥٠ و٨٨٠. الدليل ما ينخفي عندهم (تحت) */
+@media (max-height: 780px), (orientation: portrait) and (max-height: 900px) {
   .topbar {
     padding: calc(8px * var(--s)) calc(14px * var(--s));
   }
@@ -1836,11 +1863,6 @@ body.home-page .page {
     padding: calc(8px * var(--s));
   }
 
-  /* على شاشة طولية قصيرة، دليل الألوان أقل شي يستاهل مساحة — الشبكة أهم.
-     الفئات تظل تبين، لها صنفها الخاص (.cat-pills) */
-  .wordle-info .wordle-legend {
-    display: none;
-  }
 
   /* سطر واحد بدال سطرين */
   .wordle-info #wordle-subtitle,
@@ -1858,6 +1880,22 @@ body.home-page .page {
 
   .key.wide {
     padding: calc(5px * var(--s)) calc(4px * var(--s));
+  }
+}
+
+/* بالضغط (البلوك فوق) حشو .wordle-wrap ينزل لـ٨، فسالب الشبكة بالطولي (-10)
+   يصير -6 — وإلا آخر خانة تطلع برّا البطاقة وتنقص (طلعت بالمحاكاة) */
+@media (orientation: portrait) and (max-height: 900px) {
+  .wordle-wrap > .wordle-grid-scroll {
+    margin-inline: calc(-6px * var(--s));
+  }
+}
+
+/* دليل الألوان ينخفي بس على الشاشات القصيرة جداً (SE وأقصر). البلوك فوق صار
+   يشمل الآيفونات بوضع التطبيق (لين ٩٠٠)، وصاحب المشروع اختار الدليل يظل عندهم */
+@media (max-height: 780px) {
+  .wordle-info .wordle-legend {
+    display: none;
   }
 }
 

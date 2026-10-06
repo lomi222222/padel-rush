@@ -321,11 +321,13 @@
     }
   }
 
-  // سقف الخانة يكبر مع الشاشة. كان ٧٢ ثابت، فالآيباد يطلع نفس الآيفون بالضبط
-  // مع إن مكانه يسمح بالضعف. بنفس المعامل اللي يكبّر باقي الواجهة، فالخانة
-  // والكيبورد والخط يكبرون سوا — الجوال يظل ٧٢
+  // سقف الخانة يكبر مع الشاشة بنفس المعامل اللي يكبّر باقي الواجهة، فالخانة
+  // والكيبورد والخط يكبرون سوا. على الجوال ٦٢: صاحب المشروع قارنها بووردل (~٥٥)
+  // وقال «مو وايد وايد كبير يكون قبيح، خله منطقي». كان ٧٢، ولما وسّعنا الشبكة
+  // طلعت كلمة ٥ أحرف ٧٠ — مربعات ضخمة. وفوق السقف الفراغ يظل حولها مثل ووردل
+  const TILE_CAP = 62;
   function tileCap() {
-    return Math.round(72 * scale);
+    return Math.round(TILE_CAP * scale);
   }
 
   function sizeTiles(gridEl, allowed) {
@@ -569,9 +571,37 @@
     });
   }
 
-  function showMessage(messageEl, text, kind) {
+  // رسالة وسط الجولة بالطولي = فقاعة فوق أعلى الشبكة تختفي بعد ثواني، مو سطر
+  // ياخذ مكان. كان السطر (سطرين أحياناً، ٤٢ بكسل) ياكل من طول الشبكة، و«غيّر
+  // السؤال» يحسب حجم الخانة وهو ظاهر فتصغر الخانات الجولة كلها — صاحب المشروع
+  // شافها على جواله (صندوق ٢٤٧←٢٠٥). رسائل نهاية الجولة (win/lose) تظل بمكانها:
+  // وقتها الكيبورد يخلص شغله واللوحة تبي تنقرا بهدوء.
+  //
+  // force: الحدث نفسه صار (ضغطة، تخمين) فنعرضها حتى لو نفس النص. بدونه (الأونلاين
+  // يرسم من الحالة مع كل تحديث) نفس النص ما يرجّع الفقاعة — وإلا كل تحديث فايربيس
+  // يطلّعها من جديد. التأثير يتعلّق بتغيّر النص، مو بإعادة الرسم
+  const TOAST_MS = 3000;
+  const PORTRAIT = "(orientation: portrait)";
+
+  function showMessage(messageEl, text, kind, opts) {
+    const force = !!(opts && opts.force);
+    kind = kind || "";
+    if (!force && messageEl._lastText === text && messageEl._lastKind === kind) return;
+    messageEl._lastText = text;
+    messageEl._lastKind = kind;
+    clearTimeout(messageEl._toastTimer);
+
     messageEl.textContent = text;
-    messageEl.className = "wordle-message" + (kind ? " " + kind : "");
+    const toast = !!text && !kind && matchMedia(PORTRAIT).matches;
+    messageEl.className = "wordle-message" + (kind ? " " + kind : "") + (toast ? " toast" : "");
+    if (!toast) return;
+
+    // fixed مو absolute: الشاشة فيها overflow:hidden يقص أي شي يطلع من حدودها.
+    // الموضع من أعلى صندوق الشبكة الحالي، فيلحقها وين ما كانت
+    const wrap = messageEl.closest(".wordle-wrap");
+    const box = wrap && wrap.querySelector(".wordle-grid-scroll");
+    if (box) messageEl.style.setProperty("--toast-top", Math.round(box.getBoundingClientRect().top) + "px");
+    messageEl._toastTimer = setTimeout(() => messageEl.classList.add("toast-gone"), TOAST_MS);
   }
 
   function renderHintLog(hintLogEl, entries) {
