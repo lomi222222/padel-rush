@@ -62,9 +62,9 @@ const pts = (p, id) => p.$eval(id, (el) => el.textContent);
     // تثبيت كلمة بعينها ما ينفع: makeWordBag يخلط الكيس فـMath.random الثابت ما
     // يوصلنا للكلمة المقصودة. فنفحص الحسبة مباشرة، ونفحص السلوك على أي كلمة تنسحب
     const longest = await page.evaluate(() => {
-      const w = WORDS.slice().sort((a, b) => b.word.length - a.word.length)[0];
+      const w = WORDS.slice().sort((a, b) => b.word.replace(/ /g, "").length - a.word.replace(/ /g, "").length)[0];
       const letters = w.word.replace(/ /g, "").length;
-      return { len: w.word.length, letters, attempts: WordleCore.attemptsForLength(w.word.length) };
+      return { len: w.word.length, letters, attempts: WordleCore.attemptsForLength(letters) };
     });
     check(
       "أطول كلمة (" + longest.len + " محرف) تاخذ " + longest.attempts + " محاولة",

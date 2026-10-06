@@ -93,6 +93,23 @@ const check = makeChecker();
   });
   check("المعروض قبل التخمين = المقبوض بعد الفوز", same.shown === same.earned, same.shown + " / " + same.earned);
 
+  // ===== المحاولات بالحروف مو بالخانات =====
+  // «دراغون بول»: ٩ أحرف + مسافة. كانت المسافة تنحسب فتاخذ ٨ (وبعد «غيّر السؤال»
+  // ٧)، والسطر يقول «٩ أحرف» — صاحب المشروع لقاها رقم غلط
+  const spaced = await page.evaluate(() => {
+    const C = window.WordleCore;
+    const chars = Array.from("دراغون بول");
+    const sp = C.spaceIndexesOf(chars);
+    const changed = C.changedRound(chars.length, sp);
+    return {
+      normal: C.attemptsForWord(chars.length, sp),
+      changedRows: C.boardRows(changed.maxAttempts, changed.attemptOffset),
+      plain: C.attemptsForWord(9, []),
+    };
+  });
+  check("عنوان ٩ أحرف بمسافة = ٧ محاولات (نفس كلمة ٩ أحرف)", spaced.normal === 7 && spaced.plain === 7, JSON.stringify(spaced));
+  check("وبعد «غيّر السؤال» = ٦", spaced.changedRows === 6, "" + spaced.changedRows);
+
   // ===== عدد البوق =====
   const boq = await page.evaluate(() => {
     const C = window.WordleCore;

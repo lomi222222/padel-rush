@@ -879,7 +879,7 @@
   function hostStartRound() {
     hostState.rev++;
     hostLoadWord(hostState.bag.pick(hostState.target));
-    hostState.maxAttempts = Core.attemptsForLength(hostState.wordLength);
+    hostState.maxAttempts = Core.attemptsForWord(hostState.wordLength, hostState.spaceIndexes);
     hostState.attemptOffset = 0;
 
     hostState.hintedLetters = {};
@@ -1070,7 +1070,7 @@
     h.changeLeft[teamIdx]--;
     h.rev++;
     hostLoadWord(h.bag.pick(h.target));
-    const round = Core.changedRound(h.wordLength);
+    const round = Core.changedRound(h.wordLength, h.spaceIndexes);
     h.maxAttempts = round.maxAttempts;
     h.attemptOffset = round.attemptOffset;
     h.guesses = [];

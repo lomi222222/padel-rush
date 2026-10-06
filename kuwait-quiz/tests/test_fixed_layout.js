@@ -34,10 +34,9 @@ const VIEWPORTS = [
 // لازم تسع كاملة) · وأطول كلمة بالبنك كله.
 const { WORDS } = require("../js/words.js");
 
-// نفس حساب Core.attemptsForLength، و`wordLength` عنده = `targetChars.length`
-// **بالمسافات** (‏js/wordle.js: wordLength = targetChars.length) — المسافة خانة
-// بالشبكة مثلها مثل الحرف. شيلها هني يعطي رقماً أقل بصف للعناوين المركّبة
-const attemptsFor = (w) => 3 + Math.ceil((Math.max(w.length, 1) - 1) / 2);
+// نفس حساب Core.attemptsForWord: **الحروف بس**، والمسافة بين كلمات العنوان ما
+// تنحسب (قرار صاحب المشروع — كانت تنحسب فيطلع «٩ أحرف خلال ٨ محاولات»)
+const attemptsFor = (w) => 3 + Math.ceil((Math.max(w.replace(/ /g, "").length, 1) - 1) / 2);
 const ranked = WORDS.map((w) => ({ ...w, rows: attemptsFor(w.word) })).sort((a, b) => a.rows - b.rows);
 const pick = (label, item, kind) => [item.word, item.category, kind, label, item.rows];
 

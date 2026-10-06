@@ -415,7 +415,7 @@
     changeLeft[w]--;
 
     loadWord(wordBag.pick(target));
-    ({ maxAttempts, attemptOffset } = Core.changedRound(wordLength));
+    ({ maxAttempts, attemptOffset } = Core.changedRound(wordLength, spaceIndexes));
     guesses = [];
     keyStatus = {};
     hints = Core.newHints();
@@ -478,7 +478,7 @@
 
   function startRound() {
     loadWord(wordBag.pick(target));
-    maxAttempts = Core.attemptsForLength(wordLength);
+    maxAttempts = Core.attemptsForWord(wordLength, spaceIndexes);
     attemptOffset = 0;
 
     currentGuess = [];

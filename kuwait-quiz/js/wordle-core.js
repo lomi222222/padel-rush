@@ -79,8 +79,8 @@
   // نفس السلّم العادي
   const CHANGE_ATTEMPT_PENALTY = 1;
 
-  function changedRound(newWordLength) {
-    return { maxAttempts: attemptsForLength(newWordLength), attemptOffset: CHANGE_ATTEMPT_PENALTY };
+  function changedRound(wordLength, spaceIndexes) {
+    return { maxAttempts: attemptsForWord(wordLength, spaceIndexes), attemptOffset: CHANGE_ATTEMPT_PENALTY };
   }
 
   // مدة الجولة (بالثواني) — 0 يعني بدون وقت، و CUSTOM_TIME يفتح حقل رقم بالدقائق
@@ -199,8 +199,18 @@
   }
 
   // كل حرفين زيادة = محاولة زيادة: ٣←٤، ٤و٥←٥، ٦و٧←٦، ٨و٩←٧ ...
-  function attemptsForLength(wordLength) {
-    return 3 + Math.ceil((Math.max(wordLength, 1) - 1) / 2);
+  // المعامل عدد **الحروف**، مو خانات الشبكة
+  function attemptsForLength(letters) {
+    return 3 + Math.ceil((Math.max(letters, 1) - 1) / 2);
+  }
+
+  // محاولات كلمة بخاناتها: المسافة بين كلمات العنوان تنعبّى لحالها، فما تنحسب.
+  // كانت تنحسب حرفاً، فـ«دراغون بول» (٩ أحرف) تاخذ محاولات كلمة ١٠ — والسطر
+  // يقول «٩ أحرف خلال ٨ محاولات»، وصاحب المشروع لقاها رقم غلط بعد «غيّر السؤال».
+  // قراره: الحروف بس (١٦١ عنوان نقصت محاولة)
+  function attemptsForWord(wordLength, spaceIndexes) {
+    const spaces = spaceIndexes instanceof Set ? spaceIndexes.size : (spaceIndexes || []).length;
+    return attemptsForLength(wordLength - spaces);
   }
 
   function spaceIndexesOf(targetChars) {
@@ -494,6 +504,7 @@
     shuffle,
     makeWordBag,
     attemptsForLength,
+    attemptsForWord,
     spaceIndexesOf,
     makeGuessBuffer,
     writeAt,

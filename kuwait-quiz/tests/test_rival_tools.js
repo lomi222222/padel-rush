@@ -75,9 +75,10 @@ const text = (page, sel) => page.$eval(sel, (e) => e.textContent);
 const visible = (page, sel) => page.$eval(sel, (e) => !e.classList.contains("hidden"));
 const scores = (page, prefix) =>
   page.$$eval("#" + prefix + "-scoreboard .team-chip .score", (els) => els.map((e) => e.textContent));
-// صفوف الكلمة الجديدة بعد التغيير: عددها العادي ناقص وحدة
+// صفوف الكلمة الجديدة بعد التغيير: عددها العادي ناقص وحدة. الحروف بس، فلو طلع
+// عنوان من كلمتين ما تنحسب المسافة
 const changedRows = (page, word) =>
-  page.evaluate((w) => WordleCore.attemptsForLength(Array.from(w).length) - 1, word);
+  page.evaluate((w) => WordleCore.attemptsForLength(Array.from(w).filter((c) => c !== " ").length) - 1, word);
 const expected = (page, attempt, max) =>
   page.evaluate(({ a, m }) => WordleCore.finalScoreForAttempt(a, m, WordleCore.newHints()), { a: attempt, m: max });
 
